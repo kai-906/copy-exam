@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#0f172a">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Portal - Smart Exam Client</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 flex items-center justify-center min-h-screen">
+  <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-lg">
+    
+    <h2 class="text-2xl font-bold text-center text-slate-800 mb-1">Student Exam Entry</h2>
+    <p class="text-xs text-center text-slate-500 mb-6">Enter candidate credentials and Exam Access Key to enter examination</p>
+
+    <div id="alert-box" class="hidden px-4 py-2 rounded mb-4 text-xs font-semibold bg-red-100 border border-red-400 text-red-700"></div>
+
+    <form id="student-entry-form" class="space-y-3">
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Full Name</label>
+          <input type="text" id="stu-name" required placeholder="John Doe" class="w-full px-3 py-2 border rounded-md text-sm">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Roll Number</label>
+          <input type="text" id="stu-roll" required placeholder="2400906" class="w-full px-3 py-2 border rounded-md text-sm">
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Branch</label>
+          <input type="text" id="stu-branch" required placeholder="Civil / CS" class="w-full px-3 py-2 border rounded-md text-sm">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Year</label>
+          <input type="text" id="stu-year" required placeholder="3rd Year" class="w-full px-3 py-2 border rounded-md text-sm">
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Email</label>
+        <input type="email" id="stu-email" required placeholder="student@example.com" class="w-full px-3 py-2 border rounded-md text-sm">
+      </div>
+
+      <div>
+        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Password</label>
+        <input type="password" id="stu-pass" required placeholder="••••••••" class="w-full px-3 py-2 border rounded-md text-sm">
+      </div>
+
+      <div>
+        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Exam Access Key / ID <span class="text-slate-400 font-normal">(optional)</span></label>
+        <input type="text" id="stu-exam-id" placeholder="Paste Exam ID — leave blank to go to Dashboard" class="w-full px-3 py-2 border rounded-md text-sm font-mono">
+      </div>
+
+      <button type="submit" class="w-full bg-blue-600 text-white py-2.5 rounded-md hover:bg-blue-700 font-semibold text-sm transition mt-2">Proceed to Verification &amp; Rules →</button>
+      <div class="flex items-center justify-between mt-2 text-xs">
+        <label class="flex items-center gap-1.5 text-slate-400 cursor-pointer">
+          <input type="checkbox" class="rounded border-slate-700 bg-slate-800 text-blue-500 focus:ring-blue-500">
+          Remember me
+        </label>
+        <a href="forgot-password.html" class="text-blue-400 hover:text-blue-300 font-semibold">Forgot Password?</a>
+      </div>
+      <p class="text-center text-xs text-slate-400 mt-2">Don't have an account? <a href="register.html" class="text-blue-600 hover:underline font-semibold">Register here</a></p>
+    </form>
+  </div>
+
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const key = urlParams.get('key');
+      if (key) {
+        document.getElementById('stu-exam-id').value = key;
+      }
+
+      // Listen for Electron deep-link auto-fill
+      if (typeof require !== 'undefined') {
+        try {
+          const { ipcRenderer } = require('electron');
+          ipcRenderer.on('auto-fill-key', (event, examKey) => {
+            if (examKey) document.getElementById('stu-exam-id').value = examKey;
+          });
+        } catch (e) {}
+      }
+    });
+
+    // ← Change this to your deployed server URL after deployment
+    const PRODUCTION_SERVER = 'http://localhost:5000';
+    const API_BASE = (window.location.protocol === 'file:' || !window.location.origin || window.location.origin === 'null')
+      ? `${PRODUCTION_SERVER}/api`
+      : `${window.location.origin}/api`;
+
+    const getApiUrl = (path) => `${API_BASE}${path}`;
+
+    document.getElementById('student-entry-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const alertBox = document.getElementById('alert-box');
+      alertBox.classList.add('hidden');
+
+      const name = document.getElementById('stu-name').value.trim();
+      const rollNumber = document.getElementById('stu-roll').value.trim();
+      const branch = document.getElementById('stu-branch').value.trim();
+      const year = document.getElementById('stu-year').value.trim();
+      const email = document.getElementById('stu-email').value.trim();
+      const password = document.getElementById('stu-pass').value;
+      let rawExamId = document.getElementById('stu-exam-id').value.trim();
+
+      if (rawExamId.includes('key=')) {
+        rawExamId = rawExamId.split('key=')[1].split('&')[0];
+      }
+
+      try {
+        // Step 1: Auto-register student (silently proceeds if user already exists)
+        try {
+          await fetch(getApiUrl('/auth/student/register'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password, name, roll_number: rollNumber, branch, year })
+          });
+        } catch (regErr) {}
+
+        // Step 2: Login Student
+        const loginRes = await fetch(getApiUrl('/auth/student/login'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ roll_number: rollNumber, password })
+        });
+
+        const loginData = await loginRes.json();
+
+        if (!loginRes.ok) {
+          throw new Error(loginData.error || 'Login failed. Please check credentials.');
+        }
+
+        // Store tokens across all keys for seamless client script compatibility
+        localStorage.setItem('student_token', loginData.token);
+        localStorage.setItem('token', loginData.token);
+        localStorage.setItem('studentToken', loginData.token);
+        if (loginData.student) {
+          localStorage.setItem('student_user', JSON.stringify(loginData.student));
+        }
+
+        // Step 3: Route conditionally based on whether Exam ID was provided
+        if (rawExamId) {
+          localStorage.setItem('active_exam_id', rawExamId);
+          window.location.href = 'rules.html';
+        } else {
+          localStorage.removeItem('active_exam_id');
+          window.location.href = 'dashboard.html';
+        }
+      } catch (err) {
+        alertBox.textContent = err.message || 'Connection error with backend server.';
+        alertBox.classList.remove('hidden');
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Dashboard — SmartExam</title>
+  <link rel="stylesheet" href="css/custom.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    /* ── Tab switching ── */
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    .nav-item { cursor: pointer; }
+    .nav-item.active {
+      color: #ffffff;
+      background: linear-gradient(135deg, rgba(2,132,199,0.25), rgba(14,165,233,0.1));
+      border-color: rgba(56,189,248,0.3);
+      font-weight: 600;
+    }
+
+    /* ── Enter exam prompt modal ── */
+    .exam-modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.7); backdrop-filter: blur(6px);
+      align-items: center; justify-content: center; z-index: 200;
+    }
+    .exam-modal-overlay.open { display: flex; }
+    .exam-modal-box {
+      background: #1e293b; border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 16px; padding: 2rem; width: 100%; max-width: 440px;
+      box-shadow: 0 25px 50px rgba(0,0,0,0.6);
+    }
+    .exam-modal-box h3 { font-size: 1.15rem; margin: 0 0 0.4rem; color: #f1f5f9; }
+    .exam-modal-box p  { font-size: 0.82rem; color: #94a3b8; margin: 0 0 1.25rem; }
+    .exam-key-input {
+      width: 100%; padding: 12px 14px;
+      background: rgba(15,23,42,0.8); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px; color: #f8fafc; font-size: 1rem;
+      font-family: 'Courier New', monospace; font-weight: 700;
+      letter-spacing: 0.08em; outline: none; box-sizing: border-box;
+      transition: border-color 0.2s;
+    }
+    .exam-key-input:focus { border-color: #38bdf8; box-shadow: 0 0 0 3px rgba(56,189,248,0.15); }
+    .modal-btn-row { display: flex; gap: 0.75rem; margin-top: 1rem; }
+    .modal-btn-row button { flex: 1; padding: 0.7rem; border-radius: 8px; font-weight: 700; font-size: 0.88rem; cursor: pointer; border: none; transition: opacity 0.2s; }
+    .modal-btn-row button:hover { opacity: 0.88; }
+    .btn-cancel-modal { background: #334155; color: #94a3b8; }
+    .btn-start-modal  { background: linear-gradient(135deg,#0284c7,#0369a1); color: #fff; }
+
+    /* ── Score result card ── */
+    .result-card {
+      background: var(--bg-card); border: 1px solid var(--border-color);
+      border-radius: 14px; padding: 1.1rem 1.35rem;
+      display: grid; grid-template-columns: 1fr auto;
+      align-items: center; gap: 1rem;
+      transition: background 0.2s;
+    }
+    .result-card:hover { background: rgba(30,41,59,0.7); }
+    .result-card .rc-title { font-size: 0.92rem; font-weight: 600; color: #f1f5f9; margin-bottom: 3px; }
+    .result-card .rc-meta  { font-size: 0.75rem; color: #64748b; }
+    .result-card .rc-score { font-size: 1.55rem; font-weight: 800; font-family: 'Outfit', sans-serif; }
+    .rc-score.pass  { color: #34d399; }
+    .rc-score.fail  { color: #f87171; }
+    .rc-score.pending { color: #fbbf24; }
+
+    /* ── Empty state ── */
+    .empty-state {
+      text-align: center; padding: 3rem 1rem; color: #475569;
+    }
+    .empty-state .empty-icon { font-size: 2.8rem; margin-bottom: 0.75rem; }
+    .empty-state p { font-size: 0.88rem; }
+
+    /* ── Profile tab ── */
+    .profile-field { margin-bottom: 1.15rem; }
+    .profile-field label { display: block; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; margin-bottom: 5px; }
+    .profile-field .pf-value { font-size: 0.95rem; color: #e2e8f0; font-weight: 500; }
+
+    /* ── Stat card accent colors ── */
+    .stat-card.accent-blue  { border-top: 2px solid #0284c7; }
+    .stat-card.accent-green { border-top: 2px solid #10b981; }
+    .stat-card.accent-purple{ border-top: 2px solid #8b5cf6; }
+    .stat-card.accent-amber { border-top: 2px solid #f59e0b; }
+
+    /* ── Score badge in result list ── */
+    .score-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 12px; border-radius: 999px; font-size: 0.78rem; font-weight: 700;
+    }
+    .score-pill.pass   { background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.3); }
+    .score-pill.fail   { background: rgba(239,68,68,0.15);  color: #f87171; border: 1px solid rgba(239,68,68,0.3); }
+    .score-pill.ongoing{ background: rgba(245,158,11,0.15); color: #fbbf24; border: 1px solid rgba(245,158,11,0.3); }
+  </style>
+</head>
+<body class="dashboard-body">
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SIDEBAR
+  ════════════════════════════════════════════════════════════ -->
+  <aside class="dashboard-sidebar">
+    <div>
+      <div class="brand-logo">
+        <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+          <rect width="26" height="26" rx="7" fill="#0284c7"/>
+          <path d="M7 13h5l2-6 3 12 2-6h4" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <h3>SmartExam AI</h3>
+      </div>
+
+      <nav class="nav-menu">
+        <a class="nav-item active" data-tab="tab-dashboard">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+          Dashboard
+        </a>
+        <a class="nav-item" data-tab="tab-results">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+          Results &amp; History
+        </a>
+        <a class="nav-item" data-tab="tab-profile">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          My Profile
+        </a>
+      </nav>
+    </div>
+
+    <!-- User profile widget at bottom -->
+    <div>
+      <div class="user-profile-widget">
+        <img id="userAvatar"
+          src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Ccircle cx='20' cy='20' r='20' fill='%231e293b'/%3E%3Ccircle cx='20' cy='16' r='7' fill='%2338bdf8'/%3E%3Cellipse cx='20' cy='34' rx='12' ry='8' fill='%2338bdf8'/%3E%3C/svg%3E"
+          alt="Avatar" class="user-avatar-img">
+        <div class="user-info">
+          <p id="sidebarName" class="user-name">—</p>
+          <span id="sidebarRoll" class="user-roll">Loading…</span>
+        </div>
+        <button id="btnLogout" class="btn-logout" title="Logout">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       MAIN CONTENT
+  ════════════════════════════════════════════════════════════ -->
+  <main class="dashboard-main">
+
+    <!-- ── Top bar ── -->
+    <header class="dash-header">
+      <div>
+        <h2 id="pageTitle">Dashboard</h2>
+        <p id="pageSubtitle">Welcome back! Here's your exam performance overview.</p>
+      </div>
+      <button id="btnEnterExam" class="btn btn-blue">
+        <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 4v16m8-8H4"/></svg>
+        Enter Exam
+      </button>
+    </header>
+
+    <!-- ════════════════ TAB: DASHBOARD ════════════════ -->
+    <div id="tab-dashboard" class="tab-panel active">
+
+      <!-- Stats row -->
+      <section class="stats-grid" style="margin-bottom:2rem;">
+        <div class="stat-card accent-blue">
+          <h4>Total Exams</h4>
+          <p class="stat-number" id="statTotalExams">—</p>
+        </div>
+        <div class="stat-card accent-green">
+          <h4>Average Score</h4>
+          <p class="stat-number text-green" id="statAvgScore">—</p>
+        </div>
+        <div class="stat-card accent-purple">
+          <h4>Pass Rate</h4>
+          <p class="stat-number text-purple" id="statPassRate">—</p>
+        </div>
+        <div class="stat-card accent-amber">
+          <h4>Last Score</h4>
+          <p class="stat-number text-amber" id="statLastScore">—</p>
+        </div>
+      </section>
+
+      <!-- Chart + recent results -->
+      <section class="charts-section">
+        <div class="chart-card">
+          <h3>Score History</h3>
+          <div class="chart-container"><canvas id="performanceChart"></canvas></div>
+        </div>
+
+        <div class="skills-card" style="overflow-y:auto;">
+          <h3 style="margin-bottom:0.9rem;">Recent Results</h3>
+          <div id="recentResultsList" style="display:flex;flex-direction:column;gap:0.65rem;">
+            <div class="empty-state">
+              <div class="empty-icon">📋</div>
+              <p>Loading results…</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- ════════════════ TAB: RESULTS ════════════════ -->
+    <div id="tab-results" class="tab-panel">
+      <div class="history-section">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;">
+          <h3 style="margin:0;">All Exam Results</h3>
+          <span id="resultCount" style="font-size:0.78rem;color:#64748b;"></span>
+        </div>
+        <div class="table-responsive">
+          <table class="custom-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Exam Name</th>
+                <th>Date</th>
+                <th>Score</th>
+                <th>Status</th>
+                <th>Details</th>
+              </tr>
+            </thead>
+            <tbody id="resultsTableBody">
+              <tr><td colspan="6" class="text-center py-4 text-muted">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════ TAB: PROFILE ════════════════ -->
+    <div id="tab-profile" class="tab-panel">
+      <div style="max-width:540px;">
+        <div class="history-section">
+          <div style="display:flex;align-items:center;gap:1.25rem;margin-bottom:1.75rem;padding-bottom:1.25rem;border-bottom:1px solid rgba(255,255,255,0.06);">
+            <img id="profileAvatar"
+              src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 80'%3E%3Ccircle cx='40' cy='40' r='40' fill='%231e293b'/%3E%3Ccircle cx='40' cy='32' r='14' fill='%2338bdf8'/%3E%3Cellipse cx='40' cy='68' rx='24' ry='16' fill='%2338bdf8'/%3E%3C/svg%3E"
+              alt="Profile"
+              style="width:72px;height:72px;border-radius:50%;border:3px solid rgba(56,189,248,0.4);object-fit:cover;">
+            <div>
+              <p id="profileName" style="font-size:1.2rem;font-weight:700;color:#f1f5f9;margin:0;">—</p>
+              <p id="profileRoll" style="font-size:0.82rem;color:#64748b;margin:4px 0 0;">Roll: —</p>
+            </div>
+          </div>
+
+          <div class="profile-field">
+            <label>Email Address</label>
+            <div class="pf-value" id="profileEmail">—</div>
+          </div>
+          <div class="profile-field">
+            <label>Branch / Department</label>
+            <div class="pf-value" id="profileBranch">—</div>
+          </div>
+          <div class="profile-field">
+            <label>Year of Study</label>
+            <div class="pf-value" id="profileYear">—</div>
+          </div>
+          <div class="profile-field">
+            <label>Total Exams Attempted</label>
+            <div class="pf-value" id="profileExamCount">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       ENTER EXAM MODAL
+  ════════════════════════════════════════════════════════════ -->
+  <div id="examModal" class="exam-modal-overlay">
+    <div class="exam-modal-box">
+      <h3>🔐 Enter Exam Access Key</h3>
+      <p>Paste the 6-digit key or full exam link shared by your teacher.</p>
+      <input id="examKeyInput" class="exam-key-input" type="text"
+             placeholder="e.g.  A3F9Z2  or  full link…" autocomplete="off" spellcheck="false">
+      <p id="examModalError" style="font-size:0.78rem;color:#f87171;margin:6px 0 0;min-height:16px;"></p>
+      <div class="modal-btn-row">
+        <button class="btn-cancel-modal" id="btnCancelModal">Cancel</button>
+        <button class="btn-start-modal"  id="btnConfirmExam">Proceed to Rules →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       ANALYSIS MODAL
+  ════════════════════════════════════════════════════════════ -->
+  <div id="analysisModal" class="modal-overlay">
+    <div class="modal-box">
+      <h3 class="modal-title">📊 Exam Analysis</h3>
+      <div class="modal-body" id="analysisBody">—</div>
+      <div class="modal-actions">
+        <button class="btn btn-outline" onclick="document.getElementById('analysisModal').classList.remove('open')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/dashboard.js"></script>
+</body>
+</html>

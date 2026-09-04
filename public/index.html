@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Exam System - AI Proctored CBT Platform</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&subset=latin");
+    body { font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif; }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col justify-between selection:bg-blue-600 selection:text-white">
+
+  <!-- Navbar -->
+  <header class="border-b border-slate-800/80 bg-slate-900/80 backdrop-blur sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center font-black text-xl text-white shadow-lg shadow-blue-500/20">
+          ♪
+        </div>
+        <div>
+          <span class="text-lg font-bold text-white tracking-tight">Smart Exam <span class="text-blue-400">System</span></span>
+          <span class="block text-[10px] uppercase font-bold tracking-widest text-slate-400">AIProctored CBT Platform</span>
+        </div>
+      </div>
+      <div class="flex items-center space-x-4 text-xs font-semibold">
+        <span class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> System Online
+        </span>
+        <a href="/teacher/login.html" class="text-slate-300 hover:text-white transition">Teacher Login</a>
+        <a href="/student-app/renderer/index.html" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg transition shadow-md shadow-blue-600/30">Enter Exam</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <main class="max-w-6xl mx-auto px-6 py-12 flex-grow flex flex-col justify-center">
+    <div class="text-center space-y-4 max-w-3xl mx-auto mb-12">
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-medium">
+        <span>🛡��� Anti-Cheating & AI Proctored CBT System</span>
+      </div>
+      <h1 class="text-4xl md:text-5xl font-extrabold text-white tracking-tight leading-tight">
+        Secure, Smart & Seamless <span class="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400">Online Examination</span>
+      </h1>
+      <p class="text-sm md:text-base text-slate-400 max-w-2xl mx-auto">
+        Fully automated Computer-Based Testing suite with PDF MCQ extraction, randomized subsets, real-time camera proctoring, and instant grading analytics.
+      </p>
+    </div>
+
+    <!-- Portal Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto w-full">
+      
+      <!-- Teacher Card -->
+      <div class="bg-slate-800/60 border border-slate-700/80 rounded-2xl p-7 shadow-xl hover:border-blue-500/50 transition duration-300 flex flex-col justify-between group">
+        <div class="space-y-3">
+          <div class="w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-2xl group-hover:scale-110 transition duration-300">
+            🎉
+          </div>
+          <h2 class="text-xl font-bold text-white">Teacher & Admin Portal</h2>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            Upload question bank PDFs, edit questions, schedule randomized exams, monitor candidates live, and export grades in Excel/PDF/Word.
+          </p>
+          <ul class="text-xs text-slate-300 space-y-1.5 pt-2">
+            <li class="flex items-center gap-2"><span class="text-blue-400">✆</span> Offline PDFinspection & Parsing</li>
+            <li class="flex items-center gap-2"><span class="text-blue-400">✓</span> Live WebSocket Violation Alerts</li>
+            <li class="flex items-center gap-2"><span class="text-blue-400">✆</span> Multi-Format Results Export</li>
+          </ul>
+        </div>
+        <div class="pt-6 border-t border-slate-700/50 mt-6 flex gap-3">
+          <a href="/teacher/login.html" class="flex-1 text-center bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2.5 rounded-xl text-xs transition shadow-lg shadow-blue-600/20">
+            Teacher Login / Dashboard →
+          </a>
+          <a href="/teacher/live-monitor.html" class="px-3.5 py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-200 font-semibold rounded-xl text-xs transition">
+            Live Monitor
+          </a>
+        </div>
+      </div>
+
+      <!-- Student Card -->
+      <div class="bg-slate-800/60 border border-slate-700/80 rounded-2xl p-7 shadow-xl hover:border-emerald-500/50 transition duration-300 flex flex-col justify-between group">
+        <div class="space-y-3">
+          <div class="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-2xl group-hover:scale-110 transition duration-300">
+            ☍
+          </div>
+          <h2 class="text-xl font-bold text-white">Student Exam Portal</h2>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            Enter your Exam Access Key, verify your camera proctoring feed, review exam guidelines, and take your Cet test.
+          </p>
+          <ul class="text-xs text-slate-300 space-y-1.5 pt-2">
+            <li class="flex items-center gap-2"><span class="text-emerald-400">✆</span> Deterministic Randomized Papers</li>
+            <li class="flex items-center gap-2"><span class="text-emerald-400">✆</span> Real-Time Answer Saving & Palette</li>
+            <li class="flex items-center gap-2"><span class="text-emerald-400">✆</span> Instant Scoring & Dashboard</li>
+          </ul>
+        </div>
+        <div class="pt-6 border-t border-slate-700/50 mt-6 flex gap-3">
+          <a href="/student-app/renderer/index.html" class="flex-1 text-center bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2.5 rounded-xl text-xs transition shadow-lg shadow-emerald-600/20">
+            Enter Exam Client →
+          </a>
+          <a id="app-download-btn" href="#" download class="px-3.5 py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-200 font-semibold rounded-xl text-xs transition" title="Download Exam App">
+            📥 App
+          </a>
+          <script>
+            (function() {
+              var btn = document.getElementById('app-download-btn');
+              var isAndroid = /android/i.test(navigator.userAgent);
+              var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+              if (isAndroid) {
+                btn.href = '/downloads/app-release.apk';
+                btn.textContent = '📥 .apk';
+                btn.title = 'Download Android App';
+              } else if (isIOS) {
+                btn.href = '#';
+                btn.textContent = '📱 iOS';
+                btn.title = 'iOS app coming soon';
+                btn.onclick = function(e) { e.preventDefault(); alert('iOS version coming soon!'); };
+              } else {
+                btn.href = '/downloads/student-app.exe';
+                btn.textContent = '📥 .exe';
+                btn.title = 'Download Windows Exam App';
+              }
+            })();
+          </script>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Quick Link Bar -->
+    <div class="mt-10 bg-slate-800/30 border border-slate-800 rounded-xl p-4 max-w-4xl mx-auto w-full flex flex-wrap items-center justify-between gap-4 text-xs">
+      <div class="flex items-center gap-3">
+        <span class="font-mono font-bold text-slate-400 uppercase text-[11px]">System Portals:</span>
+        <a href="/teacher/login.html" class="text-blue-400 hover:underline">Teacher Login</a>
+        <span class="text-slate-600">•</span>
+        <a href="/student-app/renderer/register.html" class="text-slate-300 hover:text-white">Student Registration</a>
+        <span class="text-slate-600">•</span>
+        <a href="/student-app/renderer/dashboard.html" class="text-slate-300 hover:text-white">Student Dashboard</a>
+        <span class="text-slate-600">•</span>
+        <a href="/launch-exam" class="text-purple-400 hover:underline">App Launcher</a>
+      </div>
+      <div class="text-slate-400 text-[11px]">
+        Server Port: <span class="font-mono text-slate-200 font-bold">5000</span> | SQLite WAL Engine
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-slate-800 py-6 text-center text-xs text-slate-500">
+    <p>© 2026 Smart Exam System. Proctored CBT Assessments.</p>
+  </footer>
+
+</body>
+</html>

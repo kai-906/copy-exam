@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Question Bank Editor - Smart Exam System</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 min-h-screen text-slate-800">
+
+  <!-- Top Action Navigation Bar -->
+  <nav class="bg-slate-900 text-white px-6 py-4 flex justify-between items-center shadow sticky top-0 z-10">
+    <div class="flex items-center space-x-4">
+      <a href="/teacher/dashboard.html" class="text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-1.5 rounded font-medium transition">← Back to Dashboard</a>
+      <h1 class="text-base font-bold">Question Bank Editor</h1>
+    </div>
+    <div class="flex items-center space-x-2">
+      <!-- File Upload / Append Button inside Editor -->
+      <button id="append-file-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-1.5 rounded text-xs font-semibold shadow-sm transition flex items-center gap-1.5">
+        <span>📤</span> Append PDF Document
+      </button>
+      <button id="add-new-q-btn" class="bg-green-600 hover:bg-green-700 text-white px-3.5 py-1.5 rounded text-xs font-semibold shadow-sm transition flex items-center gap-1.5">
+        <span>+</span> Add Manual Question
+      </button>
+    </div>
+  </nav>
+
+  <!-- Append File Modal (Strictly PDF Support) -->
+  <div id="append-modal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div class="bg-white p-6 rounded-lg shadow-xl max-w-lg w-full space-y-4">
+      <div class="flex justify-between items-center border-b pb-2">
+        <h3 class="font-bold text-sm text-slate-800">Upload & Append PDF to Current Question Bank</h3>
+        <button id="cancel-append-btn" class="text-xs text-slate-400 hover:text-slate-700">✕ Close</button>
+      </div>
+      <p class="text-xs text-slate-500">Supports PDF files (.pdf) only. Extracted questions will be automatically parsed and appended to this Question Bank.</p>
+
+      <form id="append-file-form" class="space-y-3">
+        <input type="file" id="append-file-input" accept=".pdf" required class="w-full text-xs border p-2.5 rounded bg-slate-50">
+        <div class="flex justify-end space-x-2 pt-2">
+          <button type="button" id="close-modal-btn" class="px-4 py-2 bg-slate-200 text-xs font-semibold rounded hover:bg-slate-300">Cancel</button>
+          <button type="submit" class="px-5 py-2 bg-indigo-600 text-white text-xs font-semibold rounded hover:bg-indigo-700">Upload & Parse PDF</button>
+        </div>
+      </form>
+      <div id="append-status-msg" class="text-xs font-bold text-indigo-600"></div>
+    </div>
+  </div>
+
+  <main class="max-w-4xl mx-auto py-8 px-4">
+    <!-- Manual Question Addition Form Card -->
+    <div id="add-q-card" class="hidden bg-white p-6 rounded-lg shadow-md border border-slate-300 mb-6 space-y-4">
+      <div class="flex justify-between items-center border-b pb-2">
+        <h2 class="font-bold text-slate-800 text-sm">Add New Question</h2>
+        <button id="cancel-add-btn" class="text-xs text-slate-500 hover:text-slate-800">Cancel</button>
+      </div>
+
+      <div>
+        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Select Question Type</label>
+        <select id="new-q-type" class="w-full border rounded-md p-2 text-sm bg-slate-50 border-slate-300">
+          <option value="MCQ">Objective Type (MCQ - Multiple Choice)</option>
+          <option value="FILL_BLANK">Fill in the Blanks</option>
+          <option value="SHORT_ANSWER">One Word / Short Answer</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Question Text</label>
+        <textarea id="new-q-text" class="w-full border rounded-md p-2.5 text-sm border-slate-300" rows="2" placeholder="Enter question description..."></textarea>
+      </div>
+
+      <div>
+        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Question Image (Optional Diagram/Photo)</label>
+        <input type="text" id="new-q-image" class="w-full border rounded-md p-2 text-sm border-slate-300" placeholder="Paste Image URL (e.g., https://domain.com/diagram.png)">
+      </div>
+
+      <!-- MCQ Options Box: Hidden by Default unless MCQ is selected -->
+      <div id="mcq-options-box" class="grid grid-cols-2 gap-3 text-xs">
+        <div><label class="text-slate-500">Option 1</label><input type="text" id="new-opt-0" class="w-full border p-2 rounded mt-0.5" placeholder="Option A"></div>
+        <div><label class="text-slate-500">Option 2</label><input type="text" id="new-opt-1" class="w-full border p-2 rounded mt-0.5" placeholder="Option B"></div>
+        <div><label class="text-slate-500">Option 3</label><input type="text" id="new-opt-2" class="w-full border p-2 rounded mt-0.5" placeholder="Option C"></div>
+        <div><label class="text-slate-500">Option 4</label><input type="text" id="new-opt-3" class="w-full border p-2 rounded mt-0.5" placeholder="Option D"></div>
+      </div>
+
+      <div class="flex justify-between items-center pt-2 border-t text-xs">
+        <div>
+          <label class="font-bold text-slate-700">Expected Correct Answer:</label>
+          <input type="text" id="new-ans" class="border border-slate-300 p-1.5 rounded ml-2 font-mono" placeholder="Matching answer text">
+        </div>
+        <button id="save-new-q-btn" class="bg-green-600 text-white px-5 py-2 rounded font-semibold text-xs hover:bg-green-700">Save Question</button>
+      </div>
+    </div>
+
+    <!-- Questions Container -->
+    <div id="questions-list" class="space-y-4">
+      <p class="text-sm text-slate-500 text-center py-8">Loading bank questions...</p>
+    </div>
+  </main>
+
+  <script src="/js/api.js"></script>
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const bankId = urlParams.get('bankId');
+
+    const addCard = document.getElementById('add-q-card');
+    const qTypeSelect = document.getElementById('new-q-type');
+    const mcqBox = document.getElementById('mcq-options-box');
+
+    const appendModal = document.getElementById('append-modal');
+    const appendBtn = document.getElementById('append-file-btn');
+    const cancelAppendBtn = document.getElementById('cancel-append-btn');
+    const closeModalBtn = document.getElementById('close-modal-btn');
+
+    // Toggle Modal Display
+    appendBtn.addEventListener('click', () => appendModal.classList.remove('hidden'));
+    cancelAppendBtn.addEventListener('click', () => appendModal.classList.add('hidden'));
+    closeModalBtn.addEventListener('click', () => appendModal.classList.add('hidden'));
+
+    // Manual Question Controls
+    document.getElementById('add-new-q-btn').addEventListener('click', () => addCard.classList.remove('hidden'));
+    document.getElementById('cancel-add-btn').addEventListener('click', () => addCard.classList.add('hidden'));
+
+    // Option Box Visibility toggle based on Question Type selection
+    qTypeSelect.addEventListener('change', () => {
+      mcqBox.style.display = qTypeSelect.value === 'MCQ' ? 'grid' : 'none';
+    });
+
+    // Fetch and Load All Questions in Bank
+    async function loadQuestions() {
+      if (!bankId) {
+        alert('No Question Bank ID specified');
+        window.location.href = '/teacher/dashboard.html';
+        return;
+      }
+
+      try {
+        const res = await Api.getBankQuestions(bankId);
+        const container = document.getElementById('questions-list');
+        container.innerHTML = '';
+
+        if (!res.questions || res.questions.length === 0) {
+          container.innerHTML = `<div class="bg-white p-6 rounded-lg text-center text-slate-500 text-sm border">No questions found in this Question Bank. Use buttons above to upload a PDF or add questions manually.</div>`;
+          return;
+        }
+
+        res.questions.forEach((q, idx) => {
+          let opts = [];
+          try { opts = typeof q.options === 'string' ? JSON.parse(q.options || '[]') : (q.options || []); } catch(e){ opts = []; }
+
+          const card = document.createElement('div');
+          card.className = "bg-white p-5 rounded-lg shadow-sm border border-slate-200 space-y-3";
+          card.innerHTML = `
+            <div class="flex justify-between items-center border-b pb-2">
+              <span class="font-bold text-slate-800 text-sm">Question ${idx + 1}</span>
+              <div class="flex items-center space-x-3">
+                <select id="type-${q.id}" onchange="toggleCardType('${q.id}')" class="border text-xs rounded p-1 font-semibold bg-slate-50">
+                  <option value="MCQ" ${q.question_type === 'MCQ' ? 'selected' : ''}>MCQ</option>
+                  <option value="FILL_BLANK" ${q.question_type === 'FILL_BLANK' ? 'selected' : ''}>Fill in Blank</option>
+                  <option value="SHORT_ANSWER" ${q.question_type === 'SHORT_ANSWER' ? 'selected' : ''}>Short Answer</option>
+                </select>
+                <button onclick="deleteQ('${q.id}')" class="text-xs text-red-600 font-semibold hover:underline">Delete</button>
+              </div>
+            </div>
+            
+            <textarea id="text-${q.id}" class="w-full border rounded-md p-2 text-sm border-slate-300">${q.question_text || ''}</textarea>
+
+            <div>
+              <label class="block text-xs text-slate-500 mb-1 font-medium">Image URL (Optional Diagram/Question Image):</label>
+              <input type="text" id="img-${q.id}" value="${q.image_url || ''}" placeholder="https://..." class="w-full border p-1.5 rounded text-xs">
+            </div>
+
+            <!-- Dynamic Options Grid per Card -->
+            <div id="opts-grid-${q.id}" class="grid grid-cols-2 gap-2 text-xs" style="display: ${q.question_type === 'MCQ' ? 'grid' : 'none'};">
+              ${[0,1,2,3].map(i => `
+                <div>
+                  <label class="text-slate-500 font-medium">Option ${i + 1}</label>
+                  <input type="text" id="opt-${q.id}-${i}" value="${opts[i] || ''}" class="w-full border border-slate-300 p-1.5 rounded mt-0.5">
+                </div>
+              `).join('')}
+            </div>
+
+            <div class="flex justify-between items-center pt-3 border-t text-xs">
+              <div>
+                <label class="font-bold text-slate-700">Correct Answer Match:</label>
+                <input type="text" id="ans-${q.id}" value="${q.correct_answer || ''}" class="border border-slate-300 p-1.5 rounded ml-2 font-mono">
+              </div>
+              <button onclick="saveQ('${q.id}')" class="bg-blue-600 text-white px-4 py-1.5 rounded hover:bg-blue-700 font-semibold">Save Changes</button>
+            </div>
+          `;
+          container.appendChild(card);
+        });
+      } catch (err) {
+        document.getElementById('questions-list').innerHTML = `<p class="text-red-600 text-sm font-bold text-center">Failed to load questions: ${err.message}</p>`;
+      }
+    }
+
+    // Toggle Card Type Display dynamically on edit card
+    window.toggleCardType = function(qId) {
+      const selType = document.getElementById(`type-${qId}`).value;
+      const optsGrid = document.getElementById(`opts-grid-${qId}`);
+      optsGrid.style.display = selType === 'MCQ' ? 'grid' : 'none';
+    };
+
+    // Save Question Changes handler
+    async function saveQ(qId) {
+      const question_text = document.getElementById(`text-${qId}`).value;
+      const question_type = document.getElementById(`type-${qId}`).value;
+      const image_url = document.getElementById(`img-${qId}`).value;
+      const correct_answer = document.getElementById(`ans-${qId}`).value;
+      
+      const options = question_type === 'MCQ' ? [
+        document.getElementById(`opt-${qId}-0`).value,
+        document.getElementById(`opt-${qId}-1`).value,
+        document.getElementById(`opt-${qId}-2`).value,
+        document.getElementById(`opt-${qId}-3`).value
+      ] : [];
+
+      try {
+        await Api.request(`/banks/questions/${qId}`, {
+          method: 'PUT',
+          body: JSON.stringify({ question_text, question_type, options, image_url, correct_answer })
+        });
+        alert('Question saved successfully!');
+      } catch (err) {
+        alert(`Error: ${err.message}`);
+      }
+    }
+
+    // Delete Question Handler
+    async function deleteQ(qId) {
+      if (!confirm('Are you sure you want to delete this question?')) return;
+      try {
+        await Api.request(`/banks/questions/${qId}`, { method: 'DELETE' });
+        loadQuestions();
+      } catch (err) {
+        alert(`Error: ${err.message}`);
+      }
+    }
+
+    // Form submission for uploading PDF file into current Question Bank
+    document.getElementById('append-file-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const statusMsg = document.getElementById('append-status-msg');
+      const fileInput = document.getElementById('append-file-input');
+
+      if (!fileInput.files[0]) return alert('Please select a PDF file.');
+
+      statusMsg.textContent = 'Uploading and parsing PDF...';
+      const formData = new FormData();
+      formData.append('file', fileInput.files[0]);
+
+      try {
+        await Api.request(`/banks/${bankId}/append-file`, {
+          method: 'POST',
+          body: formData,
+          isFormData: true
+        });
+        statusMsg.textContent = 'PDF questions appended successfully!';
+        appendModal.classList.add('hidden');
+        document.getElementById('append-file-form').reset();
+        loadQuestions();
+      } catch (err) {
+        statusMsg.textContent = `Error: ${err.message}`;
+      }
+    });
+
+    // Save Manual Question handler
+    document.getElementById('save-new-q-btn').addEventListener('click', async () => {
+      const type = qTypeSelect.value;
+      const question_text = document.getElementById('new-q-text').value.trim();
+      const image_url = document.getElementById('new-q-image').value.trim();
+      const options = type === 'MCQ' ? [
+        document.getElementById('new-opt-0').value.trim(),
+        document.getElementById('new-opt-1').value.trim(),
+        document.getElementById('new-opt-2').value.trim(),
+        document.getElementById('new-opt-3').value.trim()
+      ].filter(Boolean) : [];
+
+      const correct_answer = document.getElementById('new-ans').value.trim();
+
+      if (!question_text) return alert('Please enter question text.');
+
+      try {
+        await Api.request('/banks/questions/manual', {
+          method: 'POST',
+          body: JSON.stringify({ bank_id: bankId, question_text, question_type: type, options, image_url, correct_answer })
+        });
+
+        alert('Question added successfully!');
+        addCard.classList.add('hidden');
+        loadQuestions();
+      } catch (err) {
+        alert(`Error: ${err.message}`);
+      }
+    });
+
+    loadQuestions();
+  </script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+node_modules/
+student-app/node_modules/
+dist/
+dist-client/
+uploads/
+*.db
+*.db-shm
+*.db-wal
+.env
+CopyExam-win32-x64/

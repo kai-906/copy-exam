@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Launching Smart Exam System...</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-white flex items-center justify-center h-screen p-4 text-center">
+
+  <div class="bg-slate-800 border border-slate-700 p-8 rounded-xl max-w-md w-full space-y-4 shadow-2xl">
+    <div class="animate-bounce text-4xl">🚀</div>
+    <h2 class="text-xl font-bold">Launching Exam Session</h2>
+    <p class="text-xs text-slate-400">Attempting to open the Smart Exam Application on your device...</p>
+
+    <div class="space-y-3 pt-4 border-t border-slate-700">
+      <button onclick="tryLaunchApp()" class="w-full bg-blue-600 hover:bg-blue-700 py-2.5 rounded-lg text-xs font-bold transition">
+        📲 Open Smart Exam App
+      </button>
+      <a id="download-app-btn" href="#" class="block w-full bg-slate-700 hover:bg-slate-600 py-2.5 rounded-lg text-xs font-semibold transition">
+        📥 Download App
+      </a>
+    </div>
+  </div>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const examKey = urlParams.get('key') || '';
+    const deepLinkUrl = `smartexam://open-exam?key=${examKey}`;
+
+    function tryLaunchApp() {
+      window.location.href = deepLinkUrl;
+    }
+
+    // Platform-based download link
+    (function() {
+      const btn = document.getElementById('download-app-btn');
+      const ua = navigator.userAgent;
+      const isAndroid = /android/i.test(ua);
+      const isIOS = /iphone|ipad|ipod/i.test(ua);
+
+      if (isAndroid) {
+        btn.href = '/downloads/app-release.apk';
+        btn.textContent = '📥 Download Android App (.apk)';
+      } else if (isIOS) {
+        btn.href = '#';
+        btn.textContent = '📱 iOS App Coming Soon';
+        btn.onclick = (e) => { e.preventDefault(); alert('iOS version coming soon!'); };
+      } else {
+        // Desktop / Laptop — Windows EXE
+        btn.href = '/downloads/student-app.exe';
+        btn.setAttribute('download', 'Smart-Exam-Student-App.exe');
+        btn.textContent = '📥 Download Windows App (.exe)';
+      }
+    })();
+
+    // Auto-launch on page load
+    window.onload = () => {
+      if (examKey) tryLaunchApp();
+    };
+  </script>
+</body>
+</html>

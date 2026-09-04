@@ -1,0 +1,12 @@
+Windows Registry Editor Version 5.00
+
+[HKEY_CLASSES_ROOT\smartexam]
+@="URL:Smart Exam Protocol"
+"URL Protocol"=""
+
+[HKEY_CLASSES_ROOT\smartexam\shell]
+
+[HKEY_CLASSES_ROOT\smartexam\shell\open]
+
+[HKEY_CLASSES_ROOT\smartexam\shell\open\command]
+@="\"C:\\Program Files\\Smart Exam Student App\\Smart Exam Student App.exe\" \"%1\""

@@ -1,0 +1,59 @@
+{
+  "name": "smart-exam-system",
+  "version": "1.0.0",
+  "description": "Smart Exam System Student Application",
+  "author": "Your Name",
+  "main": "student-app/main.js",
+  "scripts": {
+    "start": "electron .",
+    "build:win": "electron-builder --win nsis"
+  },
+  "build": {
+    "appId": "com.smartexam.studentapp",
+    "productName": "Smart Exam Student App",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "student-app/**/*"
+    ],
+    "protocols": [
+      {
+        "name": "Smart Exam Deep Link",
+        "schemes": [
+          "smartexam"
+        ]
+      }
+    ],
+    "win": {
+      "target": "nsis"
+    }
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.5.1",
+    "@capacitor/cli": "^8.5.1",
+    "@capacitor/core": "^8.5.1",
+    "@google/genai": "^2.21.0",
+    "bcryptjs": "^3.0.3",
+    "compression": "^1.8.1",
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "multer": "^2.3.0",
+    "openai": "^7.9.0",
+    "pdf-parse": "^1.1.1",
+    "pdf2json": "^4.0.3",
+    "pdfkit": "^0.20.2",
+    "socket.io": "^4.8.3",
+    "sqlite3": "^6.0.1",
+    "uuid": "^14.0.2",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "electron": "^44.2.0",
+    "electron-builder": "^26.15.3"
+  },
+  "keywords": [],
+  "license": "ISC",
+  "type": "commonjs"
+}

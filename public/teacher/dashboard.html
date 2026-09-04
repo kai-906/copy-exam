@@ -1,0 +1,1099 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Exam System — Teacher Console</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0b0f19; }
+    ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 8px; }
+    ::-webkit-scrollbar-thumb:hover { background: #334155; }
+
+    .main-scrollbar::-webkit-scrollbar-track { background: #f8fafc; }
+    .main-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; }
+    .main-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+    /* Custom Nav Item Styling */
+    .nav-item {
+      width: 100%;
+      text-align: left;
+      padding: 0.75rem 1rem;
+      border-radius: 0.85rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: #94a3b8;
+      background: transparent;
+      border: 1px solid transparent;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+      cursor: pointer;
+      position: relative;
+    }
+    .nav-item:hover {
+      background-color: rgba(255, 255, 255, 0.05);
+      color: #f8fafc;
+      transform: translateX(2px);
+    }
+    .nav-item.active {
+      background: linear-gradient(135deg, rgba(79, 70, 229, 0.25) 0%, rgba(99, 102, 241, 0.15) 100%);
+      color: #818cf8;
+      font-weight: 600;
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      box-shadow: 0 4px 20px -2px rgba(79, 70, 229, 0.25);
+    }
+    .nav-item.active::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 15%;
+      height: 70%;
+      width: 4px;
+      background: linear-gradient(180deg, #6366f1 0%, #a855f7 100%);
+      border-radius: 0 4px 4px 0;
+      box-shadow: 0 0 10px #6366f1;
+    }
+
+    /* Cards & Glassmorphism */
+    .glass-panel {
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(226, 232, 240, 0.8);
+      border-radius: 1.25rem;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.03), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
+    }
+
+    .stat-card-gradient-1 {
+      background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%);
+      box-shadow: 0 14px 28px -4px rgba(79, 70, 229, 0.35);
+    }
+    .stat-card-gradient-2 {
+      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+      box-shadow: 0 14px 28px -4px rgba(2, 132, 199, 0.35);
+    }
+    .stat-card-gradient-3 {
+      background: linear-gradient(135deg, #059669 0%, #047857 100%);
+      box-shadow: 0 14px 28px -4px rgba(5, 150, 105, 0.35);
+    }
+
+    .section-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 1.25rem;
+      padding: 1.75rem;
+      box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03), 0 2px 6px -1px rgba(0, 0, 0, 0.02);
+      transition: all 0.25s ease;
+    }
+
+    /* Input Controls */
+    .input-field {
+      width: 100%;
+      padding: 0.7rem 1.1rem;
+      background-color: #f8fafc;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 0.85rem;
+      font-size: 0.875rem;
+      outline: none;
+      transition: all 0.2s ease;
+      color: #0f172a;
+      box-sizing: border-box;
+    }
+    .input-field:focus {
+      border-color: #6366f1;
+      box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.12);
+      background-color: #ffffff;
+    }
+
+    /* Premium Button System */
+    .btn-primary {
+      background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
+      color: #ffffff !important;
+      font-weight: 600;
+      padding: 0.7rem 1.35rem;
+      border-radius: 0.85rem;
+      font-size: 0.875rem;
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      transition: all 0.2s ease-in-out;
+      box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35);
+    }
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #4338ca 0%, #2563eb 100%);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(79, 70, 229, 0.45);
+    }
+    .btn-primary:active { transform: translateY(0); }
+
+    .btn-danger {
+      background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
+      color: #ffffff !important;
+      font-weight: 600;
+      padding: 0.5rem 1rem;
+      border-radius: 0.7rem;
+      font-size: 0.775rem;
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      transition: all 0.2s ease-in-out;
+      box-shadow: 0 2px 8px rgba(244, 63, 94, 0.3);
+    }
+    .btn-danger:hover {
+      background: linear-gradient(135deg, #e11d48 0%, #be123c 100%);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(244, 63, 94, 0.4);
+    }
+
+    .btn-secondary {
+      background: #f8fafc;
+      color: #334155 !important;
+      font-weight: 600;
+      padding: 0.5rem 1rem;
+      border-radius: 0.7rem;
+      font-size: 0.775rem;
+      border: 1px solid #cbd5e1;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      transition: all 0.2s ease-in-out;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+    }
+    .btn-secondary:hover {
+      background: #f1f5f9;
+      color: #0f172a !important;
+      border-color: #94a3b8;
+      transform: translateY(-1px);
+    }
+
+    .btn-success {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: #ffffff !important;
+      font-weight: 600;
+      padding: 0.55rem 1.1rem;
+      border-radius: 0.75rem;
+      font-size: 0.775rem;
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      transition: all 0.2s ease-in-out;
+      box-shadow: 0 3px 10px rgba(16, 185, 129, 0.3);
+    }
+    .btn-success:hover {
+      background: linear-gradient(135deg, #059669 0%, #047857 100%);
+      transform: translateY(-1px);
+      box-shadow: 0 5px 14px rgba(16, 185, 129, 0.4);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.25rem 0.7rem;
+      border-radius: 9999px;
+      font-size: 0.725rem;
+      font-weight: 700;
+      letter-spacing: 0.025em;
+    }
+    .table-header {
+      padding: 0.85rem 1.25rem;
+      font-size: 0.725rem;
+      font-weight: 700;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.075em;
+    }
+    .table-cell {
+      padding: 0.95rem 1.25rem;
+      font-size: 0.875rem;
+      vertical-align: middle;
+    }
+    
+    .upload-drop-zone {
+      border: 2.5px dashed #cbd5e1;
+      border-radius: 1.1rem;
+      padding: 2.5rem;
+      text-align: center;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      cursor: pointer;
+      background: #f8fafc;
+    }
+    .upload-drop-zone:hover { border-color: #6366f1; background: #f0f3ff; transform: scale(1.005); }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .tab-content:not(.hidden) { animation: fadeIn 0.3s ease-out forwards; }
+
+    .progress-bar { height: 7px; border-radius: 9999px; background: linear-gradient(90deg, #6366f1, #a855f7); transition: all 0.6s ease; }
+    
+    /* Glow pulse indicator */
+    .pulse-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: #10b981;
+      box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+      animation: pulse-green 2s infinite;
+    }
+    @keyframes pulse-green {
+      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+      70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    }
+  </style>
+</head>
+<body class="bg-[#f4f6fb] flex h-screen overflow-hidden text-slate-800 antialiased">
+
+  <!-- Sidebar -->
+  <aside class="w-64 bg-[#0b0f19] flex flex-col justify-between shrink-0 shadow-2xl border-r border-slate-800/80 z-20">
+    <div>
+      <!-- Brand Logo -->
+      <div class="px-6 py-6 border-b border-slate-800/80">
+        <div class="flex items-center gap-3.5">
+          <div class="w-10 h-10 bg-gradient-to-tr from-indigo-600 via-indigo-500 to-purple-500 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/30 ring-1 ring-white/20">
+            <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          </div>
+          <div>
+            <h1 class="text-base font-extrabold text-white leading-tight tracking-tight">Smart Exam</h1>
+            <p class="text-[11px] font-semibold uppercase tracking-wider text-indigo-400">Teacher Console</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Navigation -->
+      <nav class="p-3.5 space-y-1.5 mt-3">
+        <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-item active">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+          <span>Dashboard Overview</span>
+        </button>
+        <button onclick="switchTab('banks')" id="nav-banks" class="nav-item">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+          <span>Question Banks</span>
+        </button>
+        <button onclick="switchTab('create-exam')" id="nav-create-exam" class="nav-item">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+          <span>Create Exam</span>
+        </button>
+        <button onclick="switchTab('live-monitor')" id="nav-live-monitor" class="nav-item">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.069A1 1 0 0121 8.868v6.264a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/></svg>
+          <span>Live Monitoring</span>
+        </button>
+        <button onclick="switchTab('results')" id="nav-results" class="nav-item">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+          <span>Results & Export</span>
+        </button>
+        <button onclick="switchTab('students')" id="nav-students" class="nav-item">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          <span>Student Directory</span>
+        </button>
+      </nav>
+    </div>
+
+    <!-- Sidebar Bottom Status & Logout -->
+    <div class="p-3.5 border-t border-slate-800/80 space-y-2">
+      <div class="px-3 py-2.5 bg-slate-900/80 rounded-xl border border-slate-800 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="pulse-dot"></span>
+          <span class="text-[11px] font-semibold text-slate-300">System Ready</span>
+        </div>
+        <span class="text-[10px] text-indigo-400 font-mono">v2.4 Pro</span>
+      </div>
+      <button id="logout-btn" class="nav-item text-slate-400 hover:bg-rose-500/10 hover:text-rose-400 hover:border-rose-500/20 w-full transition-all">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+        <span>Logout Session</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="flex-grow overflow-y-auto main-scrollbar bg-[#f4f6fb]">
+    <!-- Top Bar -->
+    <header class="glass-panel rounded-none border-x-0 border-t-0 sticky top-0 z-10 px-8 py-4 flex items-center justify-between">
+      <div>
+        <h2 id="page-title" class="text-xl font-bold text-slate-900 tracking-tight">Dashboard Overview</h2>
+        <p id="page-subtitle" class="text-xs text-slate-500 font-medium mt-0.5">Welcome back, Teacher</p>
+      </div>
+      <div class="flex items-center gap-3">
+        <div class="hidden sm:flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-full border border-slate-200 text-xs font-semibold text-slate-600">
+          <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+          <span>Proctoring Active</span>
+        </div>
+        <div class="flex items-center gap-3 bg-white pl-3 pr-4 py-1.5 rounded-full border border-slate-200 shadow-sm">
+          <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-white font-bold text-sm shadow-md">T</div>
+          <div class="text-left">
+            <p class="text-xs font-bold text-slate-800 leading-tight">Faculty Admin</p>
+            <p class="text-[10px] text-indigo-600 font-semibold">Teacher Account</p>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="p-8 space-y-6">
+
+    <!-- DASHBOARD TAB -->
+    <section id="section-dashboard" class="tab-content space-y-6">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="stat-card-gradient-1 rounded-2xl p-6 text-white relative overflow-hidden group">
+          <div class="absolute -right-4 -bottom-4 w-32 h-32 bg-white/10 rounded-full blur-2xl group-hover:scale-125 transition-transform duration-500"></div>
+          <div class="flex justify-between items-start relative z-10">
+            <div>
+              <p class="text-xs font-bold text-indigo-200 uppercase tracking-wider">Question Banks</p>
+              <p id="stat-banks-count" class="text-4xl font-extrabold mt-3 tracking-tight">0</p>
+            </div>
+            <div class="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center text-2xl backdrop-blur-sm border border-white/10">📚</div>
+          </div>
+          <p class="text-indigo-100 text-xs mt-3 flex items-center gap-1 font-medium relative z-10">
+            <span>Across all subject modules</span>
+          </p>
+        </div>
+
+        <div class="stat-card-gradient-2 rounded-2xl p-6 text-white relative overflow-hidden group">
+          <div class="absolute -right-4 -bottom-4 w-32 h-32 bg-white/10 rounded-full blur-2xl group-hover:scale-125 transition-transform duration-500"></div>
+          <div class="flex justify-between items-start relative z-10">
+            <div>
+              <p class="text-xs font-bold text-sky-200 uppercase tracking-wider">Registered Students</p>
+              <p id="stat-students-count" class="text-4xl font-extrabold mt-3 tracking-tight">0</p>
+            </div>
+            <div class="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center text-2xl backdrop-blur-sm border border-white/10">🎓</div>
+          </div>
+          <p class="text-sky-100 text-xs mt-3 flex items-center gap-1 font-medium relative z-10">
+            <span>Verified candidate roster</span>
+          </p>
+        </div>
+
+        <div class="stat-card-gradient-3 rounded-2xl p-6 text-white relative overflow-hidden group">
+          <div class="absolute -right-4 -bottom-4 w-32 h-32 bg-white/10 rounded-full blur-2xl group-hover:scale-125 transition-transform duration-500"></div>
+          <div class="flex justify-between items-start relative z-10">
+            <div>
+              <p class="text-xs font-bold text-emerald-200 uppercase tracking-wider">Exam Submissions</p>
+              <p id="stat-results-count" class="text-4xl font-extrabold mt-3 tracking-tight">0</p>
+            </div>
+            <div class="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center text-2xl backdrop-blur-sm border border-white/10">📊</div>
+          </div>
+          <p class="text-emerald-100 text-xs mt-3 flex items-center gap-1 font-medium relative z-10">
+            <span>Evaluated test attempts</span>
+          </p>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="section-card">
+        <h3 class="font-bold text-slate-900 mb-5 text-base flex items-center gap-2">
+          <span>⚡ Quick Actions & Console Tools</span>
+        </h3>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <button onclick="switchTab('banks')" class="flex flex-col items-center text-center p-5 rounded-2xl bg-slate-50/70 hover:bg-indigo-50/60 border border-slate-200/80 hover:border-indigo-300 transition-all duration-200 group hover:-translate-y-1 hover:shadow-md">
+            <div class="w-12 h-12 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-2xl mb-3 group-hover:scale-110 transition-transform">📁</div>
+            <span class="text-xs font-bold text-slate-800 group-hover:text-indigo-700">Upload Question Bank</span>
+            <span class="text-[11px] text-slate-400 mt-0.5">Parse PDF Exam Papers</span>
+          </button>
+          <button onclick="switchTab('create-exam')" class="flex flex-col items-center text-center p-5 rounded-2xl bg-slate-50/70 hover:bg-blue-50/60 border border-slate-200/80 hover:border-blue-300 transition-all duration-200 group hover:-translate-y-1 hover:shadow-md">
+            <div class="w-12 h-12 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center text-2xl mb-3 group-hover:scale-110 transition-transform">📝</div>
+            <span class="text-xs font-bold text-slate-800 group-hover:text-blue-700">Schedule New Exam</span>
+            <span class="text-[11px] text-slate-400 mt-0.5">Generate Student Code</span>
+          </button>
+          <button onclick="switchTab('live-monitor')" class="flex flex-col items-center text-center p-5 rounded-2xl bg-slate-50/70 hover:bg-amber-50/60 border border-slate-200/80 hover:border-amber-300 transition-all duration-200 group hover:-translate-y-1 hover:shadow-md">
+            <div class="w-12 h-12 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center text-2xl mb-3 group-hover:scale-110 transition-transform">📡</div>
+            <span class="text-xs font-bold text-slate-800 group-hover:text-amber-700">Live Monitoring</span>
+            <span class="text-[11px] text-slate-400 mt-0.5">Socket Proctor Control</span>
+          </button>
+          <button onclick="switchTab('results')" class="flex flex-col items-center text-center p-5 rounded-2xl bg-slate-50/70 hover:bg-emerald-50/60 border border-slate-200/80 hover:border-emerald-300 transition-all duration-200 group hover:-translate-y-1 hover:shadow-md">
+            <div class="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-2xl mb-3 group-hover:scale-110 transition-transform">📈</div>
+            <span class="text-xs font-bold text-slate-800 group-hover:text-emerald-700">Export Exam Results</span>
+            <span class="text-[11px] text-slate-400 mt-0.5">Excel / PDF Scorecards</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- QUESTION BANKS TAB -->
+    <section id="section-banks" class="tab-content hidden space-y-6">
+      <!-- Upload Card -->
+      <div class="section-card">
+        <div class="flex items-center gap-3.5 mb-6">
+          <div class="w-11 h-11 bg-indigo-100/80 rounded-2xl flex items-center justify-center shadow-inner">
+            <svg class="w-6 h-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+          </div>
+          <div>
+            <h3 class="font-bold text-slate-900 text-base">Upload New Question Bank</h3>
+            <p class="text-xs text-slate-500">Intelligent parser automatically extracts MCQs, NATs, and numerical questions from PDF files.</p>
+          </div>
+        </div>
+
+        <form id="upload-bank-form" class="space-y-5">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">Question Bank Title</label>
+              <input type="text" id="bank-title" placeholder="e.g., Civil Engineering — GATE 2024" required class="input-field">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">Subject / Specialization</label>
+              <input type="text" id="bank-subject" placeholder="e.g., Structural Analysis" required class="input-field">
+            </div>
+          </div>
+          <div class="upload-drop-zone" id="upload-drop-zone" style="cursor:pointer;">
+            <input type="file" id="bank-file" accept=".pdf" class="hidden">
+            <div class="w-14 h-14 bg-indigo-50 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-3 text-indigo-600 shadow-sm border border-indigo-100">📄</div>
+            <p class="text-sm font-bold text-slate-800">Choose PDF Document or drag & drop</p>
+            <p class="text-xs text-slate-400 mt-1 font-medium">Maximum size: 25 MB • PDF format only</p>
+            <p id="chosen-file-name" class="text-xs text-indigo-700 font-bold mt-3 inline-block bg-indigo-50 px-3 py-1.5 rounded-full border border-indigo-200 hidden"></p>
+          </div>
+          <button type="submit" class="btn-primary w-full text-center py-3">
+            ⚡ Upload & Parse PDF Document
+          </button>
+        </form>
+
+        <!-- Upload Progress -->
+        <div id="upload-progress-wrap" class="hidden mt-5">
+          <div class="flex justify-between text-xs font-semibold text-slate-600 mb-2">
+            <span id="upload-status-msg">Uploading file...</span>
+            <span id="upload-pct" class="text-indigo-600 font-bold">0%</span>
+          </div>
+          <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden border border-slate-200">
+            <div class="progress-bar" id="upload-progress-bar" style="width: 0%"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Banks List -->
+      <div class="section-card">
+        <h3 class="font-bold text-slate-900 mb-5 text-base flex items-center justify-between">
+          <span>Repository Question Banks</span>
+          <span class="text-xs text-slate-400 font-normal">Stored in local database</span>
+        </h3>
+        <div id="banks-table-container" class="space-y-3"></div>
+      </div>
+    </section>
+
+    <!-- CREATE EXAM TAB -->
+    <section id="section-create-exam" class="tab-content hidden space-y-6">
+      <div class="section-card max-w-3xl mx-auto">
+        <div class="flex items-center gap-3.5 mb-6">
+          <div class="w-11 h-11 bg-blue-100/80 rounded-2xl flex items-center justify-center shadow-inner">
+            <svg class="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+          </div>
+          <div>
+            <h3 class="font-bold text-slate-900 text-base">Create & Schedule Examination</h3>
+            <p class="text-xs text-slate-500">Configure exam rules, pool question selection, and produce student invitation passcodes.</p>
+          </div>
+        </div>
+
+        <form id="create-exam-form" class="space-y-5">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">Exam Title</label>
+            <input type="text" id="exam-title" required placeholder="e.g., Mid-Term Assessment — Civil Dept" class="input-field">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">Source Question Bank</label>
+            <select id="exam-bank-select" required class="input-field bg-white cursor-pointer"></select>
+          </div>
+
+          <div id="question-picker-container" class="hidden border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+            <div class="bg-slate-100/80 border-b border-slate-200 px-4 py-3 flex justify-between items-center">
+              <span class="text-xs font-bold text-slate-700 uppercase tracking-wider">Exam Pool — <span id="selected-q-count" class="text-indigo-600 font-extrabold">0</span> Questions Selected</span>
+              <button type="button" id="select-all-q-btn" class="text-xs text-indigo-600 font-bold hover:text-indigo-800 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-200">Toggle All</button>
+            </div>
+            <div id="questions-checkbox-list" class="max-h-64 overflow-y-auto p-3 space-y-2 text-xs bg-slate-50/50"></div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">Duration (Minutes)</label>
+              <input type="number" id="exam-duration" value="60" min="1" max="600" required class="input-field">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">Questions Per Student</label>
+              <input type="number" id="exam-questions-count" value="10" min="1" required class="input-field">
+            </div>
+          </div>
+
+          <button type="submit" class="btn-primary w-full text-center py-3">🚀 Generate Exam Passcode & Link</button>
+        </form>
+
+        <div id="created-exam-link" class="mt-6 p-6 bg-gradient-to-br from-indigo-50 to-blue-50 border border-indigo-200/80 rounded-2xl hidden shadow-sm"></div>
+      </div>
+    </section>
+
+    <!-- LIVE MONITOR TAB -->
+    <section id="section-live-monitor" class="tab-content hidden space-y-6">
+      <div class="section-card">
+        <div class="flex items-center gap-3.5 mb-5">
+          <div class="w-11 h-11 bg-amber-100/80 rounded-2xl flex items-center justify-center shadow-inner">
+            <span class="text-2xl">📡</span>
+          </div>
+          <div>
+            <h3 class="font-bold text-slate-900 text-base">Live Exam Proctoring Console</h3>
+            <p class="text-xs text-slate-500">Real-time Socket.IO proctoring dashboard. Monitor student focus, view alerts, and issue warnings.</p>
+          </div>
+        </div>
+        <div id="live-exam-shortcuts" class="space-y-3"></div>
+      </div>
+    </section>
+
+    <!-- RESULTS TAB -->
+    <section id="section-results" class="tab-content hidden space-y-6">
+      <div id="results-exam-list-view" class="space-y-4">
+        <div class="section-card">
+          <div class="mb-5">
+            <h3 class="font-bold text-slate-900 text-base">Exam Scorecards & Export Center</h3>
+            <p class="text-xs text-slate-500 mt-0.5">Select an examination session below to inspect student gradebooks, score analytics, and generate reports.</p>
+          </div>
+          <div id="exams-results-grid" class="grid grid-cols-1 md:grid-cols-3 gap-5"></div>
+        </div>
+      </div>
+
+      <div id="results-detail-view" class="hidden space-y-5">
+        <div class="section-card">
+          <div class="flex flex-wrap justify-between items-center gap-4">
+            <div class="flex items-center gap-3.5">
+              <button onclick="backToExamResultsList()" class="btn-secondary">← Back to Exams</button>
+              <h3 id="selected-exam-title-heading" class="text-base font-bold text-slate-900">Exam Results</h3>
+            </div>
+            <div class="flex items-center gap-2">
+              <button onclick="exportExamResults('excel')" class="btn-success">📥 Excel (.xlsx)</button>
+              <button onclick="exportExamResults('pdf')" class="bg-gradient-to-r from-rose-500 to-pink-600 text-white font-semibold py-2 px-3.5 rounded-xl hover:from-rose-600 hover:to-pink-700 transition-all text-xs shadow-sm shadow-rose-500/20 flex items-center gap-1">📄 PDF Report</button>
+              <button onclick="exportExamResults('doc')" class="bg-gradient-to-r from-indigo-500 to-blue-600 text-white font-semibold py-2 px-3.5 rounded-xl hover:from-indigo-600 hover:to-blue-700 transition-all text-xs shadow-sm shadow-indigo-500/20 flex items-center gap-1">📝 Word (.doc)</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-card p-0 overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+              <thead class="bg-slate-50 border-b border-slate-200">
+                <tr>
+                  <th class="table-header">Roll Number</th>
+                  <th class="table-header">Student Name</th>
+                  <th class="table-header">Branch</th>
+                  <th class="table-header">Year</th>
+                  <th class="table-header">Score</th>
+                  <th class="table-header">Evaluation Status</th>
+                </tr>
+              </thead>
+              <tbody id="exam-detail-table-body" class="divide-y divide-slate-100"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- STUDENTS TAB -->
+    <section id="section-students" class="tab-content hidden space-y-6">
+      <div class="section-card">
+        <h3 class="font-bold text-slate-900 text-base mb-5">Register Candidate Account</h3>
+        <form id="register-student-form" class="space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">Full Name</label>
+              <input type="text" id="stu-name" required class="input-field" placeholder="Full Candidate Name">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">Email Address</label>
+              <input type="email" id="stu-email" required class="input-field" placeholder="email@school.edu">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">Roll Number</label>
+              <input type="text" id="stu-roll" required class="input-field" placeholder="e.g. 2400906">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">Branch / Dept</label>
+              <input type="text" id="stu-branch" required class="input-field" placeholder="Civil / Computer Science">
+            </div>
+          </div>
+          <div class="flex gap-4 items-end">
+            <div class="flex-1">
+              <label class="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">Academic Year</label>
+              <input type="text" id="stu-year" required class="input-field" placeholder="3rd Year / 2028">
+            </div>
+            <button type="submit" class="btn-primary py-2.5">+ Add Student to Directory</button>
+          </div>
+        </form>
+        <div id="stu-reg-msg" class="text-xs font-semibold mt-3"></div>
+      </div>
+
+      <div class="section-card">
+        <div class="flex flex-wrap justify-between items-center gap-4 mb-5">
+          <div>
+            <h3 class="font-bold text-slate-900 text-base">Student Roster Directory</h3>
+            <p class="text-xs text-slate-500">Filter registered candidates across academic branches.</p>
+          </div>
+          <div class="flex gap-3">
+            <input type="text" id="filter-branch-input" onkeyup="applyStudentFilters()" placeholder="Filter by Branch..." class="input-field w-44">
+            <input type="text" id="filter-year-input" onkeyup="applyStudentFilters()" placeholder="Filter by Year..." class="input-field w-44">
+          </div>
+        </div>
+        <div class="overflow-hidden rounded-2xl border border-slate-200">
+          <table class="w-full text-left">
+            <thead class="bg-slate-50 border-b border-slate-200">
+              <tr>
+                <th class="table-header">Roll No.</th>
+                <th class="table-header">Name</th>
+                <th class="table-header">Branch</th>
+                <th class="table-header">Year</th>
+                <th class="table-header">Email</th>
+                <th class="table-header">Verification</th>
+              </tr>
+            </thead>
+            <tbody id="students-table-body" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    </div>
+  </main>
+
+  <!-- Photo Modal -->
+  <div id="photo-modal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4 transition-all">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6 space-y-4 border border-slate-100">
+      <div class="flex justify-between items-center">
+        <h3 id="modal-student-name" class="font-bold text-slate-900 text-base">Student Profile Photo</h3>
+        <button onclick="closePhotoModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-800 text-xl font-bold leading-none transition-colors">&times;</button>
+      </div>
+      <div class="w-full h-64 bg-slate-100 rounded-2xl border border-slate-200 overflow-hidden flex items-center justify-center shadow-inner">
+        <img id="modal-student-img" src="" alt="Student Profile" class="w-full h-full object-cover">
+      </div>
+      <button onclick="closePhotoModal()" class="w-full bg-slate-900 text-white py-3 rounded-2xl text-xs font-bold uppercase tracking-wider hover:bg-slate-800 transition-colors shadow-lg shadow-slate-900/20">Close Preview</button>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      if (!Api.getToken()) { window.location.href = '/teacher/login.html'; return; }
+
+      let activeExamResultsData = [];
+      let fullStudentsDirectory = [];
+
+      // Upload drop zone logic
+      const dropZone = document.getElementById('upload-drop-zone');
+      const fileInput = document.getElementById('bank-file');
+
+      // Click on zone → open file picker (ignore clicks that originate from the input itself)
+      dropZone.addEventListener('click', (e) => {
+        if (e.target !== fileInput) fileInput.click();
+      });
+
+      function showSelectedFile(name) {
+        const fn = document.getElementById('chosen-file-name');
+        fn.textContent = '📄 Selected: ' + name;
+        fn.classList.remove('hidden');
+      }
+
+      fileInput.addEventListener('change', () => {
+        if (fileInput.files[0]) showSelectedFile(fileInput.files[0].name);
+      });
+
+      dropZone.addEventListener('dragover', e => {
+        e.preventDefault();
+        dropZone.style.borderColor = '#6366f1';
+        dropZone.style.background = '#eef2ff';
+      });
+      dropZone.addEventListener('dragleave', () => {
+        dropZone.style.borderColor = '#cbd5e1';
+        dropZone.style.background = '#f8fafc';
+      });
+      dropZone.addEventListener('drop', e => {
+        e.preventDefault();
+        dropZone.style.borderColor = '#cbd5e1';
+        dropZone.style.background = '#f8fafc';
+        const dropped = e.dataTransfer.files;
+        if (dropped && dropped.length > 0) {
+          // Use DataTransfer to assign files to the input (FileList is read-only)
+          const dt = new DataTransfer();
+          dt.items.add(dropped[0]);
+          fileInput.files = dt.files;
+          showSelectedFile(dropped[0].name);
+        }
+      });
+
+      document.getElementById('logout-btn').addEventListener('click', () => { Api.clearToken(); window.location.href = '/teacher/login.html'; });
+
+      const pageTitles = {
+        dashboard: ['Dashboard Overview', 'Real-time metrics and quick management console'],
+        banks: ['Question Banks', 'Manage, view and upload PDF question repositories'],
+        'create-exam': ['Create Exam Paper', 'Configure rules and generate student exam codes'],
+        'live-monitor': ['Live Proctoring Console', 'Socket-based proctoring and real-time student alerts'],
+        results: ['Results & Reports', 'Inspect candidate marksheets and export grade logs'],
+        students: ['Student Directory', 'Roster management and student account creation']
+      };
+
+      window.switchTab = function(tabName) {
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+        document.querySelectorAll('aside nav button').forEach(btn => btn.className = 'nav-item');
+        document.getElementById(`section-${tabName}`).classList.remove('hidden');
+        document.getElementById(`nav-${tabName}`).classList.add('active');
+        const [title, sub] = pageTitles[tabName] || [tabName, ''];
+        document.getElementById('page-title').textContent = title;
+        document.getElementById('page-subtitle').textContent = sub;
+
+        if (tabName === 'banks') loadBanks();
+        if (tabName === 'create-exam') loadBanksForExam();
+        if (tabName === 'live-monitor') loadLiveMonitorExams();
+        if (tabName === 'results') loadExamsResultsGrid();
+        if (tabName === 'students') loadStudentsDirectory();
+        if (tabName === 'dashboard') loadStats();
+      };
+
+      async function loadLiveMonitorExams() {
+        const container = document.getElementById('live-exam-shortcuts');
+        if (!container) return;
+        container.innerHTML = '<p class="text-xs text-slate-400 text-center py-6">Loading active examination sessions...</p>';
+        try {
+          const res = await Api.request('/teacher/exams', { method: 'GET' });
+          const exams = res.exams || [];
+          container.innerHTML = '';
+          if (!exams.length) {
+            container.innerHTML = `
+              <div class="text-center py-10 bg-slate-50/70 border border-slate-200 rounded-2xl p-6">
+                <div class="text-4xl mb-3">📡</div>
+                <h4 class="font-bold text-slate-800 text-sm">No Active Exams Available</h4>
+                <p class="text-xs text-slate-500 mt-1 mb-5">Schedule an exam paper first to unlock live proctoring and socket monitoring controls.</p>
+                <button onclick="switchTab('create-exam')" class="btn-primary">📝 Create New Exam</button>
+              </div>`;
+            return;
+          }
+          const grid = document.createElement('div');
+          grid.className = 'grid grid-cols-1 md:grid-cols-2 gap-5';
+          exams.forEach(e => {
+            const card = document.createElement('div');
+            card.className = 'bg-white p-5 rounded-2xl border border-slate-200/80 hover:border-amber-400/80 hover:shadow-md transition-all space-y-4 flex flex-col justify-between';
+            card.innerHTML = `
+              <div>
+                <div class="flex justify-between items-center mb-3">
+                  <span class="badge bg-amber-50 text-amber-800 border border-amber-200">CODE: ${e.code || 'EXAM'}</span>
+                  <span class="text-xs font-semibold text-emerald-600 flex items-center gap-1.5 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+                    <span class="pulse-dot"></span> Proctor Active
+                  </span>
+                </div>
+                <h4 class="font-bold text-slate-900 text-base">${e.title}</h4>
+                <p class="text-xs text-slate-500 mt-1">Duration: ${e.duration_minutes || 60} Mins | Proctoring: STRICT</p>
+              </div>
+              <a href="/teacher/live-monitor.html?examId=${e.id}" target="_blank" class="btn-primary w-full text-center text-xs py-2.5 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 shadow-amber-500/20">
+                📡 Open Proctor Control Window
+              </a>`;
+            grid.appendChild(card);
+          });
+          container.appendChild(grid);
+        } catch(err) {
+          container.innerHTML = '<p class="text-xs text-rose-500 text-center py-4">Failed to load active exams for proctoring.</p>';
+        }
+      }
+
+      async function loadStats() {
+        try {
+          const [banks, students, results] = await Promise.all([
+            Api.getBanks(),
+            Api.request('/teacher/students', { method: 'GET' }),
+            Api.request('/teacher/results', { method: 'GET' })
+          ]);
+          document.getElementById('stat-banks-count').textContent = banks.banks?.length || 0;
+          document.getElementById('stat-students-count').textContent = students.students?.length || 0;
+          document.getElementById('stat-results-count').textContent = results.results?.length || 0;
+        } catch(e) {}
+      }
+
+      async function loadBanks() {
+        const container = document.getElementById('banks-table-container');
+        container.innerHTML = '<p class="text-xs text-slate-400 text-center py-6">Loading question banks...</p>';
+        try {
+          const res = await Api.getBanks();
+          container.innerHTML = '';
+          if (!res.banks?.length) { container.innerHTML = '<p class="text-xs text-slate-400 text-center py-10">No question banks uploaded yet. Upload a PDF paper above to get started.</p>'; return; }
+          res.banks.forEach(b => {
+            const div = document.createElement('div');
+            div.className = 'flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 p-4.5 rounded-2xl bg-white border border-slate-200/90 hover:border-indigo-300 hover:shadow-sm transition-all';
+            div.innerHTML = `
+              <div>
+                <p class="font-bold text-slate-900 text-sm">${b.title}</p>
+                <p class="text-xs text-slate-500 mt-1 flex items-center gap-2">
+                  <span class="badge bg-indigo-50 text-indigo-700 border border-indigo-100">Subject: ${b.subject}</span>
+                </p>
+              </div>
+              <div class="flex items-center gap-2">
+                <a href="/teacher/editor.html?bankId=${b.id}" class="btn-secondary text-xs">✏️ Edit Questions</a>
+                <button onclick="deleteBank('${b.id}')" class="btn-danger">🗑️ Delete</button>
+              </div>`;
+            container.appendChild(div);
+          });
+        } catch (err) { container.textContent = 'Failed to load banks.'; }
+      }
+
+      window.deleteBank = async function(bankId) {
+        if (!confirm('Are you sure you want to delete this entire Question Bank and all its questions?')) return;
+        try { await Api.request(`/banks/${bankId}`, { method: 'DELETE' }); loadBanks(); } catch (err) { alert(`Error: ${err.message}`); }
+      };
+
+      async function loadBanksForExam() {
+        const select = document.getElementById('exam-bank-select');
+        try {
+          const res = await Api.getBanks();
+          select.innerHTML = '<option value="">-- Select Question Bank --</option>';
+          res.banks?.forEach(b => select.innerHTML += `<option value="${b.id}">${b.title} (${b.subject})</option>`);
+        } catch(e) { select.innerHTML = '<option value="">-- Failed to load --</option>'; }
+      }
+
+      const bankSelect = document.getElementById('exam-bank-select');
+      const pickerContainer = document.getElementById('question-picker-container');
+      const checkboxList = document.getElementById('questions-checkbox-list');
+      const countSpan = document.getElementById('selected-q-count');
+
+      bankSelect.addEventListener('change', async () => {
+        if (!bankSelect.value) { pickerContainer.classList.add('hidden'); return; }
+        try {
+          const res = await Api.getBankQuestions(bankSelect.value);
+          const questions = res.questions || [];
+          checkboxList.innerHTML = questions.length === 0 ? '<p class="text-slate-400 p-3">No questions found in this bank.</p>' : '';
+          questions.forEach((q, idx) => {
+            checkboxList.innerHTML += `<label class="flex items-start gap-2.5 bg-white p-3 rounded-xl border border-slate-200 hover:border-indigo-300 cursor-pointer transition-all shadow-2xs"><input type="checkbox" name="selected_questions" value="${q.id}" class="q-checkbox mt-0.5 accent-indigo-600 rounded" checked><span class="text-slate-700 text-xs"><strong class="text-indigo-600 font-bold">Q${idx+1}.</strong> ${q.question_text.substring(0,110)}${q.question_text.length > 110 ? '…' : ''}</span></label>`;
+          });
+          pickerContainer.classList.remove('hidden');
+          updateSelectedCount();
+          document.querySelectorAll('.q-checkbox').forEach(cb => cb.addEventListener('change', updateSelectedCount));
+        } catch(err) { alert('Failed to load questions from bank'); }
+      });
+
+      function updateSelectedCount() { countSpan.textContent = document.querySelectorAll('.q-checkbox:checked').length; }
+      document.getElementById('select-all-q-btn').addEventListener('click', () => {
+        const cbs = document.querySelectorAll('.q-checkbox');
+        const allChecked = Array.from(cbs).every(cb => cb.checked);
+        cbs.forEach(cb => cb.checked = !allChecked);
+        updateSelectedCount();
+      });
+
+      async function loadExamsResultsGrid() {
+        const grid = document.getElementById('exams-results-grid');
+        grid.innerHTML = '<p class="text-xs text-slate-400 col-span-3 text-center py-6">Loading exam records...</p>';
+        try {
+          const res = await Api.request('/teacher/exams', { method: 'GET' });
+          const exams = res.exams || [];
+          grid.innerHTML = '';
+          if (!exams.length) { grid.innerHTML = '<p class="text-xs text-slate-400 col-span-3 text-center py-10">No exams created yet.</p>'; return; }
+          exams.forEach(e => {
+            grid.innerHTML += `<div onclick="openExamResultDetails('${e.id}', '${e.title}')" class="bg-white p-5 rounded-2xl border border-slate-200/90 hover:border-indigo-400 hover:shadow-md cursor-pointer transition-all group">
+              <span class="badge bg-indigo-50 text-indigo-700 border border-indigo-200 font-mono">CODE: ${e.code || 'EXAM'}</span>
+              <h4 class="font-bold text-slate-900 text-sm mt-3 group-hover:text-indigo-600 transition-colors">${e.title}</h4>
+              <p class="text-xs text-slate-400 mt-2 font-medium flex items-center justify-between">
+                <span>View scorecards & reports</span>
+                <span class="text-indigo-600 group-hover:translate-x-1 transition-transform">→</span>
+              </p>
+            </div>`;
+          });
+        } catch(err) { grid.innerHTML = '<p class="text-xs text-rose-500 col-span-3">Failed to load exam grid.</p>'; }
+      }
+
+      window.openExamResultDetails = async function(examId, title) {
+        document.getElementById('selected-exam-title-heading').textContent = title;
+        document.getElementById('results-exam-list-view').classList.add('hidden');
+        document.getElementById('results-detail-view').classList.remove('hidden');
+        const tbody = document.getElementById('exam-detail-table-body');
+        tbody.innerHTML = '<tr><td colspan="6" class="p-6 text-center text-slate-400 text-xs">Loading candidate results...</td></tr>';
+        try {
+          const res = await Api.request(`/teacher/results/${examId}`, { method: 'GET' });
+          activeExamResultsData = res.results || [];
+          tbody.innerHTML = '';
+          if (!activeExamResultsData.length) { tbody.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-slate-400">No submissions recorded for this examination session yet.</td></tr>'; return; }
+          activeExamResultsData.forEach(r => {
+            const pass = r.score >= (r.pass_marks || 20);
+            tbody.innerHTML += `<tr class="hover:bg-slate-50/80 transition-colors">
+              <td class="table-cell font-mono font-bold text-indigo-600 bg-indigo-50/50 rounded-lg px-2">${r.roll_number}</td>
+              <td class="table-cell font-bold text-slate-900">${r.name || r.student_name}</td>
+              <td class="table-cell text-slate-600">${r.branch || 'N/A'}</td>
+              <td class="table-cell text-slate-600">${r.year || 'N/A'}</td>
+              <td class="table-cell font-extrabold text-slate-900">${r.score || r.total_score} <span class="text-slate-400 font-normal">/ ${r.total_marks || 50}</span></td>
+              <td class="table-cell"><span class="badge ${pass ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'}">${pass ? 'PASSED' : 'FAILED'}</span></td>
+            </tr>`;
+          });
+        } catch(err) { tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-rose-500">Failed to load detailed results.</td></tr>'; }
+      };
+
+      window.backToExamResultsList = function() {
+        document.getElementById('results-detail-view').classList.add('hidden');
+        document.getElementById('results-exam-list-view').classList.remove('hidden');
+      };
+
+      window.exportExamResults = function(format) {
+        if (!activeExamResultsData?.length) { alert('No result data available to export.'); return; }
+        const title = document.getElementById('selected-exam-title-heading').textContent;
+        if (format === 'excel') {
+          const ws = XLSX.utils.json_to_sheet(activeExamResultsData);
+          const wb = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(wb, ws, 'Results');
+          XLSX.writeFile(wb, `${title}_Results.xlsx`);
+        } else if (format === 'pdf') {
+          const { jsPDF } = window.jspdf;
+          const doc = new jsPDF();
+          doc.setFontSize(14); doc.text(`Exam Results: ${title}`, 10, 15);
+          doc.setFontSize(9);
+          let y = 28;
+          activeExamResultsData.forEach((r, idx) => {
+            doc.text(`${idx+1}. Roll: ${r.roll_number} | ${r.name||r.student_name} | ${r.branch} | Score: ${r.score}`, 10, y);
+            y += 8;
+          });
+          doc.save(`${title}_Results.pdf`);
+        } else if (format === 'doc') {
+          let html = `<html><head><title>Export</title></head><body><h2>${title} — Results</h2><table border='1' cellpadding='5'><tr><th>Roll</th><th>Name</th><th>Branch</th><th>Year</th><th>Score</th></tr>`;
+          activeExamResultsData.forEach(r => html += `<tr><td>${r.roll_number}</td><td>${r.name||r.student_name}</td><td>${r.branch}</td><td>${r.year}</td><td>${r.score}</td></tr>`);
+          html += '</table></body></html>';
+          const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
+          const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: `${title}_Results.doc` });
+          a.click();
+        }
+      };
+
+      async function loadStudentsDirectory() {
+        const tbody = document.getElementById('students-table-body');
+        tbody.innerHTML = '<tr><td colspan="6" class="p-6 text-center text-slate-400 text-xs">Loading directory...</td></tr>';
+        try {
+          const res = await Api.request('/teacher/students', { method: 'GET' });
+          fullStudentsDirectory = res.students || [];
+          renderStudentsDirectoryTable(fullStudentsDirectory);
+        } catch(err) { tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-rose-500">Failed to load directory.</td></tr>'; }
+      }
+
+      function renderStudentsDirectoryTable(data) {
+        const tbody = document.getElementById('students-table-body');
+        tbody.innerHTML = '';
+        if (!data?.length) { tbody.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-slate-400">No matching student records found.</td></tr>'; return; }
+        data.forEach(s => {
+          tbody.innerHTML += `<tr class="hover:bg-slate-50/80 transition-colors">
+            <td class="table-cell font-mono font-bold text-indigo-600 bg-indigo-50/40 rounded-lg">${s.roll_number}</td>
+            <td class="table-cell font-bold text-slate-900">${s.name}</td>
+            <td class="table-cell text-slate-600 font-medium">${s.branch}</td>
+            <td class="table-cell text-slate-600 font-medium">${s.year}</td>
+            <td class="table-cell text-slate-500 text-xs font-mono">${s.email}</td>
+            <td class="table-cell">
+              <button onclick="openPhotoModal('${s.name}', '${s.profile_photo}')" class="btn-secondary text-xs bg-indigo-50/80 text-indigo-700 hover:bg-indigo-600 hover:text-white border-indigo-200/80 shadow-2xs">📷 View Photo</button>
+            </td>
+          </tr>`;
+        });
+      }
+
+      window.applyStudentFilters = function() {
+        const branch = document.getElementById('filter-branch-input').value.toLowerCase();
+        const year = document.getElementById('filter-year-input').value.toLowerCase();
+        renderStudentsDirectoryTable(fullStudentsDirectory.filter(s => (s.branch||'').toLowerCase().includes(branch) && (s.year||'').toString().toLowerCase().includes(year)));
+      };
+
+      window.openPhotoModal = function(name, photo) {
+        document.getElementById('modal-student-name').textContent = name;
+        document.getElementById('modal-student-img').src = photo || '/assets/default-avatar.png';
+        document.getElementById('photo-modal').classList.remove('hidden');
+      };
+      window.closePhotoModal = function() { document.getElementById('photo-modal').classList.add('hidden'); };
+
+      // Upload form with progress simulation
+      document.getElementById('upload-bank-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const msgEl = document.getElementById('upload-status-msg');
+        const pctEl = document.getElementById('upload-pct');
+        const barEl = document.getElementById('upload-progress-bar');
+        const wrap = document.getElementById('upload-progress-wrap');
+        const fileInp = document.getElementById('bank-file');
+
+        if (!fileInp.files[0]) return alert('Please select a PDF file.');
+        const selectedFile = fileInp.files[0];
+        if (!selectedFile.name.toLowerCase().endsWith('.pdf') && selectedFile.type !== 'application/pdf') {
+          return alert('Only PDF files are supported. Please select a .pdf file.');
+        }
+        wrap.classList.remove('hidden');
+
+        const setProgress = (pct, msg) => { barEl.style.width = pct + '%'; pctEl.textContent = pct + '%'; msgEl.textContent = msg; };
+        setProgress(10, 'Uploading document...');
+
+        const formData = new FormData();
+        formData.append('title', document.getElementById('bank-title').value);
+        formData.append('subject', document.getElementById('bank-subject').value);
+        formData.append('file', selectedFile);
+
+        const prog = setInterval(() => {
+          const cur = parseInt(barEl.style.width);
+          if (cur < 70) setProgress(cur + Math.floor(Math.random() * 8) + 3, 'Extracting questions from PDF...');
+        }, 600);
+
+        try {
+          setProgress(75, 'Parsing document structure...');
+          const res = await Api.uploadBank(formData);
+          clearInterval(prog);
+          setProgress(100, `Success! ${res.message || 'Question bank created.'}`);
+          barEl.style.background = 'linear-gradient(90deg, #10b981, #059669)';
+          document.getElementById('upload-bank-form').reset();
+          document.getElementById('chosen-file-name').classList.add('hidden');
+          setTimeout(() => { wrap.classList.add('hidden'); barEl.style.width = '0%'; barEl.style.background = 'linear-gradient(90deg, #6366f1, #a855f7)'; loadBanks(); }, 3000);
+        } catch(err) {
+          clearInterval(prog);
+          setProgress(100, `Error: ${err.message}`);
+          barEl.style.background = 'linear-gradient(90deg, #f43f5e, #e11d48)';
+        }
+      });
+
+      document.getElementById('create-exam-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const selectedIds = Array.from(document.querySelectorAll('.q-checkbox:checked')).map(cb => cb.value);
+        if (!selectedIds.length) return alert('Please select at least 1 question for the exam pool.');
+        const reqCount = parseInt(document.getElementById('exam-questions-count').value);
+        if (reqCount > selectedIds.length) return alert(`Questions per student (${reqCount}) cannot exceed pool size (${selectedIds.length}).`);
+
+        try {
+          const res = await Api.createExam({
+            title: document.getElementById('exam-title').value,
+            bank_id: bankSelect.value,
+            duration_minutes: parseInt(document.getElementById('exam-duration').value),
+            start_time: new Date().toISOString(),
+            end_time: new Date(Date.now() + 86400000).toISOString(),
+            required_attempts_count: reqCount,
+            shuffle_questions: true, shuffle_options: true,
+            proctoring_level: 'STRICT', selected_question_ids: selectedIds
+          });
+          const url = `${location.protocol}//${location.host}/launch-exam?key=${res.examCode}`;
+          const box = document.getElementById('created-exam-link');
+          box.classList.remove('hidden');
+          box.innerHTML = `
+            <div class="flex items-center gap-2 mb-3">
+              <span class="text-emerald-600 font-extrabold text-sm">✅ Exam Created & Scheduled Successfully</span>
+            </div>
+            <div class="flex items-center justify-between bg-white rounded-xl p-4 border border-indigo-200 mb-3 shadow-sm">
+              <div>
+                <p class="text-xs text-slate-500 font-semibold uppercase tracking-wider">6-Digit Student Access Code</p>
+                <p class="text-3xl font-black font-mono text-indigo-700 tracking-widest mt-1">${res.examCode}</p>
+              </div>
+              <div class="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center text-2xl">🔐</div>
+            </div>
+            <p class="text-xs text-slate-600 font-bold mb-1">🔗 Direct Student Launch Link:</p>
+            <a href="${url}" target="_blank" class="font-mono text-indigo-600 underline text-xs break-all block bg-white/70 p-2.5 rounded-lg border border-indigo-100 hover:bg-white transition-colors">${url}</a>`;
+        } catch(err) { alert(`Error: ${err.message}`); }
+      });
+
+      document.getElementById('register-student-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const msg = document.getElementById('stu-reg-msg');
+        try {
+          await Api.request('/teacher/students/register', { method: 'POST', body: JSON.stringify({ name: document.getElementById('stu-name').value, email: document.getElementById('stu-email').value, roll_number: document.getElementById('stu-roll').value, branch: document.getElementById('stu-branch').value, year: document.getElementById('stu-year').value }) });
+          msg.textContent = '✅ Student account registered successfully!';
+          msg.className = 'text-xs font-semibold mt-3 text-emerald-600';
+          document.getElementById('register-student-form').reset();
+          loadStudentsDirectory();
+        } catch(err) {
+          msg.textContent = `❌ Error: ${err.message}`;
+          msg.className = 'text-xs font-semibold mt-3 text-rose-600';
+        }
+      });
+
+      loadStats();
+    });
+  </script>
+</body>
+</html>

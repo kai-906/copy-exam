@@ -1,0 +1,50 @@
+{
+  "name": "smart-exam-client",
+  "version": "1.0.0",
+  "description": "Smart AI-Proctored Student CBT Client",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win nsis",
+    "dist:portable": "electron-builder --win portable"
+  },
+  "build": {
+    "appId": "com.smartexam.client",
+    "productName": "SmartExam Student",
+    "copyright": "Copyright © 2026 SmartExam",
+    "directories": {
+      "output": "../dist-client"
+    },
+    "files": [
+      "main.js",
+      "renderer/**/*",
+      "!renderer/node_modules"
+    ],
+    "win": {
+      "target": [
+        { "target": "nsis",     "arch": ["x64"] },
+        { "target": "portable", "arch": ["x64"] }
+      ],
+      "icon": "renderer/assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": false,
+      "installerIcon": "renderer/assets/icon.ico",
+      "uninstallerIcon": "renderer/assets/icon.ico",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "SmartExam Student"
+    },
+    "protocols": [
+      {
+        "name": "Smart Exam Deep Link",
+        "schemes": ["smartexam"]
+      }
+    ]
+  },
+  "devDependencies": {
+    "electron": "^30.0.0",
+    "electron-builder": "^24.13.3"
+  }
+}

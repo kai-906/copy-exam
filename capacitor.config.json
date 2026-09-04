@@ -1,0 +1,5 @@
+{
+  "appId": "com.smartexam.app",
+  "appName": "Smart Exam System",
+  "webDir": "student-app/renderer"
+}

@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Exam System - CBT Exam</title>
+  <link rel="stylesheet" href="css/custom.css">
+</head>
+<body class="exam-body">
+
+  <!-- Top Header Bar -->
+  <header class="exam-header">
+    <div class="exam-title-container">
+      <h2 id="examTitle">Computer Networks (Demo CBT Exam)</h2>
+      <span class="proctoring-badge">
+        <span class="dot pulse"></span> AI Proctoring Active
+      </span>
+    </div>
+    
+    <div class="timer-card">
+      <span class="timer-label">Time Left:</span>
+      <span id="timeDisplay" class="timer-digits">00:29:30</span>
+    </div>
+  </header>
+
+  <!-- Main Content Grid -->
+  <main class="exam-container">
+    
+    <!-- Left Panel: Question & Options Area -->
+    <section class="question-section">
+      <div class="question-header">
+        <span id="questionNumberLabel" class="q-number-title">Question No. 1 of 50</span>
+      </div>
+
+      <div class="question-content">
+        <p id="questionText" class="q-text">
+          Which layer is responsible for IP Addressing in the OSI Model?
+        </p>
+
+        <div id="optionsContainer" class="options-group">
+          <label class="option-card">
+            <input type="radio" name="examOption" value="0">
+            <span class="radio-custom"></span>
+            <span class="option-text">Network Layer</span>
+          </label>
+
+          <label class="option-card">
+            <input type="radio" name="examOption" value="1">
+            <span class="radio-custom"></span>
+            <span class="option-text">Transport Layer</span>
+          </label>
+
+          <label class="option-card">
+            <input type="radio" name="examOption" value="2">
+            <span class="radio-custom"></span>
+            <span class="option-text">Data Link Layer</span>
+          </label>
+
+          <label class="option-card">
+            <input type="radio" name="examOption" value="3">
+            <span class="radio-custom"></span>
+            <span class="option-text">Physical Layer</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Action Control Buttons -->
+      <footer class="action-footer">
+        <div class="left-actions">
+          <button id="btnMarkReview" class="btn btn-purple">Mark for Review & Next</button>
+          <button id="btnClear" class="btn btn-gray">Clear Response</button>
+        </div>
+        <button id="btnSaveNext" class="btn btn-green">Save & Next →</button>
+      </footer>
+    </section>
+
+    <!-- Right Panel: Proctoring Feed & Question Palette -->
+    <aside class="sidebar-section">
+      
+      <!-- Candidate Profile & Live Feed -->
+      <div class="candidate-card">
+        <div class="camera-preview-box">
+          <video id="proctorCamera" autoplay playsinline muted></video>
+          <canvas id="faceCanvas" class="overlay-canvas"></canvas>
+        </div>
+        <div class="candidate-details">
+          <h4 id="studentName">Candidate User</h4>
+          <p id="studentRoll">Roll: 2026-EXAM-01</p>
+        </div>
+      </div>
+
+      <!-- Question Palette Status Counters -->
+      <div class="legend-card">
+        <div class="legend-grid">
+          <div class="legend-item"><span class="badge bg-green" id="cntAnswered">0</span> Answered</div>
+          <div class="legend-item"><span class="badge bg-red" id="cntNotAnswered">0</span> Not Answered</div>
+          <div class="legend-item"><span class="badge bg-gray" id="cntNotVisited">50</span> Not Visited</div>
+          <div class="legend-item"><span class="badge bg-purple" id="cntMarked">0</span> Marked Review</div>
+        </div>
+      </div>
+
+      <!-- Palette Grid Buttons -->
+      <div class="palette-card">
+        <h3>Question Palette</h3>
+        <div id="questionPalette" class="palette-grid">
+          <!-- Dynamically generated question numbers -->
+        </div>
+      </div>
+
+      <!-- Submit Test Button -->
+      <button id="btnSubmitExam" class="btn btn-blue btn-block">Submit Test</button>
+    </aside>
+
+  </main>
+
+  <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/exam.js"></script>
+  <script src="js/cbt-engine.js"></script>
+</body>
+</html>

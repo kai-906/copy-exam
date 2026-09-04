@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Registration - Smart Exam System</title>
+  <link rel="stylesheet" href="css/custom.css">
+</head>
+<body class="auth-body">
+
+  <div class="auth-card">
+    <div class="auth-header">
+      <h2>Student Registration</h2>
+      <p class="auth-subtitle">Create your verified account to enter exams</p>
+    </div>
+
+    <form id="registrationForm" class="auth-form">
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="regName">Full Name</label>
+          <input type="text" id="regName" placeholder="Enter Full Name" required>
+        </div>
+
+        <div class="form-group">
+          <label for="regRollNo">Roll Number</label>
+          <input type="text" id="regRollNo" placeholder="e.g. 2026-EXAM-01" required>
+        </div>
+
+        <div class="form-group">
+          <label for="regBranch">Branch</label>
+          <input type="text" id="regBranch" placeholder="e.g. Civil Engineering / CSE" required>
+        </div>
+
+        <div class="form-group">
+          <label for="regYear">Passing Year</label>
+          <input type="text" id="regYear" placeholder="e.g. 2028" required>
+        </div>
+
+        <div class="form-group form-full">
+          <label for="regEmail">Email Address</label>
+          <input type="email" id="regEmail" placeholder="student@institute.edu" required>
+        </div>
+
+        <div class="form-group form-full">
+          <label for="regPassword">Password</label>
+          <input type="password" id="regPassword" placeholder="Create Strong Password" required>
+        </div>
+      </div>
+
+      <!-- Live Photo Capture Card -->
+      <div class="photo-capture-section">
+        <label class="section-label">Profile Verification Photo (Live Snap)</label>
+        <div class="camera-preview-box">
+          <video id="regWebcam" autoplay playsinline muted></video>
+          <img id="regPhotoPreview" class="hidden-preview" alt="Snap Preview">
+        </div>
+        
+        <div class="camera-actions">
+          <button type="button" id="btnSnapPhoto" class="btn btn-purple btn-sm">📸 Capture Photo</button>
+        </div>
+        <input type="hidden" id="regPhotoData">
+      </div>
+
+      <button type="submit" class="btn btn-green btn-block">Complete Registration →</button>
+    </form>
+  </div>
+
+  <script src="js/register.js"></script>
+</body>
+</html>

@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Identity Verification</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { background: #0f172a; }
+
+    .camera-ring {
+      border: 3px solid #334155;
+      border-radius: 1rem;
+      overflow: hidden;
+      position: relative;
+      background: #020617;
+      aspect-ratio: 4/3;
+    }
+    .camera-ring.scanning {
+      border-color: #6366f1;
+      box-shadow: 0 0 0 3px rgba(99,102,241,0.25);
+    }
+    .camera-ring.success {
+      border-color: #22c55e;
+      box-shadow: 0 0 0 3px rgba(34,197,94,0.25);
+    }
+    .camera-ring.error {
+      border-color: #ef4444;
+      box-shadow: 0 0 0 3px rgba(239,68,68,0.25);
+    }
+
+    /* scan-line animation */
+    @keyframes scanLine {
+      0%   { top: 0; opacity: 1; }
+      100% { top: 100%; opacity: 0; }
+    }
+    .scan-line {
+      position: absolute;
+      left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, #6366f1, transparent);
+      animation: scanLine 2s linear infinite;
+      pointer-events: none;
+    }
+    .scan-line.hidden { display: none; }
+
+    /* corner brackets */
+    .corner { position: absolute; width: 22px; height: 22px; border-color: #6366f1; border-style: solid; }
+    .corner-tl { top: 10px; left: 10px; border-width: 3px 0 0 3px; border-radius: 4px 0 0 0; }
+    .corner-tr { top: 10px; right: 10px; border-width: 3px 3px 0 0; border-radius: 0 4px 0 0; }
+    .corner-bl { bottom: 10px; left: 10px; border-width: 0 0 3px 3px; border-radius: 0 0 0 4px; }
+    .corner-br { bottom: 10px; right: 10px; border-width: 0 3px 3px 0; border-radius: 0 0 4px 0; }
+
+    #liveVideo { width: 100%; height: 100%; object-fit: cover; display: block; transform: scaleX(-1); }
+    #snapCanvas { display: none; }
+
+    .step-dot { width: 10px; height: 10px; border-radius: 50%; background: #334155; }
+    .step-dot.done { background: #22c55e; }
+    .step-dot.active { background: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.3); }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: white; border: none; border-radius: 0.6rem;
+      padding: 0.75rem 1.5rem; font-weight: 700; font-size: 0.875rem;
+      cursor: pointer; width: 100%; transition: opacity 0.2s, transform 0.1s;
+    }
+    .btn-primary:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
+    .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+    .btn-secondary {
+      background: #1e293b; color: #94a3b8;
+      border: 1px solid #334155; border-radius: 0.6rem;
+      padding: 0.75rem 1.5rem; font-weight: 600; font-size: 0.875rem;
+      cursor: pointer; width: 100%; transition: background 0.2s;
+    }
+    .btn-secondary:hover { background: #273549; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner { animation: spin 0.8s linear infinite; }
+
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+    .fade-up { animation: fadeUp 0.4s ease both; }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+  <div class="w-full max-w-sm fade-up">
+
+    <!-- Header -->
+    <div class="text-center mb-6">
+      <div class="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-indigo-600/20 border border-indigo-500/30 mb-3">
+        <svg class="w-6 h-6 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7
+               -1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+        </svg>
+      </div>
+      <h1 class="text-xl font-bold text-white">Identity Verification</h1>
+      <p class="text-slate-400 text-xs mt-1">Step 3 of 3 — Face check before exam begins</p>
+    </div>
+
+    <!-- Step progress dots -->
+    <div class="flex items-center justify-center gap-3 mb-6">
+      <div class="step-dot done" title="Login"></div>
+      <div class="h-px w-8 bg-green-700"></div>
+      <div class="step-dot done" title="Rules"></div>
+      <div class="h-px w-8 bg-indigo-600"></div>
+      <div class="step-dot active" title="Verification"></div>
+    </div>
+
+    <!-- Camera Card -->
+    <div class="bg-slate-800/60 border border-slate-700 rounded-2xl p-5 space-y-4 shadow-2xl">
+
+      <!-- Student name display -->
+      <div class="flex items-center gap-2 bg-slate-900/60 rounded-xl px-3 py-2 border border-slate-700">
+        <div class="w-7 h-7 rounded-full bg-indigo-600/30 border border-indigo-500/40 flex items-center justify-center text-xs text-indigo-300 font-bold" id="avatarInitial">?</div>
+        <div>
+          <p class="text-white text-xs font-semibold" id="displayName">Loading...</p>
+          <p class="text-slate-500 text-xs" id="displayRoll">Roll: —</p>
+        </div>
+        <span class="ml-auto text-xs text-emerald-400 font-semibold bg-emerald-900/30 border border-emerald-700/40 rounded-full px-2 py-0.5">Logged In</span>
+      </div>
+
+      <!-- Live Camera Feed -->
+      <div class="camera-ring" id="cameraRing">
+        <video id="liveVideo" autoplay playsinline muted></video>
+        <canvas id="snapCanvas"></canvas>
+
+        <!-- Corner brackets -->
+        <div class="corner corner-tl"></div>
+        <div class="corner corner-tr"></div>
+        <div class="corner corner-bl"></div>
+        <div class="corner corner-br"></div>
+
+        <!-- Scan line (shown while verifying) -->
+        <div class="scan-line hidden" id="scanLine"></div>
+
+        <!-- Camera off placeholder -->
+        <div id="cameraPlaceholder" class="absolute inset-0 flex flex-col items-center justify-center text-slate-600 text-xs gap-2">
+          <svg class="w-10 h-10 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+              d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
+          </svg>
+          <span class="opacity-40">Camera starting...</span>
+        </div>
+      </div>
+
+      <!-- Status message -->
+      <div id="statusBox" class="text-center text-xs text-slate-400 min-h-[20px]">
+        Position your face clearly in the frame
+      </div>
+
+      <!-- Action Buttons -->
+      <div id="actionArea" class="space-y-2">
+        <button id="captureBtn" class="btn-primary" disabled>
+          📸 &nbsp;Capture &amp; Verify
+        </button>
+        <button id="retakeBtn" class="btn-secondary hidden">
+          🔄 &nbsp;Retake Photo
+        </button>
+      </div>
+
+      <!-- Proceed button — shown only after successful verification -->
+      <button id="proceedBtn" class="btn-primary hidden" style="background: linear-gradient(135deg, #16a34a, #15803d);">
+        ✅ &nbsp;Verified — Start Examination
+      </button>
+
+      <!-- Skip link for offline / no-camera environments -->
+      <p class="text-center text-xs text-slate-600 pt-1">
+        Camera not available?
+        <button id="skipBtn" class="text-slate-500 underline hover:text-slate-300 transition ml-1">Skip verification</button>
+      </p>
+
+    </div>
+
+    <!-- Exam key indicator -->
+    <p class="text-center text-xs text-slate-600 mt-4">
+      Exam Key: <span id="examKeyDisplay" class="text-slate-400 font-mono font-bold">—</span>
+    </p>
+
+  </div>
+
+  <script>
+    // ─── Bootstrap ────────────────────────────────────────────────────────────
+    const token     = localStorage.getItem('student_token') || localStorage.getItem('token') || localStorage.getItem('studentToken');
+    const examId    = localStorage.getItem('active_exam_id');
+    const studentRaw = localStorage.getItem('student_user');
+
+    // Guard: must be logged in with an active exam
+    if (!token || !examId) {
+      window.location.href = 'verification.html';
+    }
+
+    // Show student info
+    if (studentRaw) {
+      try {
+        const s = JSON.parse(studentRaw);
+        const name = s.name || s.full_name || 'Candidate';
+        const roll = s.roll_number || s.rollNumber || '—';
+        document.getElementById('displayName').textContent = name;
+        document.getElementById('displayRoll').textContent = 'Roll: ' + roll;
+        document.getElementById('avatarInitial').textContent = name.charAt(0).toUpperCase();
+      } catch(e) {}
+    }
+
+    document.getElementById('examKeyDisplay').textContent = examId;
+
+    // ─── Camera Setup ─────────────────────────────────────────────────────────
+    const video       = document.getElementById('liveVideo');
+    const canvas      = document.getElementById('snapCanvas');
+    const placeholder = document.getElementById('cameraPlaceholder');
+    const cameraRing  = document.getElementById('cameraRing');
+    const scanLine    = document.getElementById('scanLine');
+    const captureBtn  = document.getElementById('captureBtn');
+    const retakeBtn   = document.getElementById('retakeBtn');
+    const proceedBtn  = document.getElementById('proceedBtn');
+    const skipBtn     = document.getElementById('skipBtn');
+    const statusBox   = document.getElementById('statusBox');
+    const actionArea  = document.getElementById('actionArea');
+
+    let stream = null;
+    let verified = false;
+
+    function setStatus(msg, color = 'text-slate-400') {
+      statusBox.className = `text-center text-xs min-h-[20px] ${color}`;
+      statusBox.textContent = msg;
+    }
+
+    async function startCamera() {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }, audio: false });
+        video.srcObject = stream;
+        video.onloadedmetadata = () => {
+          placeholder.style.display = 'none';
+          captureBtn.disabled = false;
+          setStatus('Face clearly visible? Click Capture & Verify', 'text-indigo-400');
+        };
+      } catch (err) {
+        placeholder.innerHTML = `
+          <svg class="w-8 h-8 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
+          </svg>
+          <span class="opacity-50 text-center px-4">Camera access denied.<br>Please allow camera or skip.</span>`;
+        setStatus('Camera unavailable — use Skip to continue', 'text-amber-400');
+        captureBtn.disabled = true;
+      }
+    }
+
+    startCamera();
+
+    // ─── Capture & Verify ─────────────────────────────────────────────────────
+    captureBtn.addEventListener('click', async () => {
+      if (!stream) return;
+
+      // Snapshot
+      canvas.width  = video.videoWidth  || 640;
+      canvas.height = video.videoHeight || 480;
+      const ctx = canvas.getContext('2d');
+      ctx.save();
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1); // mirror to match the mirrored video
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      ctx.restore();
+      const snapshot = canvas.toDataURL('image/jpeg', 0.82);
+
+      // UI feedback
+      captureBtn.disabled = true;
+      captureBtn.innerHTML = `<svg class="spinner inline w-4 h-4 mr-2 -mt-0.5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>Verifying...`;
+      cameraRing.className = 'camera-ring scanning';
+      scanLine.classList.remove('hidden');
+      setStatus('Verifying identity...', 'text-indigo-400');
+      retakeBtn.classList.add('hidden');
+
+      // Try server-side face match (graceful fallback to pass)
+      let matchResult = true;
+      try {
+        const API_BASE = (window.location.protocol === 'file:' || !window.location.origin || window.location.origin === 'null')
+          ? 'http://localhost:5000/api'
+          : `${window.location.origin}/api`;
+
+        const res = await fetch(`${API_BASE}/proctor/verify-face`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ currentFrame: snapshot })
+        });
+        const data = await res.json();
+        // Accept if server says matched OR if no stored face to compare (first-time)
+        matchResult = data.isMatched !== false;
+      } catch (e) {
+        // Network/server unavailable — allow through so exam isn't blocked
+        matchResult = true;
+      }
+
+      scanLine.classList.add('hidden');
+
+      if (matchResult) {
+        // ✅ Verified
+        verified = true;
+        cameraRing.className = 'camera-ring success';
+        setStatus('✅ Identity verified successfully!', 'text-emerald-400');
+        actionArea.classList.add('hidden');
+        proceedBtn.classList.remove('hidden');
+
+        // Store snapshot for in-exam proctoring reference
+        try { localStorage.setItem('verified_snapshot', snapshot); } catch(e) {}
+      } else {
+        // ❌ Mismatch
+        cameraRing.className = 'camera-ring error';
+        setStatus('❌ Face did not match. Please retake.', 'text-red-400');
+        captureBtn.disabled  = false;
+        captureBtn.innerHTML = '📸 &nbsp;Capture &amp; Verify';
+        retakeBtn.classList.remove('hidden');
+      }
+    });
+
+    // Retake: reset camera ring state
+    retakeBtn.addEventListener('click', () => {
+      cameraRing.className = 'camera-ring';
+      retakeBtn.classList.add('hidden');
+      setStatus('Position your face clearly in the frame', 'text-slate-400');
+    });
+
+    // ─── Proceed to Exam ──────────────────────────────────────────────────────
+    proceedBtn.addEventListener('click', launchExam);
+
+    function launchExam() {
+      // Stop camera stream before leaving
+      if (stream) {
+        stream.getTracks().forEach(t => t.stop());
+      }
+      // Electron kiosk mode
+      try {
+        const { ipcRenderer } = require('electron');
+        ipcRenderer.send('enter-kiosk-mode');
+      } catch(e) {}
+      window.location.href = 'exam.html';
+    }
+
+    // ─── Skip ─────────────────────────────────────────────────────────────────
+    skipBtn.addEventListener('click', () => {
+      const ok = confirm('Skip face verification?\n\nYour attempt will still be monitored and flagged if face is not visible during the exam.');
+      if (ok) launchExam();
+    });
+  </script>
+</body>
+</html>
