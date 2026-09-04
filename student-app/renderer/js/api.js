@@ -2,7 +2,7 @@
 // When running as Electron desktop app (file:// protocol),
 // point to your deployed server URL below.
 // Change PRODUCTION_SERVER_URL to your Railway / VPS URL.
-const PRODUCTION_SERVER_URL = 'http://localhost:5000'; // ← replace with your server URL after deployment
+const PRODUCTION_SERVER_URL = 'https://copy-exam-production.up.railway.app'; // ← replace with your server URL after deployment
 
 const API_BASE_URL = (typeof window !== 'undefined' && window.location && window.location.protocol !== 'file:' && window.location.origin && window.location.origin !== 'null')
   ? `${window.location.origin}/api`
