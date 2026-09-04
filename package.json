@@ -5,7 +5,7 @@
   "author": "Your Name",
   "main": "student-app/main.js",
   "scripts": {
-    "start": "electron .",
+    "start": "node server.js",
     "build:win": "electron-builder --win nsis"
   },
   "build": {
