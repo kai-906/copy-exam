@@ -1,3 +1,5 @@
+const PRODUCTION_SERVER = 'https://copy-exam-production.up.railway.app';
+
 const Api = {
   getToken: () => localStorage.getItem('teacher_token'),
   setToken: (token) => localStorage.setItem('teacher_token', token),
@@ -21,7 +23,8 @@ const Api = {
       body: options.body
     };
 
-    const response = await fetch(`/api${endpoint}`, config);
+    // Updated to use the Railway URL
+    const response = await fetch(`${PRODUCTION_SERVER}/api${endpoint}`, config);
 
     const contentType = response.headers.get('content-type');
     if (!contentType || !contentType.includes('application/json')) {
