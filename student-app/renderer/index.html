@@ -1,183 +1,264 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <link rel="manifest" href="/manifest.json">
-  <meta name="theme-color" content="#0f172a">
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Student Login — SmartExam</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    body { background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%); min-height: 100vh; }
-    .inp { @apply w-full bg-slate-900 border border-slate-700 text-white px-4 py-2.5 rounded-lg outline-none transition; }
-    .inp:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.18); }
-    .inp::placeholder { color: #475569; }
-    .lbl { display:block; font-size:0.7rem; font-weight:700; text-transform:uppercase;
-           letter-spacing:.06em; color:#94a3b8; margin-bottom:5px; }
-    .btn-primary { background: linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff;
-                   border:none; border-radius:.6rem; padding:.75rem 1.5rem;
-                   font-weight:700; font-size:.9rem; cursor:pointer; width:100%;
-                   transition:opacity .2s,transform .1s; }
-    .btn-primary:hover:not(:disabled) { opacity:.9; transform:translateY(-1px); }
-    .btn-primary:disabled { opacity:.5; cursor:not-allowed; }
-    .card { background:rgba(30,41,59,0.85); border:1px solid rgba(99,102,241,0.18);
-            border-radius:1.2rem; padding:2.2rem; backdrop-filter:blur(12px);
-            box-shadow:0 24px 48px rgba(0,0,0,0.45); }
-  </style>
-</head>
-<body class="flex items-center justify-center min-h-screen p-4">
+&lt;!DOCTYPE html&gt;
+&lt;html lang="en"&gt;
+&lt;head&gt;
+  &lt;link rel="manifest" href="/manifest.json"&gt;
+  &lt;meta name="theme-color" content="#0f172a"&gt;
+  &lt;meta charset="UTF-8"&gt;
+  &lt;meta name="viewport" content="width=device-width, initial-scale=1.0"&gt;
+  &lt;title&gt;Student Login — SmartExam&lt;/title&gt;
+  &lt;link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"&gt;
+  &lt;style&gt;
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Inter',sans-serif;background:linear-gradient(135deg,#0f172a 0%,#1e1b4b 100%);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;}
+    .wrap{width:100%;max-width:360px;}
+    /* Brand */
+    .brand{text-align:center;margin-bottom:26px;}
+    .brand-icon{display:inline-flex;align-items:center;justify-content:center;width:58px;height:58px;border-radius:18px;background:rgba(99,102,241,.18);border:1px solid rgba(99,102,241,.35);margin-bottom:12px;}
+    .brand h1{font-size:1.65rem;font-weight:800;color:#fff;letter-spacing:-0.5px;}
+    .brand p{color:#94a3b8;font-size:.78rem;margin-top:4px;}
+    /* Card */
+    .card{background:rgba(30,41,59,.88);border:1px solid rgba(99,102,241,.18);border-radius:18px;padding:26px;backdrop-filter:blur(14px);box-shadow:0 24px 60px rgba(0,0,0,.5);}
+    .card h2{font-size:1.05rem;font-weight:700;color:#fff;margin-bottom:18px;}
+    /* Alert */
+    #alert-box{display:none;padding:10px 13px;border-radius:9px;font-size:.78rem;font-weight:600;margin-bottom:14px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#f87171;}
+    #alert-box.warn{background:rgba(234,179,8,.1);border-color:rgba(234,179,8,.3);color:#fbbf24;}
+    /* Form */
+    .form-group{margin-bottom:14px;}
+    .lbl{display:block;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#94a3b8;margin-bottom:5px;}
+    .inp{width:100%;background:#0f172a;border:1px solid #334155;color:#fff;padding:10px 13px;border-radius:9px;font-size:.87rem;font-family:'Inter',sans-serif;outline:none;transition:border-color .18s,box-shadow .18s;}
+    .inp:focus{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.18);}
+    .inp::placeholder{color:#475569;}
+    .inp-wrap{position:relative;}
+    .toggle-pass{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:#475569;cursor:pointer;font-size:.85rem;padding:0;line-height:1;}
+    .toggle-pass:hover{color:#94a3b8;}
+    /* Submit button */
+    .btn-primary{background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;border-radius:9px;padding:12px 18px;font-weight:700;font-size:.9rem;cursor:pointer;width:100%;transition:opacity .18s,transform .1s;font-family:'Inter',sans-serif;margin-top:4px;}
+    .btn-primary:hover:not(:disabled){opacity:.9;transform:translateY(-1px);}
+    .btn-primary:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+    /* Footer links */
+    .foot{margin-top:16px;display:flex;align-items:center;justify-content:space-between;font-size:.74rem;}
+    .foot a{color:#6366f1;text-decoration:none;font-weight:500;}
+    .foot a:hover{color:#818cf8;}
+    /* Server settings */
+    .server-tip{margin-top:16px;text-align:center;font-size:.68rem;color:#475569;}
+    .server-tip a{color:#6366f1;cursor:pointer;}
+    .server-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:999;align-items:center;justify-content:center;}
+    .server-modal.open{display:flex;}
+    .server-box{background:#1e293b;border:1px solid #334155;border-radius:14px;padding:22px;max-width:320px;width:90%;}
+    .server-box h3{color:#fff;font-size:.92rem;font-weight:700;margin-bottom:10px;}
+    .server-box p{color:#94a3b8;font-size:.75rem;margin-bottom:12px;line-height:1.5;}
+    .server-row{display:flex;gap:8px;}
+    .server-row .inp{flex:1;font-size:.8rem;}
+    .btn-sm{padding:9px 14px;font-size:.78rem;white-space:nowrap;font-family:'Inter',sans-serif;border-radius:8px;border:none;cursor:pointer;font-weight:600;}
+    .btn-save{background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;}
+    .btn-sec{background:#0f172a;color:#94a3b8;border:1px solid #334155;margin-top:8px;width:100%;}
+    /* key badge */
+    .key-required{font-size:.65rem;color:#f87171;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-left:6px;}
+    /* spinner */
+    @keyframes spin{to{transform:rotate(360deg);}}
+    .spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px;}
+  &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
 
-  <div class="w-full max-w-sm">
+  &lt;div class="wrap"&gt;
 
-    <!-- Logo / Brand -->
-    <div class="text-center mb-7">
-      <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-indigo-600/20 border border-indigo-500/30 mb-3">
-        <svg class="w-7 h-7 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-        </svg>
-      </div>
-      <h1 class="text-2xl font-extrabold text-white tracking-tight">SmartExam</h1>
-      <p class="text-slate-400 text-xs mt-1">Student Portal</p>
-    </div>
+    &lt;!-- Brand --&gt;
+    &lt;div class="brand"&gt;
+      &lt;div class="brand-icon"&gt;
+        &lt;svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="#818cf8"&gt;
+          &lt;path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/&gt;
+        &lt;/svg&gt;
+      &lt;/div&gt;
+      &lt;h1&gt;SmartExam&lt;/h1&gt;
+      &lt;p&gt;Student Examination Portal&lt;/p&gt;
+    &lt;/div&gt;
 
-    <!-- Login Card -->
-    <div class="card">
-      <h2 class="text-lg font-bold text-white mb-5">Sign In</h2>
+    &lt;!-- Login Card --&gt;
+    &lt;div class="card"&gt;
+      &lt;h2&gt;Sign In to Enter Exam&lt;/h2&gt;
 
-      <div id="alert-box" class="hidden mb-4 px-4 py-2.5 rounded-lg text-xs font-semibold bg-red-500/10 border border-red-500/30 text-red-400"></div>
+      &lt;div id="alert-box"&gt;&lt;/div&gt;
 
-      <form id="login-form" class="space-y-4" autocomplete="off">
+      &lt;form id="login-form" autocomplete="off"&gt;
 
-        <div>
-          <label class="lbl" for="roll">Roll Number</label>
-          <input type="text" id="roll" name="roll" required autocomplete="off"
-            placeholder="e.g. 2400906"
-            class="w-full bg-slate-900 border border-slate-700 text-white px-4 py-2.5 rounded-lg outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 placeholder-slate-600">
-        </div>
+        &lt;div class="form-group"&gt;
+          &lt;label class="lbl" for="roll"&gt;Roll Number&lt;/label&gt;
+          &lt;input type="text" id="roll" class="inp" required autocomplete="off" placeholder="e.g. 2400906"&gt;
+        &lt;/div&gt;
 
-        <div>
-          <label class="lbl" for="pass">Password</label>
-          <div class="relative">
-            <input type="password" id="pass" name="pass" required autocomplete="current-password"
-              placeholder="••••••••"
-              class="w-full bg-slate-900 border border-slate-700 text-white px-4 py-2.5 rounded-lg outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 placeholder-slate-600 pr-10">
-            <button type="button" id="toggle-pass"
-              class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition text-xs"
-              tabindex="-1">👁</button>
-          </div>
-        </div>
+        &lt;div class="form-group"&gt;
+          &lt;label class="lbl" for="pass"&gt;Password&lt;/label&gt;
+          &lt;div class="inp-wrap"&gt;
+            &lt;input type="password" id="pass" class="inp" required autocomplete="current-password" placeholder="••••••••"&gt;
+            &lt;button type="button" id="toggle-pass" class="toggle-pass" tabindex="-1"&gt;👁&lt;/button&gt;
+          &lt;/div&gt;
+        &lt;/div&gt;
 
-        <div>
-          <label class="lbl" for="exam-key">Exam Access Key <span class="text-slate-600 font-normal normal-case">(optional)</span></label>
-          <input type="text" id="exam-key" name="exam-key"
-            placeholder="Leave blank to go to Dashboard"
-            class="w-full bg-slate-900 border border-slate-700 text-white px-4 py-2.5 rounded-lg outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 placeholder-slate-600 font-mono text-sm">
-        </div>
+        &lt;div class="form-group"&gt;
+          &lt;label class="lbl" for="exam-key"&gt;
+            Exam Access Key
+            &lt;span class="key-required"&gt;required&lt;/span&gt;
+          &lt;/label&gt;
+          &lt;input type="text" id="exam-key" class="inp" required
+            placeholder="Enter your exam code" style="font-family:monospace;font-size:.92rem;"&gt;
+        &lt;/div&gt;
 
-        <button type="submit" id="login-btn" class="btn-primary mt-1">
-          Sign In →
-        </button>
+        &lt;button type="submit" id="login-btn" class="btn-primary"&gt;Sign In &amp; Verify →&lt;/button&gt;
 
-      </form>
+      &lt;/form&gt;
 
-      <div class="mt-4 flex items-center justify-between text-xs">
-        <a href="forgot-password.html" class="text-indigo-400 hover:text-indigo-300 transition font-medium">Forgot Password?</a>
-        <a href="register.html" class="text-indigo-400 hover:text-indigo-300 transition font-medium">New student? Register →</a>
-      </div>
-    </div>
+      &lt;div class="foot"&gt;
+        &lt;a href="forgot-password.html"&gt;Forgot Password?&lt;/a&gt;
+        &lt;a href="register.html"&gt;New student? Register →&lt;/a&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
 
-  </div>
+    &lt;div class="server-tip"&gt;
+      Connection issues? &lt;a id="openServerSettings"&gt;⚙️ Server Settings&lt;/a&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
 
-  <script>
-    // ── Deep link / URL key auto-fill ─────────────────────────────
-    window.addEventListener('DOMContentLoaded', () => {
+  &lt;!-- Server Settings Modal --&gt;
+  &lt;div class="server-modal" id="serverModal"&gt;
+    &lt;div class="server-box"&gt;
+      &lt;h3&gt;⚙️ Server Settings&lt;/h3&gt;
+      &lt;p&gt;Enter the IP address or URL of the SmartExam backend server running on your network. Leave blank to use the production/default server.&lt;/p&gt;
+      &lt;div class="server-row"&gt;
+        &lt;input type="text" id="serverUrlInput" class="inp" placeholder="http://192.168.x.x:5000"&gt;
+        &lt;button class="btn-sm btn-save" id="saveServerUrl"&gt;Save&lt;/button&gt;
+      &lt;/div&gt;
+      &lt;button class="btn-sm btn-sec" id="clearServerUrl"&gt;Reset to Default&lt;/button&gt;
+      &lt;button class="btn-sm btn-sec" id="closeServerModal"&gt;Close&lt;/button&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+
+  &lt;script src="js/api.js"&gt;&lt;/script&gt;
+  &lt;script&gt;
+    // ── Deep link / URL key auto-fill ────────────────────────────────
+    window.addEventListener('DOMContentLoaded', () =&gt; {
       const key = new URLSearchParams(window.location.search).get('key');
       if (key) document.getElementById('exam-key').value = key;
 
       // Electron deep-link
       try {
         const { ipcRenderer } = require('electron');
-        ipcRenderer.on('auto-fill-key', (_, k) => {
+        ipcRenderer.on('auto-fill-key', (_, k) =&gt; {
           if (k) document.getElementById('exam-key').value = k;
         });
       } catch(e) {}
     });
 
-    // ── Show/hide password ────────────────────────────────────────
-    document.getElementById('toggle-pass').addEventListener('click', () => {
+    // ── Show/hide password ───────────────────────────────────────────
+    document.getElementById('toggle-pass').addEventListener('click', () =&gt; {
       const inp = document.getElementById('pass');
       inp.type = inp.type === 'password' ? 'text' : 'password';
     });
 
-    // ── API base ──────────────────────────────────────────────────
-    const API_BASE = (
-      window.location.protocol === 'file:' ||
-      !window.location.origin ||
-      window.location.origin === 'null'
-    ) ? 'http://localhost:5000/api' : `${window.location.origin}/api`;
+    // ── Show alert ──────────────────────────────────────────────────
+    function showAlert(msg, type = 'error') {
+      const box = document.getElementById('alert-box');
+      box.textContent = msg;
+      box.className = type === 'warn' ? 'warn' : '';
+      box.style.display = 'block';
+    }
+    function hideAlert() { document.getElementById('alert-box').style.display = 'none'; }
 
-    // ── Login ─────────────────────────────────────────────────────
-    document.getElementById('login-form').addEventListener('submit', async (e) => {
+    // ── Login Form ──────────────────────────────────────────────────
+    document.getElementById('login-form').addEventListener('submit', async (e) =&gt; {
       e.preventDefault();
-      const alertBox = document.getElementById('alert-box');
-      const btn      = document.getElementById('login-btn');
-      alertBox.classList.add('hidden');
+      hideAlert();
 
+      const btn      = document.getElementById('login-btn');
       const roll     = document.getElementById('roll').value.trim();
       const password = document.getElementById('pass').value;
       let   examKey  = document.getElementById('exam-key').value.trim();
 
+      // Extract raw key if full URL pasted
       if (examKey.includes('key=')) {
-        examKey = examKey.split('key=')[1].split('&')[0];
+        examKey = examKey.split('key=')[1].split('&amp;')[0];
       }
 
       if (!roll || !password) {
-        alertBox.textContent = 'Roll number and password are required.';
-        alertBox.classList.remove('hidden');
+        showAlert('Roll number and password are required.');
+        return;
+      }
+      if (!examKey) {
+        showAlert('Exam Access Key is required to enter the examination.');
         return;
       }
 
-      btn.disabled    = true;
-      btn.textContent = 'Signing in…';
+      btn.disabled = true;
+      btn.innerHTML = '&lt;span class="spinner"&gt;&lt;/span&gt;Signing in…';
 
       try {
-        const res  = await fetch(`${API_BASE}/auth/student/login`, {
+        // Step 1: Login
+        const loginRes = await fetch(`${window.Api.getApiBase()}/auth/student/login`, {
           method:  'POST',
           headers: { 'Content-Type': 'application/json' },
           body:    JSON.stringify({ roll_number: roll, password })
         });
 
-        const data = await res.json();
+        const ct = loginRes.headers.get('content-type') || '';
+        if (!ct.includes('application/json')) {
+          throw new Error('Cannot reach the exam server. Check ⚙️ Server Settings.');
+        }
 
-        if (!res.ok) {
-          throw new Error(data.error || 'Login failed. Please check your credentials.');
+        const loginData = await loginRes.json();
+        if (!loginRes.ok) {
+          throw new Error(loginData.error || 'Invalid Roll Number or Password.');
         }
 
         // Store tokens
-        localStorage.setItem('student_token', data.token);
-        localStorage.setItem('token',         data.token);
-        localStorage.setItem('studentToken',  data.token);
-        if (data.student) {
-          localStorage.setItem('student_user', JSON.stringify(data.student));
+        window.Api.setToken(loginData.token);
+        if (loginData.student) {
+          localStorage.setItem('student_user', JSON.stringify(loginData.student));
         }
 
-        // Route
-        if (examKey) {
-          localStorage.setItem('active_exam_id', examKey);
-          window.location.href = 'rules.html';
-        } else {
-          localStorage.removeItem('active_exam_id');
-          window.location.href = 'dashboard.html';
+        // Step 2: Verify Exam Eligibility (active + not already attempted)
+        const eligRes = await fetch(`${window.Api.getApiBase()}/exams/verify-eligibility`, {
+          method:  'POST',
+          headers: {
+            'Content-Type':  'application/json',
+            'Authorization': `Bearer ${loginData.token}`
+          },
+          body: JSON.stringify({ exam_key: examKey })
+        });
+
+        const eligData = await eligRes.json();
+        if (!eligRes.ok) {
+          throw new Error(eligData.error || 'Cannot access this exam.');
         }
+
+        // All good — set exam key and proceed
+        localStorage.setItem('active_exam_id', examKey);
+        window.location.href = 'rules.html';
 
       } catch (err) {
-        alertBox.textContent = err.message || 'Connection error with server.';
-        alertBox.classList.remove('hidden');
-        btn.disabled    = false;
-        btn.textContent = 'Sign In →';
+        showAlert(err.message || 'Connection error. Please try again.');
+        btn.disabled = false;
+        btn.innerHTML = 'Sign In &amp; Verify →';
       }
     });
-  </script>
-</body>
-</html>
+
+    // ── Server Settings Modal ────────────────────────────────────────
+    const modal = document.getElementById('serverModal');
+    const inp   = document.getElementById('serverUrlInput');
+    inp.value   = localStorage.getItem('server_url') || '';
+    document.getElementById('openServerSettings').addEventListener('click', () =&gt; modal.classList.add('open'));
+    document.getElementById('closeServerModal').addEventListener('click',  () =&gt; modal.classList.remove('open'));
+    document.getElementById('saveServerUrl').addEventListener('click', () =&gt; {
+      const v = inp.value.trim();
+      if (v) localStorage.setItem('server_url', v); else localStorage.removeItem('server_url');
+      modal.classList.remove('open');
+      location.reload();
+    });
+    document.getElementById('clearServerUrl').addEventListener('click', () =&gt; {
+      localStorage.removeItem('server_url');
+      inp.value = '';
+      alert('Server URL reset to default.');
+    });
+  &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;

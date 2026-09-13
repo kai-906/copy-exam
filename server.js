@@ -157,13 +157,17 @@ app.get('/api/proctor/live/:examId', verifyToken, requireRole('TEACHER'), (req, 
   );
 });
 
+/* ── Public exam-info (no auth required — used by app-launcher) ─ */
+app.get('/api/exams/public-info/:codeOrId', examController.getPublicExamInfo);
+
 /* ── Student CBT ──────────────────────────────────────────────── */
-app.post('/api/attempts/start',           verifyToken, requireRole('STUDENT'), examController.startExamAttempt);
-app.post('/api/attempts/save-answer',     verifyToken, requireRole('STUDENT'), studentController.saveAnswer);
-app.post('/api/attempts/submit',          verifyToken, requireRole('STUDENT'), studentController.submitExam);
-app.get ('/api/student/my-results',       verifyToken, requireRole('STUDENT'), studentController.getMyResults);
-app.get ('/api/attempts/my-results',      verifyToken, requireRole('STUDENT'), studentController.getMyResults);
-app.get ('/api/student/subject-progress', verifyToken, requireRole('STUDENT'), studentController.getMySubjectProgress);
+app.post('/api/attempts/start',              verifyToken, requireRole('STUDENT'), examController.startExamAttempt);
+app.post('/api/exams/verify-eligibility',    verifyToken, requireRole('STUDENT'), examController.verifyExamEligibility);
+app.post('/api/attempts/save-answer',        verifyToken, requireRole('STUDENT'), studentController.saveAnswer);
+app.post('/api/attempts/submit',             verifyToken, requireRole('STUDENT'), studentController.submitExam);
+app.get ('/api/student/my-results',          verifyToken, requireRole('STUDENT'), studentController.getMyResults);
+app.get ('/api/attempts/my-results',         verifyToken, requireRole('STUDENT'), studentController.getMyResults);
+app.get ('/api/student/subject-progress',    verifyToken, requireRole('STUDENT'), studentController.getMySubjectProgress);
 
 /* ── Analytics ────────────────────────────────────────────────── */
 app.get('/api/reports/exam/:examId',        verifyToken, requireRole('TEACHER'), reportController.getExamAnalytics   || missingHandler('getExamAnalytics'));

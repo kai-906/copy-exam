@@ -1,62 +1,189 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Launching Smart Exam System...</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-slate-900 text-white flex items-center justify-center h-screen p-4 text-center">
+&lt;!DOCTYPE html&gt;
+&lt;html lang="en"&gt;
+&lt;head&gt;
+  &lt;meta charset="UTF-8"&gt;
+  &lt;meta name="viewport" content="width=device-width, initial-scale=1.0"&gt;
+  &lt;title&gt;Smart Exam — Launch Examination&lt;/title&gt;
+  &lt;link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"&gt;
+  &lt;style&gt;
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Inter',sans-serif;background:linear-gradient(135deg,#0f172a 0%,#1a1040 100%);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;}
+    .card{background:rgba(30,41,59,.9);border:1px solid rgba(99,102,241,.25);border-radius:20px;padding:36px 32px;max-width:420px;width:100%;box-shadow:0 32px 80px rgba(0,0,0,.6);text-align:center;}
+    .icon-wrap{font-size:2.8rem;margin-bottom:16px;display:inline-block;}
+    h1{font-size:1.4rem;font-weight:800;color:#fff;margin-bottom:8px;}
+    .subtitle{font-size:.82rem;color:#94a3b8;margin-bottom:24px;line-height:1.6;}
+    /* Exam info box */
+    .exam-info{background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.25);border-radius:12px;padding:14px 18px;margin-bottom:22px;display:none;}
+    .exam-info.visible{display:block;}
+    .exam-title{font-size:1rem;font-weight:700;color:#fff;margin-bottom:4px;}
+    .exam-meta{font-size:.75rem;color:#94a3b8;}
+    .exam-code{font-family:monospace;font-size:1.4rem;font-weight:900;color:#818cf8;letter-spacing:.12em;display:block;margin:8px 0 4px;}
+    /* Status badges */
+    .status-badge{display:inline-flex;align-items:center;gap:7px;padding:7px 14px;border-radius:30px;font-size:.78rem;font-weight:700;margin-bottom:18px;}
+    .status-badge.active{background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.3);color:#34d399;}
+    .status-badge.active::before{content:'';display:inline-block;width:8px;height:8px;border-radius:50%;background:#10b981;animation:pulse 1.5s infinite;}
+    .status-badge.inactive{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);color:#f87171;}
+    .status-badge.checking{background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.25);color:#fbbf24;}
+    @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+    /* Alert */
+    #statusAlert{display:none;padding:12px 16px;border-radius:10px;font-size:.8rem;font-weight:600;margin-bottom:18px;line-height:1.5;}
+    #statusAlert.deactivated{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#f87171;}
+    #statusAlert.notfound{background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);color:#fbbf24;}
+    /* Buttons */
+    .btn{display:block;width:100%;padding:13px 18px;border-radius:11px;font-size:.9rem;font-weight:700;cursor:pointer;border:none;font-family:'Inter',sans-serif;transition:all .18s;text-decoration:none;text-align:center;}
+    .btn-primary{background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;margin-bottom:10px;}
+    .btn-primary:hover:not(:disabled){opacity:.9;transform:translateY(-1px);}
+    .btn-primary:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+    .btn-secondary{background:#1e293b;border:1px solid #334155;color:#94a3b8;}
+    .btn-secondary:hover{background:#273447;color:#e2e8f0;}
+    .sep{margin:16px 0;display:flex;align-items:center;gap:10px;color:#475569;font-size:.72rem;}
+    .sep::before,.sep::after{content:'';flex:1;height:1px;background:#1e293b;}
+    /* Spinner */
+    @keyframes spin{to{transform:rotate(360deg);}}
+    .spinner{display:inline-block;width:18px;height:18px;border:2px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;margin-right:8px;vertical-align:middle;}
+  &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
 
-  <div class="bg-slate-800 border border-slate-700 p-8 rounded-xl max-w-md w-full space-y-4 shadow-2xl">
-    <div class="animate-bounce text-4xl">🚀</div>
-    <h2 class="text-xl font-bold">Launching Exam Session</h2>
-    <p class="text-xs text-slate-400">Attempting to open the Smart Exam Application on your device...</p>
+  &lt;div class="card"&gt;
+    &lt;div class="icon-wrap" id="cardIcon"&gt;🔍&lt;/div&gt;
+    &lt;h1 id="cardTitle"&gt;Checking Exam Status…&lt;/h1&gt;
+    &lt;p class="subtitle" id="cardSubtitle"&gt;Verifying your examination access link. Please wait…&lt;/p&gt;
 
-    <div class="space-y-3 pt-4 border-t border-slate-700">
-      <button onclick="tryLaunchApp()" class="w-full bg-blue-600 hover:bg-blue-700 py-2.5 rounded-lg text-xs font-bold transition">
-        📲 Open Smart Exam App
-      </button>
-      <a id="download-app-btn" href="#" class="block w-full bg-slate-700 hover:bg-slate-600 py-2.5 rounded-lg text-xs font-semibold transition">
-        📥 Download App
-      </a>
-    </div>
-  </div>
+    &lt;div id="statusBadge" class="status-badge checking"&gt;Verifying link…&lt;/div&gt;
 
-  <script>
-    const urlParams = new URLSearchParams(window.location.search);
-    const examKey = urlParams.get('key') || '';
-    const deepLinkUrl = `smartexam://open-exam?key=${examKey}`;
+    &lt;div class="exam-info" id="examInfoBox"&gt;
+      &lt;div class="exam-title" id="examTitle"&gt;&lt;/div&gt;
+      &lt;span class="exam-code" id="examCodeDisplay"&gt;&lt;/span&gt;
+      &lt;div class="exam-meta" id="examMeta"&gt;&lt;/div&gt;
+    &lt;/div&gt;
 
-    function tryLaunchApp() {
-      window.location.href = deepLinkUrl;
-    }
+    &lt;div id="statusAlert"&gt;&lt;/div&gt;
 
-    // Platform-based download link
-    (function() {
-      const btn = document.getElementById('download-app-btn');
-      const ua = navigator.userAgent;
-      const isAndroid = /android/i.test(ua);
-      const isIOS = /iphone|ipad|ipod/i.test(ua);
+    &lt;button id="launchBtn" class="btn btn-primary" disabled&gt;
+      &lt;span class="spinner" id="launchSpinner"&gt;&lt;/span&gt; Checking…
+    &lt;/button&gt;
 
-      if (isAndroid) {
+    &lt;div class="sep"&gt;or&lt;/div&gt;
+
+    &lt;a id="downloadAppBtn" href="#" class="btn btn-secondary"&gt;📥 Download App&lt;/a&gt;
+  &lt;/div&gt;
+
+  &lt;script&gt;
+    const urlParams  = new URLSearchParams(window.location.search);
+    const examKey    = urlParams.get('key') || '';
+    const deepLink   = 'smartexam://open-exam?key=' + examKey;
+
+    // -- Platform-based download link --
+    (function () {
+      const btn = document.getElementById('downloadAppBtn');
+      const ua  = navigator.userAgent;
+      if (/android/i.test(ua)) {
         btn.href = '/downloads/app-release.apk';
         btn.textContent = '📥 Download Android App (.apk)';
-      } else if (isIOS) {
+      } else if (/iphone|ipad|ipod/i.test(ua)) {
         btn.href = '#';
         btn.textContent = '📱 iOS App Coming Soon';
-        btn.onclick = (e) => { e.preventDefault(); alert('iOS version coming soon!'); };
+        btn.onclick = (e) =&gt; { e.preventDefault(); alert('iOS version coming soon!'); };
       } else {
-        // Desktop / Laptop — Windows EXE
         btn.href = '/download/student-app';
-        btn.textContent = '📥 Download Windows App (.exe)';
+        btn.textContent = '💻 Download Windows App (.exe)';
       }
     })();
 
-    // Auto-launch on page load
-    window.onload = () => {
-      if (examKey) tryLaunchApp();
-    };
-  </script>
-</body>
-</html>
+    function setLaunchButton(enabled, label) {
+      const btn = document.getElementById('launchBtn');
+      const sp  = document.getElementById('launchSpinner');
+      btn.disabled = !enabled;
+      sp.style.display = enabled ? 'none' : 'inline-block';
+      btn.innerHTML = (enabled ? '' : '&lt;span class="spinner"&gt;&lt;/span&gt;') + label;
+    }
+
+    function showBadge(type, text) {
+      const b = document.getElementById('statusBadge');
+      b.className = 'status-badge ' + type;
+      b.textContent = text;
+    }
+
+    function showAlert(msg, type) {
+      const a = document.getElementById('statusAlert');
+      a.innerHTML = msg;
+      a.className = type;
+      a.style.display = 'block';
+    }
+
+    async function checkExamStatus() {
+      if (!examKey) {
+        document.getElementById('cardIcon').textContent = '⚠️';
+        document.getElementById('cardTitle').textContent = 'No Exam Key';
+        document.getElementById('cardSubtitle').textContent = 'This link is missing an Exam Access Key. Please ask your teacher to re-share the link.';
+        showBadge('inactive', '⚠️ No Exam Key Provided');
+        setLaunchButton(false, '📲 Open Smart Exam App');
+        return;
+      }
+
+      try {
+        const res  = await fetch('/api/exams/public-info/' + encodeURIComponent(examKey));
+        const data = await res.json();
+
+        if (!res.ok || !data.exists) {
+          document.getElementById('cardIcon').textContent = '❓';
+          document.getElementById('cardTitle').textContent = 'Exam Not Found';
+          document.getElementById('cardSubtitle').textContent = 'This exam link is invalid or has been deleted. Please contact your teacher.';
+          showBadge('inactive', '❌ Invalid Exam Link');
+          showAlert('⚠️ The exam code &lt;strong&gt;' + examKey + '&lt;/strong&gt; was not found in the system. Please verify the link with your teacher.', 'notfound');
+          setLaunchButton(false, '❌ Exam Not Found');
+          return;
+        }
+
+        // Show exam info box
+        document.getElementById('examTitle').textContent = data.title || 'Examination';
+        document.getElementById('examCodeDisplay').textContent = data.code || examKey;
+        document.getElementById('examMeta').textContent = 'Duration: ' + (data.duration_minutes || '?') + ' minutes';
+        document.getElementById('examInfoBox').classList.add('visible');
+
+        if (data.is_active === 0 || data.is_active === '0' || data.is_active === false) {
+          // ❌ Exam deactivated
+          document.getElementById('cardIcon').textContent = '🔒';
+          document.getElementById('cardTitle').textContent = 'Examination Closed';
+          document.getElementById('cardSubtitle').textContent = 'This exam has been deactivated by the instructor and is no longer accepting candidates.';
+          showBadge('inactive', '🔒 Exam Deactivated');
+          showAlert(
+            '&lt;strong&gt;❌ This examination link has been deactivated.&lt;/strong&gt;&lt;br&gt;' +
+            'Please contact your teacher or instructor. No new candidates can enter.',
+            'deactivated'
+          );
+          setLaunchButton(false, '🔒 Exam Is Closed');
+        } else {
+          // ✅ Exam is active
+          document.getElementById('cardIcon').textContent = '🚀';
+          document.getElementById('cardTitle').textContent = 'Examination Ready';
+          document.getElementById('cardSubtitle').textContent = 'Your exam is active. Open the SmartExam App to begin.';
+          showBadge('active', '✅ Exam Active &amp; Open');
+          setLaunchButton(true, '📲 Open Smart Exam App');
+
+          // Auto-launch after short delay
+          setTimeout(() =&gt; {
+            window.location.href = deepLink;
+          }, 800);
+        }
+
+      } catch (err) {
+        document.getElementById('cardIcon').textContent = '⚡';
+        document.getElementById('cardTitle').textContent = 'Connection Error';
+        document.getElementById('cardSubtitle').textContent = 'Could not reach the exam server. Please check your internet and try again.';
+        showBadge('inactive', '⚠️ Server Unreachable');
+        setLaunchButton(true, '📲 Try Opening App Anyway');
+      }
+    }
+
+    // Manual launch button
+    document.getElementById('launchBtn').addEventListener('click', () =&gt; {
+      window.location.href = deepLink;
+    });
+
+    // Run check on load
+    checkExamStatus();
+  &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;

@@ -1,70 +1,182 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Student Registration - Smart Exam System</title>
-  <link rel="stylesheet" href="css/custom.css">
-</head>
-<body class="auth-body">
+&lt;!DOCTYPE html&gt;
+&lt;html lang="en"&gt;
+&lt;head&gt;
+  &lt;meta charset="UTF-8"&gt;
+  &lt;meta name="viewport" content="width=device-width, initial-scale=1.0"&gt;
+  &lt;title&gt;Student Registration - Smart Exam System&lt;/title&gt;
+  &lt;link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"&gt;
+  &lt;style&gt;
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Inter',sans-serif;background:linear-gradient(135deg,#0f172a 0%,#1e1b4b 100%);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;}
+    .container{width:100%;max-width:560px;}
+    .brand{text-align:center;margin-bottom:28px;}
+    .brand-icon{display:inline-flex;align-items:center;justify-content:center;width:56px;height:56px;border-radius:18px;background:rgba(99,102,241,.18);border:1px solid rgba(99,102,241,.35);margin-bottom:12px;}
+    .brand h1{font-size:1.6rem;font-weight:800;color:#fff;letter-spacing:-0.5px;}
+    .brand p{color:#94a3b8;font-size:.8rem;margin-top:4px;}
+    .card{background:rgba(30,41,59,.88);border:1px solid rgba(99,102,241,.18);border-radius:18px;padding:28px 28px 24px;backdrop-filter:blur(14px);box-shadow:0 24px 60px rgba(0,0,0,.5);}
+    .card h2{font-size:1.1rem;font-weight:700;color:#fff;margin-bottom:20px;}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+    .full{grid-column:1/-1;}
+    .form-group{display:flex;flex-direction:column;gap:5px;}
+    label{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;}
+    input{background:#0f172a;border:1px solid #334155;color:#fff;padding:10px 13px;border-radius:9px;font-size:.87rem;font-family:'Inter',sans-serif;outline:none;transition:border-color .18s,box-shadow .18s;width:100%;}
+    input:focus{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.18);}
+    input::placeholder{color:#475569;}
+    /* Camera section */
+    .cam-section{background:rgba(15,23,42,.6);border:1px solid #1e293b;border-radius:12px;padding:16px;margin-top:6px;}
+    .cam-label{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;margin-bottom:10px;display:block;}
+    .cam-preview{position:relative;border-radius:10px;overflow:hidden;background:#020617;aspect-ratio:4/3;border:2px solid #1e293b;}
+    .cam-preview video,.cam-preview img{width:100%;height:100%;object-fit:cover;display:block;}
+    .cam-preview img.hidden-preview{display:none;}
+    .cam-actions{margin-top:10px;display:flex;gap:8px;}
+    /* Buttons */
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:9px 18px;border-radius:9px;font-size:.82rem;font-weight:600;cursor:pointer;border:none;transition:all .18s;font-family:'Inter',sans-serif;}
+    .btn-purple{background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;}
+    .btn-purple:hover{opacity:.9;transform:translateY(-1px);}
+    .btn-green{background:linear-gradient(135deg,#10b981,#059669);color:#fff;width:100%;padding:12px;font-size:.92rem;margin-top:18px;}
+    .btn-green:hover:not(:disabled){opacity:.9;transform:translateY(-1px);}
+    .btn-green:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+    /* Alert */
+    .reg-alert{display:none;padding:11px 14px;border-radius:9px;font-size:.82rem;font-weight:600;margin-bottom:14px;}
+    .reg-alert.error{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#f87171;}
+    .reg-alert.success{background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);color:#34d399;}
+    /* Footer links */
+    .footer-links{margin-top:18px;text-align:center;display:flex;align-items:center;justify-content:center;gap:18px;font-size:.75rem;}
+    .footer-links a{color:#6366f1;text-decoration:none;font-weight:500;}
+    .footer-links a:hover{color:#818cf8;}
+    .sep{color:#475569;}
+    /* Server settings */
+    .server-tip{margin-top:14px;text-align:center;font-size:.7rem;color:#475569;}
+    .server-tip a{color:#6366f1;cursor:pointer;}
+    .server-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:999;align-items:center;justify-content:center;}
+    .server-modal.open{display:flex;}
+    .server-box{background:#1e293b;border:1px solid #334155;border-radius:14px;padding:22px;max-width:340px;width:90%;}
+    .server-box h3{color:#fff;font-size:.95rem;font-weight:700;margin-bottom:14px;}
+    .server-box p{color:#94a3b8;font-size:.78rem;margin-bottom:12px;}
+    .server-row{display:flex;gap:8px;}
+    .server-row input{flex:1;}
+    .btn-sm{padding:9px 13px;font-size:.78rem;}
+  &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
 
-  <div class="auth-card">
-    <div class="auth-header">
-      <h2>Student Registration</h2>
-      <p class="auth-subtitle">Create your verified account to enter exams</p>
-    </div>
+  &lt;div class="container"&gt;
 
-    <form id="registrationForm" class="auth-form">
-      <div class="form-grid">
-        <div class="form-group">
-          <label for="regName">Full Name</label>
-          <input type="text" id="regName" placeholder="Enter Full Name" required>
-        </div>
+    &lt;!-- Brand --&gt;
+    &lt;div class="brand"&gt;
+      &lt;div class="brand-icon"&gt;
+        &lt;svg width="26" height="26" fill="none" viewBox="0 0 24 24" stroke="#818cf8"&gt;
+          &lt;path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/&gt;
+        &lt;/svg&gt;
+      &lt;/div&gt;
+      &lt;h1&gt;SmartExam&lt;/h1&gt;
+      &lt;p&gt;Student Registration Portal&lt;/p&gt;
+    &lt;/div&gt;
 
-        <div class="form-group">
-          <label for="regRollNo">Roll Number</label>
-          <input type="text" id="regRollNo" placeholder="e.g. 2026-EXAM-01" required>
-        </div>
+    &lt;!-- Card --&gt;
+    &lt;div class="card"&gt;
+      &lt;h2&gt;Create Your Account&lt;/h2&gt;
 
-        <div class="form-group">
-          <label for="regBranch">Branch</label>
-          <input type="text" id="regBranch" placeholder="e.g. Civil Engineering / CSE" required>
-        </div>
+      &lt;div id="reg-alert" class="reg-alert"&gt;&lt;/div&gt;
 
-        <div class="form-group">
-          <label for="regYear">Passing Year</label>
-          <input type="text" id="regYear" placeholder="e.g. 2028" required>
-        </div>
+      &lt;form id="registrationForm" autocomplete="off"&gt;
+        &lt;div class="grid"&gt;
+          &lt;div class="form-group"&gt;
+            &lt;label for="regName"&gt;Full Name&lt;/label&gt;
+            &lt;input type="text" id="regName" placeholder="Enter Full Name" required&gt;
+          &lt;/div&gt;
 
-        <div class="form-group form-full">
-          <label for="regEmail">Email Address</label>
-          <input type="email" id="regEmail" placeholder="student@institute.edu" required>
-        </div>
+          &lt;div class="form-group"&gt;
+            &lt;label for="regRollNo"&gt;Roll Number&lt;/label&gt;
+            &lt;input type="text" id="regRollNo" placeholder="e.g. 2026-EXAM-01" required&gt;
+          &lt;/div&gt;
 
-        <div class="form-group form-full">
-          <label for="regPassword">Password</label>
-          <input type="password" id="regPassword" placeholder="Create Strong Password" required>
-        </div>
-      </div>
+          &lt;div class="form-group"&gt;
+            &lt;label for="regBranch"&gt;Branch&lt;/label&gt;
+            &lt;input type="text" id="regBranch" placeholder="e.g. Civil / CSE" required&gt;
+          &lt;/div&gt;
 
-      <!-- Live Photo Capture Card -->
-      <div class="photo-capture-section">
-        <label class="section-label">Profile Verification Photo (Live Snap)</label>
-        <div class="camera-preview-box">
-          <video id="regWebcam" autoplay playsinline muted></video>
-          <img id="regPhotoPreview" class="hidden-preview" alt="Snap Preview">
-        </div>
-        
-        <div class="camera-actions">
-          <button type="button" id="btnSnapPhoto" class="btn btn-purple btn-sm">📸 Capture Photo</button>
-        </div>
-        <input type="hidden" id="regPhotoData">
-      </div>
+          &lt;div class="form-group"&gt;
+            &lt;label for="regYear"&gt;Passing Year&lt;/label&gt;
+            &lt;input type="text" id="regYear" placeholder="e.g. 2028" required&gt;
+          &lt;/div&gt;
 
-      <button type="submit" class="btn btn-green btn-block">Complete Registration →</button>
-    </form>
-  </div>
+          &lt;div class="form-group full"&gt;
+            &lt;label for="regEmail"&gt;Email Address&lt;/label&gt;
+            &lt;input type="email" id="regEmail" placeholder="student@institute.edu" required&gt;
+          &lt;/div&gt;
 
-  <script src="js/register.js"></script>
-</body>
-</html>
+          &lt;div class="form-group full"&gt;
+            &lt;label for="regPassword"&gt;Password&lt;/label&gt;
+            &lt;input type="password" id="regPassword" placeholder="Create a strong password" required&gt;
+          &lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;!-- Live Photo Capture --&gt;
+        &lt;div class="cam-section"&gt;
+          &lt;span class="cam-label"&gt;📸 Profile Verification Photo (Live Snap required)&lt;/span&gt;
+          &lt;div class="cam-preview"&gt;
+            &lt;video id="regWebcam" autoplay playsinline muted&gt;&lt;/video&gt;
+            &lt;img id="regPhotoPreview" class="hidden-preview" alt="Snap Preview"&gt;
+          &lt;/div&gt;
+          &lt;div class="cam-actions"&gt;
+            &lt;button type="button" id="btnSnapPhoto" class="btn btn-purple"&gt;📸 Capture Photo&lt;/button&gt;
+          &lt;/div&gt;
+          &lt;input type="hidden" id="regPhotoData"&gt;
+        &lt;/div&gt;
+
+        &lt;button type="submit" class="btn btn-green"&gt;Complete Registration →&lt;/button&gt;
+      &lt;/form&gt;
+    &lt;/div&gt;
+
+    &lt;div class="footer-links"&gt;
+      &lt;a href="index.html"&gt;← Back to Login&lt;/a&gt;
+      &lt;span class="sep"&gt;•&lt;/span&gt;
+      &lt;a href="forgot-password.html"&gt;Forgot Password?&lt;/a&gt;
+    &lt;/div&gt;
+
+    &lt;div class="server-tip"&gt;
+      Connection issues? &lt;a id="openServerSettings"&gt;⚙️ Server Settings&lt;/a&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+
+  &lt;!-- Server Settings Modal --&gt;
+  &lt;div class="server-modal" id="serverModal"&gt;
+    &lt;div class="server-box"&gt;
+      &lt;h3&gt;⚙️ Server Settings&lt;/h3&gt;
+      &lt;p&gt;Enter the IP address or URL of the SmartExam backend server. Leave blank to use the default.&lt;/p&gt;
+      &lt;div class="server-row"&gt;
+        &lt;input type="text" id="serverUrlInput" placeholder="e.g. http://192.168.1.10:5000"&gt;
+        &lt;button class="btn btn-purple btn-sm" id="saveServerUrl"&gt;Save&lt;/button&gt;
+      &lt;/div&gt;
+      &lt;div style="margin-top:10px;display:flex;gap:8px;"&gt;
+        &lt;button class="btn" style="background:#1e293b;color:#94a3b8;border:1px solid #334155;flex:1;" id="clearServerUrl"&gt;Reset Default&lt;/button&gt;
+        &lt;button class="btn" style="background:#1e293b;color:#94a3b8;border:1px solid #334155;flex:1;" id="closeServerModal"&gt;Close&lt;/button&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+
+  &lt;script src="js/api.js"&gt;&lt;/script&gt;
+  &lt;script src="js/register.js"&gt;&lt;/script&gt;
+  &lt;script&gt;
+    // Server Settings Modal
+    const modal = document.getElementById('serverModal');
+    const inp   = document.getElementById('serverUrlInput');
+    inp.value   = localStorage.getItem('server_url') || '';
+    document.getElementById('openServerSettings').addEventListener('click', () => modal.classList.add('open'));
+    document.getElementById('closeServerModal').addEventListener('click', () => modal.classList.remove('open'));
+    document.getElementById('saveServerUrl').addEventListener('click', () => {
+      const v = inp.value.trim();
+      if (v) { localStorage.setItem('server_url', v); } else { localStorage.removeItem('server_url'); }
+      modal.classList.remove('open');
+      alert('✅ Server URL saved. Reload the page to apply.');
+    });
+    document.getElementById('clearServerUrl').addEventListener('click', () => {
+      localStorage.removeItem('server_url');
+      inp.value = '';
+      alert('Server URL reset to default.');
+    });
+  &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;

@@ -281,7 +281,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   } catch(err) {
     alert(`Failed to start exam: ${err.message}`);
-    exitExam();
+    // exitExam: release kiosk, clear partial state, go back to login
+    ipcSend('exit-kiosk-mode');
+    try { if (document.exitFullscreen) await document.exitFullscreen(); } catch(e) {}
+    window.location.href = 'index.html';
     return;
   }
 
@@ -525,13 +528,18 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     } catch(e) {}
 
-    // Clean up exam session data
+    // Clean up ALL exam session data (full logout from exam flow)
     localStorage.removeItem('active_exam_id');
     localStorage.removeItem('verified_snapshot');
+    localStorage.removeItem('student_token');
+    localStorage.removeItem('token');
+    localStorage.removeItem('studentToken');
+    localStorage.removeItem('student_user');
 
-    alert(`✅ Exam submitted successfully!\n${scoreMsg}`);
+    alert(`✅ Exam submitted successfully!\n${scoreMsg}\n\nYou will be redirected to the login page.`);
 
-    window.location.href = 'dashboard.html';
+    // Return to login page — not dashboard
+    window.location.href = 'index.html';
   }
 
   // Used by exam.js Android handler

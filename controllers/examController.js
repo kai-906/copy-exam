@@ -97,6 +97,90 @@ exports.toggleExamStatus = (req, res) => {
 };
 
 /* ══════════════════════════════════════════════════════════════
+   PUBLIC EXAM INFO (Used by app-launcher to check if link is active)
+══════════════════════════════════════════════════════════════ */
+exports.getPublicExamInfo = (req, res) => {
+  const codeOrId = (req.params.codeOrId || '').trim();
+  db.get(
+    `SELECT id, title, duration_minutes, is_active, code FROM Exams WHERE (id=? OR code=?)`,
+    [codeOrId, codeOrId],
+    (err, exam) => {
+      if (err || !exam) {
+        return res.status(404).json({ exists: false, error: 'Examination not found.' });
+      }
+      res.json({
+        exists: true,
+        id: exam.id,
+        code: exam.code,
+        title: exam.title,
+        duration_minutes: exam.duration_minutes,
+        is_active: (exam.is_active !== 0 && exam.is_active !== '0') ? 1 : 0
+      });
+    }
+  );
+};
+
+/* ══════════════════════════════════════════════════════════════
+   VERIFY EXAM ACCESS / ELIGIBILITY (Single Attempt & Active Check)
+══════════════════════════════════════════════════════════════ */
+exports.verifyExamEligibility = (req, res) => {
+  const exam_key = (req.body.exam_key || req.body.examId || '').trim();
+  const student_id = req.user.id;
+
+  if (!exam_key) {
+    return res.status(400).json({ error: 'Exam Access Key is required.' });
+  }
+
+  db.get(
+    `SELECT * FROM Exams WHERE (id=? OR code=?)`,
+    [exam_key, exam_key],
+    (err, exam) => {
+      if (err || !exam) {
+        return res.status(404).json({ error: 'Exam not found or invalid access code.' });
+      }
+
+      if (exam.is_active === 0 || exam.is_active === '0') {
+        return res.status(403).json({
+          error: 'This exam is currently inactive / deactivated by the teacher.'
+        });
+      }
+
+      // Check if student has already appeared / submitted
+      db.get(
+        `SELECT * FROM ExamAttempts WHERE exam_id=? AND student_id=?`,
+        [exam.id, student_id],
+        (attemptErr, attempt) => {
+          if (attemptErr) return res.status(500).json({ error: attemptErr.message });
+
+          if (attempt) {
+            if (attempt.status === 'SUBMITTED') {
+              return res.status(403).json({
+                error: 'You have already submitted this exam. Each student can only take an exam once.'
+              });
+            }
+            if (attempt.status === 'TERMINATED') {
+              return res.status(403).json({
+                error: 'Your exam attempt was terminated due to violations. Re-attempts are blocked.'
+              });
+            }
+          }
+
+          res.json({
+            valid: true,
+            exam: {
+              id: exam.id,
+              code: exam.code,
+              title: exam.title,
+              duration_minutes: exam.duration_minutes
+            }
+          });
+        }
+      );
+    }
+  );
+};
+
+/* ══════════════════════════════════════════════════════════════
    START EXAM ATTEMPT  (checks is_active, merges multi-bank)
 ══════════════════════════════════════════════════════════════ */
 exports.startExamAttempt = (req, res) => {
@@ -108,7 +192,7 @@ exports.startExamAttempt = (req, res) => {
       return res.status(404).json({ error: 'Exam not found or invalid access code.' });
 
     /* ── Check if exam is active ── */
-    if (exam.is_active === 0)
+    if (exam.is_active === 0 || exam.is_active === '0')
       return res.status(403).json({
         error: 'This exam is currently inactive. Please contact your teacher.'
       });
@@ -120,7 +204,7 @@ exports.startExamAttempt = (req, res) => {
         if (err) return res.status(500).json({ error: err.message });
         if (existing)
           return res.status(403).json({
-            error: 'You have already appeared for this exam. Re-attempts are blocked.'
+            error: 'You have already appeared for this exam. Each student can only take an exam once.'
           });
 
         const attemptId = uuidv4();
