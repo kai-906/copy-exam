@@ -173,16 +173,22 @@ app.get('/api/reports/exam/:examId/export', verifyToken, requireRole('TEACHER'),
 app.get('/launch-exam', (req, res) =>
   res.sendFile(path.join(__dirname, 'public', 'app-launcher.html')));
 
+const WINDOWS_EXE_URL = 'https://github.com/kai-906/copy-exam/releases/download/v1.0.0/student-app.exe';
+
 app.get('/downloads/app-release.apk', (req, res) => {
   const p = path.join(__dirname, 'public', 'downloads', 'app-release.apk');
-  if (fs.existsSync(p) && fs.statSync(p).size > 100000) res.download(p, 'SmartExam.apk');
-  else res.status(404).json({ error: 'APK not yet available.' });
+  if (fs.existsSync(p) && fs.statSync(p).size > 100000) {
+    return res.download(p, 'SmartExam-Student.apk');
+  }
+  return res.status(404).json({ error: 'APK not yet available.' });
 });
 
-app.get('/download/student-app', (req, res) => {
+app.get(['/download/student-app', '/downloads/student-app.exe'], (req, res) => {
   const p = path.join(__dirname, 'public', 'downloads', 'student-app.exe');
-  if (fs.existsSync(p)) res.download(p, 'Smart-Exam-Student-App.exe');
-  else res.status(404).json({ error: 'Installer not found.' });
+  if (fs.existsSync(p) && fs.statSync(p).size > 1000000) {
+    return res.download(p, 'Smart-Exam-Student-App.exe');
+  }
+  return res.redirect(WINDOWS_EXE_URL);
 });
 
 /* ── Start ────────────────────────────────────────────────────── */
