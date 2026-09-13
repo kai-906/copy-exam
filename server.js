@@ -1,4 +1,4 @@
-require('dotenv').config();   // loads .env file in development / production
+require('dotenv').config();
 
 const express = require('express');
 const compression = require('compression');
@@ -7,393 +7,190 @@ const http = require('http');
 const path = require('path');
 const fs = require('fs');
 
-const authController = require('./controllers/authController');
-const bankController = require('./controllers/bankController');
-const examController = require('./controllers/examController');
+const authController    = require('./controllers/authController');
+const bankController    = require('./controllers/bankController');
+const examController    = require('./controllers/examController');
 const studentController = require('./controllers/studentController');
 const teacherController = require('./controllers/teacherController');
-const reportController = require('./controllers/reportController');
+const subjectController = require('./controllers/subjectController');
+const reportController  = require('./controllers/reportController');
 const proctorController = require('./controllers/proctorController');
 
 const { verifyToken, requireRole } = require('./middleware/auth');
 const upload = require('./middleware/upload');
 const websocketHandler = require('./utils/websocketHandler');
 
-const app = express();
+const app    = express();
 const server = http.createServer(app);
 
-// Safe Dummy Fallback Handler if any controller function is missing
 const missingHandler = (name) => (req, res) =>
-  res.status(500).json({
-    error: `Handler ${name} is not defined in controller`
-  });
+  res.status(501).json({ error: `Handler '${name}' not yet implemented` });
 
-// Initialize Socket.io Server
 if (websocketHandler && typeof websocketHandler.init === 'function') {
   websocketHandler.init(server);
 }
 
 app.use(compression());
 app.use(cors());
-app.use(express.json({ limit: '5mb' }));
+app.use(express.json({ limit: '10mb' }));
 
-// Static Files Routes
+/* ── Static files ─────────────────────────────────────────────── */
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/student-app', express.static(path.join(__dirname, 'student-app')));
-app.use('/downloads', express.static(path.join(__dirname, 'public', 'downloads')));
+app.use('/downloads',   express.static(path.join(__dirname, 'public', 'downloads')));
 
-// Auth Routes
-app.post(
-  '/api/auth/teacher/register',
-  authController.registerTeacher || missingHandler('registerTeacher')
-);
+/* ── Auth ─────────────────────────────────────────────────────── */
+app.post('/api/auth/teacher/register', authController.registerTeacher);
+app.post('/api/auth/teacher/login',    authController.loginTeacher);
+app.post('/api/auth/student/register', authController.registerStudent);
+app.post('/api/auth/student/login',    authController.loginStudent);
+app.post('/api/auth/forgot-password',  authController.forgotPassword);
+app.post('/api/auth/verify-otp',       authController.verifyOTP);
+app.post('/api/auth/reset-password',   authController.resetPassword);
+app.post('/api/student/register',      authController.registerStudent);
 
-app.post(
-  '/api/auth/teacher/login',
-  authController.loginTeacher || missingHandler('loginTeacher')
-);
+/* ── Teacher profile ──────────────────────────────────────────── */
+app.get ('/api/teacher/profile', verifyToken, requireRole('TEACHER'), subjectController.getTeacherProfile);
+app.post('/api/teacher/profile', verifyToken, requireRole('TEACHER'), subjectController.upsertTeacherProfile);
 
-app.post(
-  '/api/auth/student/register',
-  authController.registerStudent || missingHandler('registerStudent')
-);
+/* ── Subjects ─────────────────────────────────────────────────── */
+app.get   ('/api/subjects',                verifyToken, requireRole('TEACHER'), subjectController.getSubjects);
+app.post  ('/api/subjects',                verifyToken, requireRole('TEACHER'), subjectController.createSubject);
+app.put   ('/api/subjects/:id',            verifyToken, requireRole('TEACHER'), subjectController.updateSubject);
+app.delete('/api/subjects/:id',            verifyToken, requireRole('TEACHER'), subjectController.deleteSubject);
+app.get   ('/api/subjects/:id/banks',      verifyToken, requireRole('TEACHER'), subjectController.getSubjectBanks);
+app.get   ('/api/subjects/:id/exams',      verifyToken, requireRole('TEACHER'), subjectController.getSubjectExams);
 
-app.post(
-  '/api/auth/student/login',
-  authController.loginStudent || missingHandler('loginStudent')
-);
-
-app.post(
-  '/api/auth/forgot-password',
-  authController.forgotPassword || missingHandler('forgotPassword')
-);
-
-app.post(
-  '/api/auth/reset-password',
-  authController.resetPassword || missingHandler('resetPassword')
-);
-
-// Question Bank Routes
+/* ── Question Banks ───────────────────────────────────────────── */
 const handleUpload = (req, res, next) => {
   upload.single('file')(req, res, (err) => {
-    if (err) {
-      return res.status(400).json({
-        error: err.message || 'File upload error.'
-      });
-    }
+    if (err) return res.status(400).json({ error: err.message || 'File upload error.' });
     next();
   });
 };
 
-app.post(
-  '/api/banks/upload',
-  verifyToken,
-  requireRole('TEACHER'),
-  handleUpload,
-  bankController.uploadBank || missingHandler('uploadBank')
-);
+app.post  ('/api/banks/upload',              verifyToken, requireRole('TEACHER'), handleUpload, bankController.uploadBank);
+app.get   ('/api/banks',                     verifyToken, requireRole('TEACHER'), bankController.getTeacherBanks);
+app.get   ('/api/banks/:id/questions',       verifyToken, requireRole('TEACHER'), bankController.getBankQuestions);
+app.delete('/api/banks/:id',                 verifyToken, requireRole('TEACHER'), bankController.deleteQuestionBank);
+app.post  ('/api/banks/:bankId/append-file', verifyToken, requireRole('TEACHER'), handleUpload, bankController.appendFileToBank);
 
-app.get(
-  '/api/banks',
-  verifyToken,
-  requireRole('TEACHER'),
-  bankController.getTeacherBanks ||
-    bankController.getBanks ||
-    missingHandler('getTeacherBanks')
-);
+/* ── Questions ────────────────────────────────────────────────── */
+app.put   ('/api/banks/questions/:id',     verifyToken, requireRole('TEACHER'), bankController.updateQuestion);
+app.post  ('/api/banks/questions/manual',  verifyToken, requireRole('TEACHER'), bankController.addQuestionManual);
+app.delete('/api/banks/questions/:id',     verifyToken, requireRole('TEACHER'), bankController.deleteQuestion);
 
-app.get(
-  '/api/banks/:id/questions',
-  verifyToken,
-  requireRole('TEACHER'),
-  bankController.getBankQuestions || missingHandler('getBankQuestions')
-);
+/* ── Exams ────────────────────────────────────────────────────── */
+app.post  ('/api/exams/create',                  verifyToken, requireRole('TEACHER'), examController.createExam);
+app.get   ('/api/exams',                         verifyToken, requireRole('TEACHER'), examController.getExamsList);
+app.patch ('/api/exams/:examId/toggle',          verifyToken, requireRole('TEACHER'), examController.toggleExamStatus);
+app.get   ('/api/exams/:examId/banks',           verifyToken, requireRole('TEACHER'), examController.getExamBanks);
+app.post  ('/api/exams/announce',                verifyToken, requireRole('TEACHER'), examController.sendAnnouncement);
+app.get   ('/api/exams/:examId/announcements',   verifyToken, requireRole('TEACHER'), examController.getAnnouncements);
 
-app.delete(
-  '/api/banks/:id',
-  verifyToken,
-  requireRole('TEACHER'),
-  bankController.deleteQuestionBank ||
-    bankController.deleteBank ||
-    missingHandler('deleteQuestionBank')
-);
-
-// Question Bank Editor Routes
-app.put(
-  '/api/banks/questions/:id',
-  verifyToken,
-  requireRole('TEACHER'),
-  bankController.updateQuestion || missingHandler('updateQuestion')
-);
-
-app.post(
-  '/api/banks/questions/manual',
-  verifyToken,
-  requireRole('TEACHER'),
-  bankController.addQuestionManual || missingHandler('addQuestionManual')
-);
-
-app.delete(
-  '/api/banks/questions/:id',
-  verifyToken,
-  requireRole('TEACHER'),
-  bankController.deleteQuestion || missingHandler('deleteQuestion')
-);
-
-// Fixed Route URL for PDF Append feature
-app.post(
-  '/api/banks/:bankId/append-file',
-  verifyToken,
-  requireRole('TEACHER'),
-  handleUpload,
-  bankController.appendFileToBank || missingHandler('appendFileToBank')
-);
-
-// Exam Management Routes
-app.post(
-  '/api/exams/create',
-  verifyToken,
-  requireRole('TEACHER'),
-  examController.createExam ||
-    examController.addExam ||
-    missingHandler('createExam')
-);
-
-// Teacher Dashboard & Results Routes
-app.get(
-  '/api/teacher/exams',
-  verifyToken,
-  requireRole('TEACHER'),
-  teacherController.getExamsList || missingHandler('getExamsList')
-);
-
-app.get(
-  '/api/teacher/students',
-  verifyToken,
-  requireRole('TEACHER'),
-  teacherController.getRegisteredStudents ||
-    missingHandler('getRegisteredStudents')
-);
-
-app.post(
-  '/api/teacher/students/register',
-  verifyToken,
-  requireRole('TEACHER'),
-  studentController.registerStudent ||
-    teacherController.registerStudentManual ||
-    missingHandler('registerStudent')
-);
-
-app.get(
-  '/api/teacher/results',
-  verifyToken,
-  requireRole('TEACHER'),
-  teacherController.getExamResultsList ||
-    teacherController.getExamResults ||
-    missingHandler('getExamResults')
-);
-
-app.get(
-  '/api/teacher/results/:examId',
-  verifyToken,
-  requireRole('TEACHER'),
-  teacherController.getExamResults || missingHandler('getExamResults')
-);
-
-app.get(
-  '/api/teacher/exam-results/:examId',
-  verifyToken,
-  requireRole('TEACHER'),
-  teacherController.getExamResults || missingHandler('getExamResults')
-);
-
-// Student Registration Alias Route
-app.post(
-  '/api/student/register',
-  authController.registerStudent || missingHandler('registerStudent')
-);
-
-// Proctoring & Anti-Cheating Routes
-app.post(
-  '/api/proctor/log-violation',
-  verifyToken,
-  proctorController.logViolation ||
-    ((req, res) => res.json({ success: true }))
-);
-
-app.post(
-  '/api/proctor/verify-face',
-  verifyToken,
-  proctorController.verifyFace ||
-    ((req, res) => res.json({ verified: true }))
-);
-
-// Student CBT Exam Routes
-app.post(
-  '/api/attempts/start',
-  verifyToken,
-  requireRole('STUDENT'),
-  examController.startExamAttempt ||
-    missingHandler('startExamAttempt')
-);
-
-app.post(
-  '/api/attempts/save-answer',
-  verifyToken,
-  requireRole('STUDENT'),
-  studentController.saveAnswer || missingHandler('saveAnswer')
-);
-
-app.post(
-  '/api/attempts/submit',
-  verifyToken,
-  requireRole('STUDENT'),
-  studentController.submitExam || missingHandler('submitExam')
-);
-
-app.get(
-  '/api/student/my-results',
-  verifyToken,
-  requireRole('STUDENT'),
-  studentController.getMyResults || missingHandler('getMyResults')
-);
-
-app.get(
-  '/api/attempts/my-results',
-  verifyToken,
-  requireRole('STUDENT'),
-  studentController.getMyResults || missingHandler('getMyResults')
-);
-
-// Analytics & Export Routes
-app.get(
-  '/api/reports/exam/:examId',
-  verifyToken,
-  requireRole('TEACHER'),
-  reportController.getExamAnalytics ||
-    missingHandler('getExamAnalytics')
-);
-
-app.get(
-  '/api/reports/exam/:examId/export',
-  verifyToken,
-  requireRole('TEACHER'),
-  reportController.exportResultsFormat ||
-    missingHandler('exportResultsFormat')
-);
-
-// Deep Link Launcher Route
-app.get('/launch-exam', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'app-launcher.html'));
-});
-
-// ==========================================================
-// APP DOWNLOAD ROUTES
-// ==========================================================
-
-// Android APK
-app.get('/downloads/app-release.apk', (req, res) => {
-  const filePath = path.join(
-    __dirname,
-    'public',
-    'downloads',
-    'app-release.apk'
+/* ── Teacher dashboard aliases ────────────────────────────────── */
+app.get ('/api/teacher/exams',                verifyToken, requireRole('TEACHER'), examController.getExamsList);
+app.get ('/api/teacher/students',             verifyToken, requireRole('TEACHER'), teacherController.getRegisteredStudents);
+app.post('/api/teacher/students/register',    verifyToken, requireRole('TEACHER'), studentController.registerStudent);
+app.get ('/api/teacher/results',              verifyToken, requireRole('TEACHER'), teacherController.getExamResultsList);
+app.get ('/api/teacher/results/:examId',      verifyToken, requireRole('TEACHER'), teacherController.getExamResults);
+app.get ('/api/teacher/exam-results/:examId', verifyToken, requireRole('TEACHER'), teacherController.getExamResults);
+app.get ('/api/teacher/subject-results',      verifyToken, requireRole('TEACHER'), (req, res) => {
+  const db = require('./db');
+  db.all(
+    `SELECT COALESCE(s.name,'General') AS subject_name,
+            COALESCE(s.color,'#4f46e5') AS subject_color,
+            COALESCE(s.icon,'📚')       AS subject_icon,
+            COUNT(DISTINCT ea.id)       AS total_attempts,
+            COUNT(DISTINCT e.id)        AS total_exams,
+            ROUND(AVG(CASE WHEN ea.status='SUBMITTED' THEN ea.total_score END),1) AS avg_score,
+            SUM(CASE WHEN ea.status='SUBMITTED' AND ea.total_score>=COALESCE(e.pass_marks,40) THEN 1 ELSE 0 END) AS passed
+     FROM Exams e
+     LEFT JOIN Subjects     s  ON s.id  = e.subject_id
+     LEFT JOIN ExamAttempts ea ON ea.exam_id = e.id
+     WHERE e.teacher_id=?
+     GROUP BY COALESCE(s.name,'General')
+     ORDER BY subject_name`,
+    [req.user.id],
+    (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ subjects: rows || [] });
+    }
   );
-
-  if (fs.existsSync(filePath) && fs.statSync(filePath).size > 100000) {
-    res.download(filePath, 'SmartExam-Student.apk');
-  } else {
-    res.send(`<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Android App — Smart Exam</title>
-<script src="https://cdn.tailwindcss.com"></script>
-</head>
-
-<body class="bg-slate-900 min-h-screen flex items-center justify-center p-6">
-
-<div class="max-w-md w-full text-center space-y-5">
-
-<div class="text-6xl">📱</div>
-
-<h1 class="text-2xl font-bold text-white">
-Android App
-</h1>
-
-<p class="text-slate-400 text-sm">
-The Smart Exam Android APK is currently being built.
-</p>
-
-<div class="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 text-left space-y-2">
-
-<p class="text-amber-400 text-xs font-bold uppercase tracking-wider">
-To install on Android:
-</p>
-
-<ol class="text-amber-300 text-xs space-y-1 list-decimal list-inside">
-
-<li>
-Build the APK using Capacitor + Android Studio
-</li>
-
-<li>
-Enable <strong>Install Unknown Apps</strong> in Android Settings
-</li>
-
-<li>
-Place the .apk in
-<code class="bg-slate-800 px-1 rounded">
-public/downloads/app-release.apk
-</code>
-</li>
-
-<li>
-The download link will then serve the real APK
-</li>
-
-</ol>
-
-</div>
-
-<a
-href="/download/student-app"
-class="inline-block bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 px-6 rounded-xl text-sm mt-2"
->
-⬇️ Download Windows App Instead
-</a>
-
-</div>
-
-</body>
-</html>`);
-  }
 });
 
-// ==========================================================
-// WINDOWS EXE DOWNLOAD
-// EXE is hosted in GitHub Release because it is ~309 MB.
-// ==========================================================
+/* ── Proctoring ───────────────────────────────────────────────── */
+app.post('/api/proctor/log-violation', verifyToken, proctorController.logViolation);
+app.post('/api/proctor/verify-face',   verifyToken, proctorController.verifyFace);
+app.get ('/api/proctor/logs/:examId',  verifyToken, requireRole('TEACHER'), (req, res) => {
+  const db = require('./db');
+  db.all(
+    `SELECT pl.*, sp.name AS student_name, sp.roll_number
+     FROM ProctorLogs pl
+     JOIN Users u ON pl.student_id = u.id
+     LEFT JOIN StudentProfiles sp ON sp.student_id = u.id
+     WHERE pl.student_id IN (SELECT student_id FROM ExamAttempts WHERE exam_id=?)
+     ORDER BY pl.timestamp DESC LIMIT 200`,
+    [req.params.examId],
+    (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ logs: rows || [] });
+    }
+  );
+});
+
+/* ── Live exam attendees list ──────────────────────────────────── */
+app.get('/api/proctor/live/:examId', verifyToken, requireRole('TEACHER'), (req, res) => {
+  const db = require('./db');
+  db.all(
+    `SELECT ea.id AS attempt_id, ea.student_id, ea.status, ea.start_time,
+            sp.name, sp.roll_number, sp.profile_photo
+     FROM ExamAttempts ea
+     JOIN StudentProfiles sp ON sp.student_id = ea.student_id
+     WHERE ea.exam_id=? AND ea.status='IN_PROGRESS'
+     ORDER BY ea.start_time DESC`,
+    [req.params.examId],
+    (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ students: rows || [] });
+    }
+  );
+});
+
+/* ── Student CBT ──────────────────────────────────────────────── */
+app.post('/api/attempts/start',           verifyToken, requireRole('STUDENT'), examController.startExamAttempt);
+app.post('/api/attempts/save-answer',     verifyToken, requireRole('STUDENT'), studentController.saveAnswer);
+app.post('/api/attempts/submit',          verifyToken, requireRole('STUDENT'), studentController.submitExam);
+app.get ('/api/student/my-results',       verifyToken, requireRole('STUDENT'), studentController.getMyResults);
+app.get ('/api/attempts/my-results',      verifyToken, requireRole('STUDENT'), studentController.getMyResults);
+app.get ('/api/student/subject-progress', verifyToken, requireRole('STUDENT'), studentController.getMySubjectProgress);
+
+/* ── Analytics ────────────────────────────────────────────────── */
+app.get('/api/reports/exam/:examId',        verifyToken, requireRole('TEACHER'), reportController.getExamAnalytics   || missingHandler('getExamAnalytics'));
+app.get('/api/reports/exam/:examId/export', verifyToken, requireRole('TEACHER'), reportController.exportResultsFormat || missingHandler('exportResultsFormat'));
+
+/* ── Deep link + downloads ────────────────────────────────────── */
+app.get('/launch-exam', (req, res) =>
+  res.sendFile(path.join(__dirname, 'public', 'app-launcher.html')));
+
+app.get('/downloads/app-release.apk', (req, res) => {
+  const p = path.join(__dirname, 'public', 'downloads', 'app-release.apk');
+  if (fs.existsSync(p) && fs.statSync(p).size > 100000) res.download(p, 'SmartExam.apk');
+  else res.status(404).json({ error: 'APK not yet available.' });
+});
 
 app.get('/download/student-app', (req, res) => {
-  res.redirect(
-    'https://github.com/kai-906/copy-exam/releases/download/v1.0.0/student-app.exe'
-  );
+  const p = path.join(__dirname, 'public', 'downloads', 'student-app.exe');
+  if (fs.existsSync(p)) res.download(p, 'Smart-Exam-Student-App.exe');
+  else res.status(404).json({ error: 'Installer not found.' });
 });
 
-// ==========================================================
-// START SERVER
-// ==========================================================
-
+/* ── Start ────────────────────────────────────────────────────── */
 const PORT = process.env.PORT || 5000;
-
 server.listen(PORT, () => {
-  console.log(`
-==================================================
-🚀 Smart Exam System Server Running!
-👉 Teacher Portal : http://localhost:${PORT}/teacher/login.html
-👉 Student Portal : http://localhost:${PORT}/student-app/renderer/index.html
-==================================================
-`);
+  console.log(`\n${'═'.repeat(52)}`);
+  console.log(`🚀  Smart Exam System  ·  port ${PORT}`);
+  console.log(`    Teacher  : http://localhost:${PORT}/teacher/login.html`);
+  console.log(`    Student  : http://localhost:${PORT}/student-app/renderer/index.html`);
+  console.log(`${'═'.repeat(52)}\n`);
 });

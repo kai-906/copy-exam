@@ -1,1099 +1,1373 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Smart Exam System — Teacher Console</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <style>
-    * { font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: #0b0f19; }
-    ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 8px; }
-    ::-webkit-scrollbar-thumb:hover { background: #334155; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>SmartExam — Teacher Console</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+/* ── THEME TOKENS ────────────────────────────────────────── */
+:root{
+  --bg:#f1f3f4;--surface:#fff;--sidebar:#1d2125;--sb-text:#9aa0a6;
+  --sb-active-bg:rgba(138,180,248,.16);--sb-active:#8ab4f8;
+  --sb-hover:rgba(255,255,255,.07);--border:#e0e0e0;
+  --text:#202124;--text2:#5f6368;--primary:#1a73e8;--primary-h:#1558b0;
+  --danger:#d93025;--success:#188038;--warn:#f29900;
+  --sh:0 1px 3px rgba(0,0,0,.12),0 1px 2px rgba(0,0,0,.1);
+  --sh-h:0 4px 14px rgba(0,0,0,.14);
+}
+[data-theme=dark]{
+  --bg:#202124;--surface:#292a2d;--border:#3c4043;
+  --text:#e8eaed;--text2:#9aa0a6;
+  --sh:0 1px 3px rgba(0,0,0,.5);--sh-h:0 4px 14px rgba(0,0,0,.55);
+}
+[data-theme=indigo]{
+  --bg:#eef2ff;--surface:#fff;--sidebar:#312e81;
+  --sb-text:#c7d2fe;--sb-active-bg:rgba(165,180,252,.2);--sb-active:#a5b4fc;
+  --sb-hover:rgba(255,255,255,.1);--border:#e0e7ff;
+  --text:#1e1b4b;--text2:#6366f1;--primary:#4f46e5;--primary-h:#4338ca;
+}
+[data-theme=rose]{
+  --bg:#fff1f2;--surface:#fff;--sidebar:#881337;
+  --sb-text:#fecdd3;--sb-active-bg:rgba(253,164,175,.2);--sb-active:#fda4af;
+  --sb-hover:rgba(255,255,255,.08);--border:#ffe4e6;
+  --text:#1c0a0e;--text2:#9f1239;--primary:#e11d48;--primary-h:#be123c;
+}
+/* ── BASE ──────────────────────────────────────────────── */
+*{box-sizing:border-box;font-family:'Roboto',sans-serif;}
+body{margin:0;background:var(--bg);color:var(--text);display:flex;height:100vh;overflow:hidden;transition:background .25s,color .25s;}
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+/* ── SIDEBAR ───────────────────────────────────────────── */
+.sb{width:250px;flex-shrink:0;background:var(--sidebar);display:flex;flex-direction:column;height:100vh;overflow-y:auto;transition:background .25s;}
+.sb-logo{display:flex;align-items:center;gap:10px;padding:18px 16px 14px;border-bottom:1px solid rgba(255,255,255,.07);}
+.sb-logo-ic{width:34px;height:34px;border-radius:9px;background:var(--primary);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.sb-logo-txt{font-family:'Google Sans';font-size:17px;font-weight:700;color:#fff;}
+.sb-sec{padding:8px 8px 0;}
+.sb-lbl{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--sb-text);opacity:.6;padding:10px 8px 4px;}
+.nb{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:24px;margin-bottom:2px;font-size:13.5px;font-weight:500;color:var(--sb-text);cursor:pointer;transition:all .18s;border:none;background:none;width:100%;text-align:left;}
+.nb:hover{background:var(--sb-hover);color:#fff;}
+.nb.active{background:var(--sb-active-bg);color:var(--sb-active);font-weight:600;}
+.nb .ic{width:17px;text-align:center;flex-shrink:0;font-size:15px;}
+.nb-badge{margin-left:auto;background:var(--primary);color:#fff;font-size:10px;font-weight:700;padding:1px 7px;border-radius:10px;}
+/* ── MAIN ──────────────────────────────────────────────── */
+.main{flex:1;display:flex;flex-direction:column;height:100vh;overflow:hidden;}
+.topbar{height:62px;flex-shrink:0;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 22px;transition:background .25s,border-color .25s;}
+.topbar-title{font-family:'Google Sans';font-size:20px;font-weight:600;color:var(--text);}
+.topbar-right{display:flex;align-items:center;gap:12px;}
+/* theme swatches */
+.th-dot{width:24px;height:24px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .18s;}
+.th-dot:hover{transform:scale(1.15);}
+.th-dot.on{border-color:var(--primary);box-shadow:0 0 0 3px rgba(26,115,232,.22);}
+/* profile chip */
+.pchip{display:flex;align-items:center;gap:8px;background:var(--bg);border:1px solid var(--border);border-radius:24px;padding:4px 14px 4px 4px;cursor:pointer;transition:box-shadow .18s;}
+.pchip:hover{box-shadow:var(--sh);}
+.pchip-av{width:28px;height:28px;border-radius:50%;object-fit:cover;flex-shrink:0;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;}
+.pchip-name{font-size:13px;font-weight:500;color:var(--text);max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+/* ── CONTENT ───────────────────────────────────────────── */
+.content{flex:1;overflow-y:auto;padding:22px;}
+/* ── CARDS ─────────────────────────────────────────────── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;box-shadow:var(--sh);transition:box-shadow .2s,background .25s,border-color .25s;}
+.card:hover{box-shadow:var(--sh-h);}
+.card-title{font-family:'Google Sans';font-size:15px;font-weight:700;color:var(--text);margin:0 0 16px;}
+/* stat chips */
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px;}
+.sc{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 18px;display:flex;align-items:center;gap:14px;box-shadow:var(--sh);transition:box-shadow .2s;}
+.sc:hover{box-shadow:var(--sh-h);}
+.sc-ic{width:42px;height:42px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:21px;flex-shrink:0;}
+.sc-val{font-family:'Google Sans';font-size:26px;font-weight:800;color:var(--text);line-height:1;}
+.sc-lbl{font-size:12px;color:var(--text2);margin-top:2px;}
+/* class cards (Google Classroom) */
+.cc{border-radius:12px;overflow:hidden;box-shadow:var(--sh);background:var(--surface);transition:transform .2s,box-shadow .2s;}
+.cc:hover{transform:translateY(-3px);box-shadow:var(--sh-h);}
+.cc-banner{height:96px;padding:14px;position:relative;display:flex;flex-direction:column;justify-content:flex-end;}
+.cc-banner h3{color:#fff;font-family:'Google Sans';font-size:15px;font-weight:700;margin:0;text-shadow:0 1px 3px rgba(0,0,0,.3);}
+.cc-banner p{color:rgba(255,255,255,.82);font-size:11px;margin:2px 0 0;}
+.cc-banner .cc-icon{font-size:26px;position:absolute;top:10px;right:12px;}
+.cc-foot{padding:10px 14px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--border);}
+.cc-stat{font-size:12px;color:var(--text2);display:flex;align-items:center;gap:4px;}
+/* ── INPUTS ────────────────────────────────────────────── */
+.inp{width:100%;padding:9px 13px;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;font-size:13.5px;color:var(--text);outline:none;transition:border-color .18s,box-shadow .18s;}
+.inp:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(26,115,232,.15);}
+select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235f6368' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;appearance:none;cursor:pointer;}
+.lbl{display:block;font-size:11.5px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px;}
+/* ── BUTTONS ───────────────────────────────────────────── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 18px;border-radius:8px;font-size:13.5px;font-weight:500;cursor:pointer;border:none;transition:all .18s;white-space:nowrap;}
+.btn-p{background:var(--primary);color:#fff!important;box-shadow:0 1px 4px rgba(26,115,232,.3);}
+.btn-p:hover{background:var(--primary-h);box-shadow:0 3px 10px rgba(26,115,232,.4);}
+.btn-o{background:var(--surface);color:var(--primary)!important;border:1.5px solid var(--primary);}
+.btn-o:hover{background:rgba(26,115,232,.06);}
+.btn-d{background:var(--danger);color:#fff!important;}
+.btn-d:hover{background:#b52e22;}
+.btn-s{background:var(--success);color:#fff!important;}
+.btn-s:hover{background:#135e28;}
+.btn-sm{padding:5px 12px;font-size:12px;}
+.btn-w{width:100%;justify-content:center;padding:10px;}
+/* ── TABLE ─────────────────────────────────────────────── */
+.gt{width:100%;border-collapse:collapse;font-size:13px;}
+.gt th{background:var(--bg);color:var(--text2);font-size:11.5px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;padding:10px 13px;text-align:left;border-bottom:1px solid var(--border);}
+.gt td{padding:11px 13px;border-bottom:1px solid var(--border);color:var(--text);vertical-align:middle;}
+.gt tbody tr:hover{background:rgba(26,115,232,.03);}
+.gt tbody tr:last-child td{border-bottom:none;}
+/* pills */
+.pill{display:inline-flex;align-items:center;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;gap:3px;}
+.pg{background:rgba(16,185,129,.12);color:#065f46;}
+.pr{background:rgba(217,48,37,.1);color:#b91c1c;}
+.py{background:rgba(242,153,0,.12);color:#92400e;}
+.pb{background:rgba(26,115,232,.1);color:#1558b0;}
+.pn{background:var(--bg);color:var(--text2);border:1px solid var(--border);}
+/* toggle */
+.tog-wrap{display:flex;align-items:center;gap:8px;}
+.tog{position:relative;width:38px;height:20px;}
+.tog input{opacity:0;width:0;height:0;position:absolute;}
+.tog-sl{position:absolute;inset:0;background:#ccc;border-radius:20px;cursor:pointer;transition:.2s;}
+.tog-sl:before{content:'';position:absolute;width:14px;height:14px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s;}
+.tog input:checked+.tog-sl{background:var(--primary);}
+.tog input:checked+.tog-sl:before{transform:translateX(18px);}
+/* drop zone */
+.dz{border:2px dashed var(--border);border-radius:10px;padding:20px;text-align:center;cursor:pointer;transition:border-color .18s,background .18s;}
+.dz:hover,.dz.over{border-color:var(--primary);background:rgba(26,115,232,.04);}
+/* bank slot */
+.bslot{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:13px;margin-bottom:10px;}
+.bslot-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.qcl{max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;background:var(--surface);}
+.qci{display:flex;align-items:flex-start;gap:8px;padding:7px 11px;border-bottom:1px solid var(--border);font-size:12.5px;color:var(--text);}
+.qci:last-child{border-bottom:none;}
+.qci input[type=checkbox]{margin-top:2px;flex-shrink:0;}
+/* modal */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.52);z-index:1000;align-items:center;justify-content:center;}
+.modal-bg.open{display:flex;}
+.modal{background:var(--surface);border-radius:16px;padding:26px;width:100%;max-width:520px;max-height:92vh;overflow-y:auto;box-shadow:0 24px 48px rgba(0,0,0,.28);}
+.modal-title{font-family:'Google Sans';font-size:18px;font-weight:700;color:var(--text);margin:0 0 18px;}
+/* progress bar */
+.prog-bg{background:var(--bg);border-radius:6px;overflow:hidden;height:5px;}
+.prog-bar{height:100%;background:var(--primary);border-radius:6px;transition:width .4s;}
+/* tab panes */
+.tp{display:none;}.tp.on{display:block;}
+/* empty state */
+.emp{text-align:center;padding:44px 16px;color:var(--text2);}
+.emp-ic{font-size:44px;margin-bottom:10px;}
+/* col picker */
+.col-dot{width:26px;height:26px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:transform .15s;}
+.col-dot:hover{transform:scale(1.15);}
+/* responsive */
+@media(max-width:900px){.sb{display:none;}.stat-grid{grid-template-columns:1fr 1fr;}}
 
-    .main-scrollbar::-webkit-scrollbar-track { background: #f8fafc; }
-    .main-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; }
-    .main-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-
-    /* Custom Nav Item Styling */
-    .nav-item {
-      width: 100%;
-      text-align: left;
-      padding: 0.75rem 1rem;
-      border-radius: 0.85rem;
-      font-size: 0.875rem;
-      font-weight: 500;
-      color: #94a3b8;
-      background: transparent;
-      border: 1px solid transparent;
-      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-      display: flex;
-      align-items: center;
-      gap: 0.85rem;
-      cursor: pointer;
-      position: relative;
-    }
-    .nav-item:hover {
-      background-color: rgba(255, 255, 255, 0.05);
-      color: #f8fafc;
-      transform: translateX(2px);
-    }
-    .nav-item.active {
-      background: linear-gradient(135deg, rgba(79, 70, 229, 0.25) 0%, rgba(99, 102, 241, 0.15) 100%);
-      color: #818cf8;
-      font-weight: 600;
-      border: 1px solid rgba(99, 102, 241, 0.3);
-      box-shadow: 0 4px 20px -2px rgba(79, 70, 229, 0.25);
-    }
-    .nav-item.active::before {
-      content: '';
-      position: absolute;
-      left: 0;
-      top: 15%;
-      height: 70%;
-      width: 4px;
-      background: linear-gradient(180deg, #6366f1 0%, #a855f7 100%);
-      border-radius: 0 4px 4px 0;
-      box-shadow: 0 0 10px #6366f1;
-    }
-
-    /* Cards & Glassmorphism */
-    .glass-panel {
-      background: rgba(255, 255, 255, 0.85);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(226, 232, 240, 0.8);
-      border-radius: 1.25rem;
-      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.03), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
-    }
-
-    .stat-card-gradient-1 {
-      background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%);
-      box-shadow: 0 14px 28px -4px rgba(79, 70, 229, 0.35);
-    }
-    .stat-card-gradient-2 {
-      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
-      box-shadow: 0 14px 28px -4px rgba(2, 132, 199, 0.35);
-    }
-    .stat-card-gradient-3 {
-      background: linear-gradient(135deg, #059669 0%, #047857 100%);
-      box-shadow: 0 14px 28px -4px rgba(5, 150, 105, 0.35);
-    }
-
-    .section-card {
-      background: #ffffff;
-      border: 1px solid #e2e8f0;
-      border-radius: 1.25rem;
-      padding: 1.75rem;
-      box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03), 0 2px 6px -1px rgba(0, 0, 0, 0.02);
-      transition: all 0.25s ease;
-    }
-
-    /* Input Controls */
-    .input-field {
-      width: 100%;
-      padding: 0.7rem 1.1rem;
-      background-color: #f8fafc;
-      border: 1.5px solid #e2e8f0;
-      border-radius: 0.85rem;
-      font-size: 0.875rem;
-      outline: none;
-      transition: all 0.2s ease;
-      color: #0f172a;
-      box-sizing: border-box;
-    }
-    .input-field:focus {
-      border-color: #6366f1;
-      box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.12);
-      background-color: #ffffff;
-    }
-
-    /* Premium Button System */
-    .btn-primary {
-      background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
-      color: #ffffff !important;
-      font-weight: 600;
-      padding: 0.7rem 1.35rem;
-      border-radius: 0.85rem;
-      font-size: 0.875rem;
-      border: none;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.5rem;
-      transition: all 0.2s ease-in-out;
-      box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35);
-    }
-    .btn-primary:hover {
-      background: linear-gradient(135deg, #4338ca 0%, #2563eb 100%);
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(79, 70, 229, 0.45);
-    }
-    .btn-primary:active { transform: translateY(0); }
-
-    .btn-danger {
-      background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
-      color: #ffffff !important;
-      font-weight: 600;
-      padding: 0.5rem 1rem;
-      border-radius: 0.7rem;
-      font-size: 0.775rem;
-      border: none;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.35rem;
-      transition: all 0.2s ease-in-out;
-      box-shadow: 0 2px 8px rgba(244, 63, 94, 0.3);
-    }
-    .btn-danger:hover {
-      background: linear-gradient(135deg, #e11d48 0%, #be123c 100%);
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(244, 63, 94, 0.4);
-    }
-
-    .btn-secondary {
-      background: #f8fafc;
-      color: #334155 !important;
-      font-weight: 600;
-      padding: 0.5rem 1rem;
-      border-radius: 0.7rem;
-      font-size: 0.775rem;
-      border: 1px solid #cbd5e1;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.35rem;
-      transition: all 0.2s ease-in-out;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-    }
-    .btn-secondary:hover {
-      background: #f1f5f9;
-      color: #0f172a !important;
-      border-color: #94a3b8;
-      transform: translateY(-1px);
-    }
-
-    .btn-success {
-      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-      color: #ffffff !important;
-      font-weight: 600;
-      padding: 0.55rem 1.1rem;
-      border-radius: 0.75rem;
-      font-size: 0.775rem;
-      border: none;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.35rem;
-      transition: all 0.2s ease-in-out;
-      box-shadow: 0 3px 10px rgba(16, 185, 129, 0.3);
-    }
-    .btn-success:hover {
-      background: linear-gradient(135deg, #059669 0%, #047857 100%);
-      transform: translateY(-1px);
-      box-shadow: 0 5px 14px rgba(16, 185, 129, 0.4);
-    }
-
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      padding: 0.25rem 0.7rem;
-      border-radius: 9999px;
-      font-size: 0.725rem;
-      font-weight: 700;
-      letter-spacing: 0.025em;
-    }
-    .table-header {
-      padding: 0.85rem 1.25rem;
-      font-size: 0.725rem;
-      font-weight: 700;
-      color: #64748b;
-      text-transform: uppercase;
-      letter-spacing: 0.075em;
-    }
-    .table-cell {
-      padding: 0.95rem 1.25rem;
-      font-size: 0.875rem;
-      vertical-align: middle;
-    }
-    
-    .upload-drop-zone {
-      border: 2.5px dashed #cbd5e1;
-      border-radius: 1.1rem;
-      padding: 2.5rem;
-      text-align: center;
-      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-      cursor: pointer;
-      background: #f8fafc;
-    }
-    .upload-drop-zone:hover { border-color: #6366f1; background: #f0f3ff; transform: scale(1.005); }
-
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-    .tab-content:not(.hidden) { animation: fadeIn 0.3s ease-out forwards; }
-
-    .progress-bar { height: 7px; border-radius: 9999px; background: linear-gradient(90deg, #6366f1, #a855f7); transition: all 0.6s ease; }
-    
-    /* Glow pulse indicator */
-    .pulse-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background-color: #10b981;
-      box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
-      animation: pulse-green 2s infinite;
-    }
-    @keyframes pulse-green {
-      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-      70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
-      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
-    }
-  </style>
+/* ── CLASS DETAIL PANEL ─────────────────────────────────── */
+.cdp-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:800;animation:fadeIn .18s;}
+.cdp-overlay.open{display:block;}
+.cdp-panel{position:fixed;top:0;right:0;width:min(760px,100vw);height:100vh;background:var(--surface);box-shadow:-8px 0 32px rgba(0,0,0,.22);z-index:801;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .28s cubic-bezier(.4,0,.2,1);}
+.cdp-panel.open{transform:translateX(0);}
+.cdp-header{flex-shrink:0;padding:20px 22px 0;border-bottom:1px solid var(--border);}
+.cdp-banner{height:90px;border-radius:12px;margin-bottom:14px;padding:14px 18px;display:flex;align-items:flex-end;gap:10px;position:relative;overflow:hidden;}
+.cdp-banner-icon{font-size:32px;position:absolute;top:10px;right:16px;}
+.cdp-banner h2{color:#fff;font-family:'Google Sans';font-size:18px;font-weight:700;margin:0;text-shadow:0 1px 4px rgba(0,0,0,.3);}
+.cdp-banner p{color:rgba(255,255,255,.85);font-size:12px;margin:2px 0 0;}
+.cdp-tabs{display:flex;gap:0;border-bottom:none;}
+.cdp-tab{padding:10px 20px;font-size:13.5px;font-weight:500;color:var(--text2);cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;transition:color .18s,border-color .18s;}
+.cdp-tab:hover{color:var(--text);}
+.cdp-tab.on{color:var(--primary);border-bottom-color:var(--primary);font-weight:600;}
+.cdp-close{position:absolute;top:16px;right:16px;width:32px;height:32px;border-radius:50%;background:rgba(0,0,0,.18);border:none;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .18s;}
+.cdp-close:hover{background:rgba(0,0,0,.35);}
+.cdp-body{flex:1;overflow-y:auto;padding:20px 22px;}
+.cdp-pane{display:none;}.cdp-pane.on{display:block;}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+</style>
 </head>
-<body class="bg-[#f4f6fb] flex h-screen overflow-hidden text-slate-800 antialiased">
+<body>
+<!-- ══════════ SIDEBAR ══════════ -->
+<aside class="sb">
+  <div class="sb-logo">
+    <div class="sb-logo-ic">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 19V5a2 2 0 012-2h12a2 2 0 012 2v14" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/><path d="M8 11h8M8 15h5" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/></svg>
+    </div>
+    <span class="sb-logo-txt">SmartExam</span>
+  </div>
 
-  <!-- Sidebar -->
-  <aside class="w-64 bg-[#0b0f19] flex flex-col justify-between shrink-0 shadow-2xl border-r border-slate-800/80 z-20">
-    <div>
-      <!-- Brand Logo -->
-      <div class="px-6 py-6 border-b border-slate-800/80">
-        <div class="flex items-center gap-3.5">
-          <div class="w-10 h-10 bg-gradient-to-tr from-indigo-600 via-indigo-500 to-purple-500 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/30 ring-1 ring-white/20">
-            <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-          </div>
-          <div>
-            <h1 class="text-base font-extrabold text-white leading-tight tracking-tight">Smart Exam</h1>
-            <p class="text-[11px] font-semibold uppercase tracking-wider text-indigo-400">Teacher Console</p>
-          </div>
+  <div class="sb-sec" style="flex:1;">
+    <div class="sb-lbl">Main</div>
+    <button class="nb active" data-tab="overview"><span class="ic">🏠</span>Overview</button>
+    <button class="nb" data-tab="subjects"><span class="ic">📚</span>My Classes<span class="nb-badge" id="badge-sub">0</span></button>
+    <button class="nb" data-tab="banks"><span class="ic">📄</span>Question Banks</button>
+    <div class="sb-lbl" style="margin-top:6px;">Exams</div>
+    <button class="nb" data-tab="create-exam"><span class="ic">✏️</span>Create Exam</button>
+    <button class="nb" data-tab="exams"><span class="ic">📋</span>All Exams</button>
+    <button class="nb" data-tab="results"><span class="ic">📊</span>Results</button>
+    <button class="nb" data-tab="live"><span class="ic">📡</span>Live Monitor</button>
+    <div class="sb-lbl" style="margin-top:6px;">People</div>
+    <button class="nb" data-tab="students"><span class="ic">👥</span>Students</button>
+  </div>
+
+  <div style="padding:10px 8px 14px;">
+    <button class="nb" id="btn-logout" style="color:#f28b82;"><span class="ic">🚪</span>Logout</button>
+  </div>
+</aside>
+
+<!-- ══════════ MAIN ══════════ -->
+<div class="main">
+  <!-- topbar -->
+  <header class="topbar">
+    <h1 class="topbar-title" id="pg-title">Overview</h1>
+    <div class="topbar-right">
+      <!-- theme dots -->
+      <div style="display:flex;gap:5px;align-items:center;">
+        <div class="th-dot on" data-t="light"  style="background:linear-gradient(135deg,#f1f3f4,#d2d5d9);" title="Light"></div>
+        <div class="th-dot"    data-t="dark"   style="background:linear-gradient(135deg,#202124,#3c4043);" title="Dark"></div>
+        <div class="th-dot"    data-t="indigo" style="background:linear-gradient(135deg,#4f46e5,#818cf8);" title="Indigo"></div>
+        <div class="th-dot"    data-t="rose"   style="background:linear-gradient(135deg,#e11d48,#fda4af);" title="Rose"></div>
+      </div>
+      <!-- profile chip -->
+      <div class="pchip" id="pchip" onclick="switchTab('profile')">
+        <div class="pchip-av" id="pav">T</div>
+        <span class="pchip-name" id="pname">Teacher</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="content" id="content">
+
+    <!-- ═══ OVERVIEW ═══ -->
+    <div class="tp on" id="tp-overview">
+      <div class="stat-grid" id="stat-grid">
+        <div class="sc"><div class="sc-ic" style="background:#e8f0fe;">📚</div><div><div class="sc-val" id="s-sub">0</div><div class="sc-lbl">Classes</div></div></div>
+        <div class="sc"><div class="sc-ic" style="background:#e6f4ea;">📄</div><div><div class="sc-val" id="s-bnk">0</div><div class="sc-lbl">Question Banks</div></div></div>
+        <div class="sc"><div class="sc-ic" style="background:#fce8e6;">📝</div><div><div class="sc-val" id="s-exm">0</div><div class="sc-lbl">Exams</div></div></div>
+        <div class="sc"><div class="sc-ic" style="background:#fef7e0;">👥</div><div><div class="sc-val" id="s-stu">0</div><div class="sc-lbl">Students</div></div></div>
+      </div>
+      <div class="card" style="margin-bottom:20px;">
+        <div class="card-title">Quick Actions</div>
+        <div style="display:flex;flex-wrap:wrap;gap:9px;">
+          <button class="btn btn-p" onclick="switchTab('subjects')">＋ New Class</button>
+          <button class="btn btn-o" onclick="switchTab('banks')">📄 Upload PDF</button>
+          <button class="btn btn-o" onclick="switchTab('create-exam')">✏️ Create Exam</button>
+          <button class="btn btn-o" onclick="switchTab('live')">📡 Live Monitor</button>
         </div>
       </div>
-
-      <!-- Navigation -->
-      <nav class="p-3.5 space-y-1.5 mt-3">
-        <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-item active">
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
-          <span>Dashboard Overview</span>
-        </button>
-        <button onclick="switchTab('banks')" id="nav-banks" class="nav-item">
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
-          <span>Question Banks</span>
-        </button>
-        <button onclick="switchTab('create-exam')" id="nav-create-exam" class="nav-item">
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-          <span>Create Exam</span>
-        </button>
-        <button onclick="switchTab('live-monitor')" id="nav-live-monitor" class="nav-item">
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.069A1 1 0 0121 8.868v6.264a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/></svg>
-          <span>Live Monitoring</span>
-        </button>
-        <button onclick="switchTab('results')" id="nav-results" class="nav-item">
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-          <span>Results & Export</span>
-        </button>
-        <button onclick="switchTab('students')" id="nav-students" class="nav-item">
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-          <span>Student Directory</span>
-        </button>
-      </nav>
+      <div class="card" style="margin-bottom:20px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <div class="card-title" style="margin:0;">Recent Exams</div>
+          <button class="btn btn-o btn-sm" onclick="switchTab('exams')">View All</button>
+        </div>
+        <div id="recent-exams"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Subject-wise Performance</div>
+        <canvas id="sub-chart" style="max-height:230px;"></canvas>
+        <div id="sub-stats" style="margin-top:14px;display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;"></div>
+      </div>
     </div>
 
-    <!-- Sidebar Bottom Status & Logout -->
-    <div class="p-3.5 border-t border-slate-800/80 space-y-2">
-      <div class="px-3 py-2.5 bg-slate-900/80 rounded-xl border border-slate-800 flex items-center justify-between">
-        <div class="flex items-center gap-2">
-          <span class="pulse-dot"></span>
-          <span class="text-[11px] font-semibold text-slate-300">System Ready</span>
+    <!-- ═══ MY CLASSES ═══ -->
+    <div class="tp" id="tp-subjects">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+        <div>
+          <div style="font-family:'Google Sans';font-size:22px;font-weight:700;color:var(--text);">My Classes</div>
+          <div style="font-size:13px;color:var(--text2);">Each class groups its own question banks and exams</div>
         </div>
-        <span class="text-[10px] text-indigo-400 font-mono">v2.4 Pro</span>
+        <button class="btn btn-p" onclick="openSubjModal()">＋ Create Class</button>
       </div>
-      <button id="logout-btn" class="nav-item text-slate-400 hover:bg-rose-500/10 hover:text-rose-400 hover:border-rose-500/20 w-full transition-all">
-        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
-        <span>Logout Session</span>
-      </button>
+      <div id="subj-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:18px;"></div>
     </div>
-  </aside>
 
-  <!-- Main Content -->
-  <main class="flex-grow overflow-y-auto main-scrollbar bg-[#f4f6fb]">
-    <!-- Top Bar -->
-    <header class="glass-panel rounded-none border-x-0 border-t-0 sticky top-0 z-10 px-8 py-4 flex items-center justify-between">
-      <div>
-        <h2 id="page-title" class="text-xl font-bold text-slate-900 tracking-tight">Dashboard Overview</h2>
-        <p id="page-subtitle" class="text-xs text-slate-500 font-medium mt-0.5">Welcome back, Teacher</p>
-      </div>
-      <div class="flex items-center gap-3">
-        <div class="hidden sm:flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-full border border-slate-200 text-xs font-semibold text-slate-600">
-          <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-          <span>Proctoring Active</span>
+    <!-- ═══ QUESTION BANKS ═══ -->
+    <div class="tp" id="tp-banks">
+      <div class="card" style="margin-bottom:18px;">
+        <div class="card-title">Upload Question Bank (PDF)</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:13px;margin-bottom:13px;">
+          <div><label class="lbl">Bank Title</label><input id="bk-title" class="inp" placeholder="e.g. Physics Unit 1"></div>
+          <div><label class="lbl">Assign to Class</label><select id="bk-subj" class="inp"></select></div>
         </div>
-        <div class="flex items-center gap-3 bg-white pl-3 pr-4 py-1.5 rounded-full border border-slate-200 shadow-sm">
-          <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-white font-bold text-sm shadow-md">T</div>
-          <div class="text-left">
-            <p class="text-xs font-bold text-slate-800 leading-tight">Faculty Admin</p>
-            <p class="text-[10px] text-indigo-600 font-semibold">Teacher Account</p>
-          </div>
+        <div class="dz" id="dz"><input type="file" id="bk-file" accept=".pdf" style="display:none;"><span id="dz-txt" style="font-size:13px;color:var(--text2);">📄 Click or drag a PDF file here</span></div>
+        <div style="margin-top:8px;font-size:11.5px;color:var(--text2);display:flex;align-items:center;gap:6px;">
+          <span style="background:rgba(26,115,232,.1);color:var(--primary);padding:2px 8px;border-radius:12px;font-weight:600;font-size:11px;">✨ AI-Powered</span>
+          Gemini Vision extracts text &amp; image-based questions automatically
+        </div>
+        <div style="margin-top:11px;display:flex;align-items:center;gap:10px;">
+          <button class="btn btn-p" id="upload-btn">⚡ Upload & Parse</button>
+        </div>
+        <div id="up-wrap" class="hidden" style="margin-top:12px;">
+          <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text2);margin-bottom:5px;"><span id="up-msg">Uploading…</span><span id="up-pct">0%</span></div>
+          <div class="prog-bg"><div class="prog-bar" id="up-bar" style="width:0%;"></div></div>
         </div>
       </div>
-    </header>
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <div class="card-title" style="margin:0;">All Question Banks</div>
+          <select id="bk-filter-subj" class="inp" style="width:190px;" onchange="renderBanks()"><option value="">All Classes</option></select>
+        </div>
+        <div id="banks-list"></div>
+      </div>
+    </div>
 
-    <div class="p-8 space-y-6">
-
-    <!-- DASHBOARD TAB -->
-    <section id="section-dashboard" class="tab-content space-y-6">
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div class="stat-card-gradient-1 rounded-2xl p-6 text-white relative overflow-hidden group">
-          <div class="absolute -right-4 -bottom-4 w-32 h-32 bg-white/10 rounded-full blur-2xl group-hover:scale-125 transition-transform duration-500"></div>
-          <div class="flex justify-between items-start relative z-10">
-            <div>
-              <p class="text-xs font-bold text-indigo-200 uppercase tracking-wider">Question Banks</p>
-              <p id="stat-banks-count" class="text-4xl font-extrabold mt-3 tracking-tight">0</p>
+    <!-- ═══ CREATE EXAM ═══ -->
+    <div class="tp" id="tp-create-exam">
+      <div class="card" style="max-width:760px;margin:0 auto;">
+        <div class="card-title">Create & Schedule Examination</div>
+        <div style="display:grid;gap:14px;">
+          <div><label class="lbl">Exam Title</label><input id="ex-title" class="inp" placeholder="e.g. Mid-Term Physics"></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div><label class="lbl">Subject / Class</label><select id="ex-subj" class="inp" onchange="onExSubjChange()"><option value="">— Select Class —</option></select></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;">
+              <div><label class="lbl">Duration (min)</label><input type="number" id="ex-dur" value="60" min="1" class="inp"></div>
+              <div><label class="lbl">Qs / Student</label><input type="number" id="ex-qc" value="10" min="1" class="inp"></div>
             </div>
-            <div class="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center text-2xl backdrop-blur-sm border border-white/10">📚</div>
           </div>
-          <p class="text-indigo-100 text-xs mt-3 flex items-center gap-1 font-medium relative z-10">
-            <span>Across all subject modules</span>
-          </p>
-        </div>
-
-        <div class="stat-card-gradient-2 rounded-2xl p-6 text-white relative overflow-hidden group">
-          <div class="absolute -right-4 -bottom-4 w-32 h-32 bg-white/10 rounded-full blur-2xl group-hover:scale-125 transition-transform duration-500"></div>
-          <div class="flex justify-between items-start relative z-10">
-            <div>
-              <p class="text-xs font-bold text-sky-200 uppercase tracking-wider">Registered Students</p>
-              <p id="stat-students-count" class="text-4xl font-extrabold mt-3 tracking-tight">0</p>
-            </div>
-            <div class="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center text-2xl backdrop-blur-sm border border-white/10">🎓</div>
-          </div>
-          <p class="text-sky-100 text-xs mt-3 flex items-center gap-1 font-medium relative z-10">
-            <span>Verified candidate roster</span>
-          </p>
-        </div>
-
-        <div class="stat-card-gradient-3 rounded-2xl p-6 text-white relative overflow-hidden group">
-          <div class="absolute -right-4 -bottom-4 w-32 h-32 bg-white/10 rounded-full blur-2xl group-hover:scale-125 transition-transform duration-500"></div>
-          <div class="flex justify-between items-start relative z-10">
-            <div>
-              <p class="text-xs font-bold text-emerald-200 uppercase tracking-wider">Exam Submissions</p>
-              <p id="stat-results-count" class="text-4xl font-extrabold mt-3 tracking-tight">0</p>
-            </div>
-            <div class="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center text-2xl backdrop-blur-sm border border-white/10">📊</div>
-          </div>
-          <p class="text-emerald-100 text-xs mt-3 flex items-center gap-1 font-medium relative z-10">
-            <span>Evaluated test attempts</span>
-          </p>
-        </div>
-      </div>
-
-      <!-- Quick Actions -->
-      <div class="section-card">
-        <h3 class="font-bold text-slate-900 mb-5 text-base flex items-center gap-2">
-          <span>⚡ Quick Actions & Console Tools</span>
-        </h3>
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <button onclick="switchTab('banks')" class="flex flex-col items-center text-center p-5 rounded-2xl bg-slate-50/70 hover:bg-indigo-50/60 border border-slate-200/80 hover:border-indigo-300 transition-all duration-200 group hover:-translate-y-1 hover:shadow-md">
-            <div class="w-12 h-12 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-2xl mb-3 group-hover:scale-110 transition-transform">📁</div>
-            <span class="text-xs font-bold text-slate-800 group-hover:text-indigo-700">Upload Question Bank</span>
-            <span class="text-[11px] text-slate-400 mt-0.5">Parse PDF Exam Papers</span>
-          </button>
-          <button onclick="switchTab('create-exam')" class="flex flex-col items-center text-center p-5 rounded-2xl bg-slate-50/70 hover:bg-blue-50/60 border border-slate-200/80 hover:border-blue-300 transition-all duration-200 group hover:-translate-y-1 hover:shadow-md">
-            <div class="w-12 h-12 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center text-2xl mb-3 group-hover:scale-110 transition-transform">📝</div>
-            <span class="text-xs font-bold text-slate-800 group-hover:text-blue-700">Schedule New Exam</span>
-            <span class="text-[11px] text-slate-400 mt-0.5">Generate Student Code</span>
-          </button>
-          <button onclick="switchTab('live-monitor')" class="flex flex-col items-center text-center p-5 rounded-2xl bg-slate-50/70 hover:bg-amber-50/60 border border-slate-200/80 hover:border-amber-300 transition-all duration-200 group hover:-translate-y-1 hover:shadow-md">
-            <div class="w-12 h-12 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center text-2xl mb-3 group-hover:scale-110 transition-transform">📡</div>
-            <span class="text-xs font-bold text-slate-800 group-hover:text-amber-700">Live Monitoring</span>
-            <span class="text-[11px] text-slate-400 mt-0.5">Socket Proctor Control</span>
-          </button>
-          <button onclick="switchTab('results')" class="flex flex-col items-center text-center p-5 rounded-2xl bg-slate-50/70 hover:bg-emerald-50/60 border border-slate-200/80 hover:border-emerald-300 transition-all duration-200 group hover:-translate-y-1 hover:shadow-md">
-            <div class="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-2xl mb-3 group-hover:scale-110 transition-transform">📈</div>
-            <span class="text-xs font-bold text-slate-800 group-hover:text-emerald-700">Export Exam Results</span>
-            <span class="text-[11px] text-slate-400 mt-0.5">Excel / PDF Scorecards</span>
-          </button>
-        </div>
-      </div>
-    </section>
-
-    <!-- QUESTION BANKS TAB -->
-    <section id="section-banks" class="tab-content hidden space-y-6">
-      <!-- Upload Card -->
-      <div class="section-card">
-        <div class="flex items-center gap-3.5 mb-6">
-          <div class="w-11 h-11 bg-indigo-100/80 rounded-2xl flex items-center justify-center shadow-inner">
-            <svg class="w-6 h-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
-          </div>
+          <!-- multi-bank builder -->
           <div>
-            <h3 class="font-bold text-slate-900 text-base">Upload New Question Bank</h3>
-            <p class="text-xs text-slate-500">Intelligent parser automatically extracts MCQs, NATs, and numerical questions from PDF files.</p>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;">
+              <label class="lbl" style="margin:0;">Question Banks (1–5)</label>
+              <button type="button" class="btn btn-o btn-sm" id="add-bslot-btn" onclick="addBankSlot()" disabled>＋ Add Bank</button>
+            </div>
+            <div id="bslots"></div>
           </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div><label class="lbl">Total Marks</label><input type="number" id="ex-tm" value="100" class="inp"></div>
+            <div><label class="lbl">Pass Marks</label><input type="number" id="ex-pm" value="40" class="inp"></div>
+          </div>
+          <button class="btn btn-p btn-w" id="create-btn">🚀 Generate Exam Code</button>
         </div>
-
-        <form id="upload-bank-form" class="space-y-5">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div>
-              <label class="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">Question Bank Title</label>
-              <input type="text" id="bank-title" placeholder="e.g., Civil Engineering — GATE 2024" required class="input-field">
-            </div>
-            <div>
-              <label class="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">Subject / Specialization</label>
-              <input type="text" id="bank-subject" placeholder="e.g., Structural Analysis" required class="input-field">
-            </div>
+        <div id="exam-box" class="hidden" style="margin-top:20px;background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:20px;">
+          <div style="font-family:'Google Sans';font-size:16px;font-weight:700;color:var(--success);margin-bottom:12px;">✅ Exam Created!</div>
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:10px;">
+            <div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;">Student Access Code</div>
+            <div id="exam-code" style="font-size:34px;font-family:monospace;font-weight:800;color:var(--primary);letter-spacing:.12em;"></div>
           </div>
-          <div class="upload-drop-zone" id="upload-drop-zone" style="cursor:pointer;">
-            <input type="file" id="bank-file" accept=".pdf" class="hidden">
-            <div class="w-14 h-14 bg-indigo-50 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-3 text-indigo-600 shadow-sm border border-indigo-100">📄</div>
-            <p class="text-sm font-bold text-slate-800">Choose PDF Document or drag & drop</p>
-            <p class="text-xs text-slate-400 mt-1 font-medium">Maximum size: 25 MB • PDF format only</p>
-            <p id="chosen-file-name" class="text-xs text-indigo-700 font-bold mt-3 inline-block bg-indigo-50 px-3 py-1.5 rounded-full border border-indigo-200 hidden"></p>
-          </div>
-          <button type="submit" class="btn-primary w-full text-center py-3">
-            ⚡ Upload & Parse PDF Document
-          </button>
-        </form>
-
-        <!-- Upload Progress -->
-        <div id="upload-progress-wrap" class="hidden mt-5">
-          <div class="flex justify-between text-xs font-semibold text-slate-600 mb-2">
-            <span id="upload-status-msg">Uploading file...</span>
-            <span id="upload-pct" class="text-indigo-600 font-bold">0%</span>
-          </div>
-          <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden border border-slate-200">
-            <div class="progress-bar" id="upload-progress-bar" style="width: 0%"></div>
-          </div>
+          <div style="font-size:12px;color:var(--text2);margin-bottom:6px;">Share this link:</div>
+          <div id="exam-link" style="font-size:12px;font-family:monospace;background:var(--bg);padding:8px 12px;border-radius:8px;word-break:break-all;"></div>
+          <button class="btn btn-o btn-sm" style="margin-top:9px;" onclick="navigator.clipboard.writeText(document.getElementById('exam-link').textContent).then(()=>alert('Copied!'))">📋 Copy Link</button>
         </div>
       </div>
+    </div>
 
-      <!-- Banks List -->
-      <div class="section-card">
-        <h3 class="font-bold text-slate-900 mb-5 text-base flex items-center justify-between">
-          <span>Repository Question Banks</span>
-          <span class="text-xs text-slate-400 font-normal">Stored in local database</span>
-        </h3>
-        <div id="banks-table-container" class="space-y-3"></div>
-      </div>
-    </section>
-
-    <!-- CREATE EXAM TAB -->
-    <section id="section-create-exam" class="tab-content hidden space-y-6">
-      <div class="section-card max-w-3xl mx-auto">
-        <div class="flex items-center gap-3.5 mb-6">
-          <div class="w-11 h-11 bg-blue-100/80 rounded-2xl flex items-center justify-center shadow-inner">
-            <svg class="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-          </div>
-          <div>
-            <h3 class="font-bold text-slate-900 text-base">Create & Schedule Examination</h3>
-            <p class="text-xs text-slate-500">Configure exam rules, pool question selection, and produce student invitation passcodes.</p>
-          </div>
-        </div>
-
-        <form id="create-exam-form" class="space-y-5">
-          <div>
-            <label class="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">Exam Title</label>
-            <input type="text" id="exam-title" required placeholder="e.g., Mid-Term Assessment — Civil Dept" class="input-field">
-          </div>
-          <div>
-            <label class="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">Source Question Bank</label>
-            <select id="exam-bank-select" required class="input-field bg-white cursor-pointer"></select>
-          </div>
-
-          <div id="question-picker-container" class="hidden border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
-            <div class="bg-slate-100/80 border-b border-slate-200 px-4 py-3 flex justify-between items-center">
-              <span class="text-xs font-bold text-slate-700 uppercase tracking-wider">Exam Pool — <span id="selected-q-count" class="text-indigo-600 font-extrabold">0</span> Questions Selected</span>
-              <button type="button" id="select-all-q-btn" class="text-xs text-indigo-600 font-bold hover:text-indigo-800 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-200">Toggle All</button>
-            </div>
-            <div id="questions-checkbox-list" class="max-h-64 overflow-y-auto p-3 space-y-2 text-xs bg-slate-50/50"></div>
-          </div>
-
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div>
-              <label class="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">Duration (Minutes)</label>
-              <input type="number" id="exam-duration" value="60" min="1" max="600" required class="input-field">
-            </div>
-            <div>
-              <label class="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">Questions Per Student</label>
-              <input type="number" id="exam-questions-count" value="10" min="1" required class="input-field">
-            </div>
-          </div>
-
-          <button type="submit" class="btn-primary w-full text-center py-3">🚀 Generate Exam Passcode & Link</button>
-        </form>
-
-        <div id="created-exam-link" class="mt-6 p-6 bg-gradient-to-br from-indigo-50 to-blue-50 border border-indigo-200/80 rounded-2xl hidden shadow-sm"></div>
-      </div>
-    </section>
-
-    <!-- LIVE MONITOR TAB -->
-    <section id="section-live-monitor" class="tab-content hidden space-y-6">
-      <div class="section-card">
-        <div class="flex items-center gap-3.5 mb-5">
-          <div class="w-11 h-11 bg-amber-100/80 rounded-2xl flex items-center justify-center shadow-inner">
-            <span class="text-2xl">📡</span>
-          </div>
-          <div>
-            <h3 class="font-bold text-slate-900 text-base">Live Exam Proctoring Console</h3>
-            <p class="text-xs text-slate-500">Real-time Socket.IO proctoring dashboard. Monitor student focus, view alerts, and issue warnings.</p>
-          </div>
-        </div>
-        <div id="live-exam-shortcuts" class="space-y-3"></div>
-      </div>
-    </section>
-
-    <!-- RESULTS TAB -->
-    <section id="section-results" class="tab-content hidden space-y-6">
-      <div id="results-exam-list-view" class="space-y-4">
-        <div class="section-card">
-          <div class="mb-5">
-            <h3 class="font-bold text-slate-900 text-base">Exam Scorecards & Export Center</h3>
-            <p class="text-xs text-slate-500 mt-0.5">Select an examination session below to inspect student gradebooks, score analytics, and generate reports.</p>
-          </div>
-          <div id="exams-results-grid" class="grid grid-cols-1 md:grid-cols-3 gap-5"></div>
+    <!-- ═══ ALL EXAMS ═══ -->
+    <div class="tp" id="tp-exams">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+        <div style="font-family:'Google Sans';font-size:20px;font-weight:700;color:var(--text);">All Exams</div>
+        <div style="display:flex;gap:10px;">
+          <select id="ex-filter-subj" class="inp" style="width:190px;" onchange="renderExams()"><option value="">All Classes</option></select>
+          <button class="btn btn-p" onclick="switchTab('create-exam')">＋ Create</button>
         </div>
       </div>
+      <div id="exams-list"></div>
+    </div>
 
-      <div id="results-detail-view" class="hidden space-y-5">
-        <div class="section-card">
-          <div class="flex flex-wrap justify-between items-center gap-4">
-            <div class="flex items-center gap-3.5">
-              <button onclick="backToExamResultsList()" class="btn-secondary">← Back to Exams</button>
-              <h3 id="selected-exam-title-heading" class="text-base font-bold text-slate-900">Exam Results</h3>
-            </div>
-            <div class="flex items-center gap-2">
-              <button onclick="exportExamResults('excel')" class="btn-success">📥 Excel (.xlsx)</button>
-              <button onclick="exportExamResults('pdf')" class="bg-gradient-to-r from-rose-500 to-pink-600 text-white font-semibold py-2 px-3.5 rounded-xl hover:from-rose-600 hover:to-pink-700 transition-all text-xs shadow-sm shadow-rose-500/20 flex items-center gap-1">📄 PDF Report</button>
-              <button onclick="exportExamResults('doc')" class="bg-gradient-to-r from-indigo-500 to-blue-600 text-white font-semibold py-2 px-3.5 rounded-xl hover:from-indigo-600 hover:to-blue-700 transition-all text-xs shadow-sm shadow-indigo-500/20 flex items-center gap-1">📝 Word (.doc)</button>
-            </div>
-          </div>
-        </div>
-
-        <div class="section-card p-0 overflow-hidden">
-          <div class="overflow-x-auto">
-            <table class="w-full text-left text-sm">
-              <thead class="bg-slate-50 border-b border-slate-200">
-                <tr>
-                  <th class="table-header">Roll Number</th>
-                  <th class="table-header">Student Name</th>
-                  <th class="table-header">Branch</th>
-                  <th class="table-header">Year</th>
-                  <th class="table-header">Score</th>
-                  <th class="table-header">Evaluation Status</th>
-                </tr>
-              </thead>
-              <tbody id="exam-detail-table-body" class="divide-y divide-slate-100"></tbody>
-            </table>
-          </div>
-        </div>
+    <!-- ═══ RESULTS ═══ -->
+    <div class="tp" id="tp-results">
+      <div id="res-list-view">
+        <div style="font-family:'Google Sans';font-size:20px;font-weight:700;color:var(--text);margin-bottom:18px;">Results & Reports</div>
+        <div id="res-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px;"></div>
       </div>
-    </section>
-
-    <!-- STUDENTS TAB -->
-    <section id="section-students" class="tab-content hidden space-y-6">
-      <div class="section-card">
-        <h3 class="font-bold text-slate-900 text-base mb-5">Register Candidate Account</h3>
-        <form id="register-student-form" class="space-y-4">
-          <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div>
-              <label class="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">Full Name</label>
-              <input type="text" id="stu-name" required class="input-field" placeholder="Full Candidate Name">
-            </div>
-            <div>
-              <label class="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">Email Address</label>
-              <input type="email" id="stu-email" required class="input-field" placeholder="email@school.edu">
-            </div>
-            <div>
-              <label class="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">Roll Number</label>
-              <input type="text" id="stu-roll" required class="input-field" placeholder="e.g. 2400906">
-            </div>
-            <div>
-              <label class="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">Branch / Dept</label>
-              <input type="text" id="stu-branch" required class="input-field" placeholder="Civil / Computer Science">
-            </div>
-          </div>
-          <div class="flex gap-4 items-end">
-            <div class="flex-1">
-              <label class="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">Academic Year</label>
-              <input type="text" id="stu-year" required class="input-field" placeholder="3rd Year / 2028">
-            </div>
-            <button type="submit" class="btn-primary py-2.5">+ Add Student to Directory</button>
-          </div>
-        </form>
-        <div id="stu-reg-msg" class="text-xs font-semibold mt-3"></div>
-      </div>
-
-      <div class="section-card">
-        <div class="flex flex-wrap justify-between items-center gap-4 mb-5">
-          <div>
-            <h3 class="font-bold text-slate-900 text-base">Student Roster Directory</h3>
-            <p class="text-xs text-slate-500">Filter registered candidates across academic branches.</p>
-          </div>
-          <div class="flex gap-3">
-            <input type="text" id="filter-branch-input" onkeyup="applyStudentFilters()" placeholder="Filter by Branch..." class="input-field w-44">
-            <input type="text" id="filter-year-input" onkeyup="applyStudentFilters()" placeholder="Filter by Year..." class="input-field w-44">
+      <div id="res-detail-view" class="hidden">
+        <div style="display:flex;align-items:center;gap:11px;margin-bottom:18px;">
+          <button class="btn btn-o btn-sm" onclick="backRes()">← Back</button>
+          <div id="res-detail-title" style="font-family:'Google Sans';font-size:18px;font-weight:700;color:var(--text);"></div>
+          <div style="margin-left:auto;display:flex;gap:7px;">
+            <button class="btn btn-s btn-sm" onclick="expXls()">📥 Excel</button>
+            <button class="btn btn-d btn-sm" onclick="expPdf()">📄 PDF</button>
           </div>
         </div>
-        <div class="overflow-hidden rounded-2xl border border-slate-200">
-          <table class="w-full text-left">
-            <thead class="bg-slate-50 border-b border-slate-200">
-              <tr>
-                <th class="table-header">Roll No.</th>
-                <th class="table-header">Name</th>
-                <th class="table-header">Branch</th>
-                <th class="table-header">Year</th>
-                <th class="table-header">Email</th>
-                <th class="table-header">Verification</th>
-              </tr>
-            </thead>
-            <tbody id="students-table-body" class="divide-y divide-slate-100"></tbody>
+        <div class="card">
+          <table class="gt">
+            <thead><tr><th>Roll</th><th>Name</th><th>Branch</th><th>Score</th><th>Total</th><th>Status</th></tr></thead>
+            <tbody id="res-tbody"></tbody>
           </table>
         </div>
       </div>
-    </section>
-
     </div>
-  </main>
 
-  <!-- Photo Modal -->
-  <div id="photo-modal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4 transition-all">
-    <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6 space-y-4 border border-slate-100">
-      <div class="flex justify-between items-center">
-        <h3 id="modal-student-name" class="font-bold text-slate-900 text-base">Student Profile Photo</h3>
-        <button onclick="closePhotoModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-800 text-xl font-bold leading-none transition-colors">&times;</button>
+    <!-- ═══ LIVE MONITOR (inline mini-console) ═══ -->
+    <div class="tp" id="tp-live">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <div style="font-family:'Google Sans';font-size:20px;font-weight:700;color:var(--text);">Live Monitor</div>
+        <a href="/teacher/live-monitor.html" class="btn btn-p" target="_blank">🖥 Open Full Monitor</a>
       </div>
-      <div class="w-full h-64 bg-slate-100 rounded-2xl border border-slate-200 overflow-hidden flex items-center justify-center shadow-inner">
-        <img id="modal-student-img" src="" alt="Student Profile" class="w-full h-full object-cover">
+      <div class="card" style="margin-bottom:14px;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <label class="lbl" style="margin:0;white-space:nowrap;">Select Exam</label>
+          <select id="live-sel" class="inp" style="max-width:340px;" onchange="connectLive()"><option value="">— Select —</option></select>
+          <span id="live-dot" style="width:10px;height:10px;border-radius:50%;background:#ccc;flex-shrink:0;"></span>
+          <span id="live-txt" style="font-size:12px;color:var(--text2);">Not connected</span>
+        </div>
       </div>
-      <button onclick="closePhotoModal()" class="w-full bg-slate-900 text-white py-3 rounded-2xl text-xs font-bold uppercase tracking-wider hover:bg-slate-800 transition-colors shadow-lg shadow-slate-900/20">Close Preview</button>
+      <div style="display:grid;grid-template-columns:1fr 320px;gap:14px;">
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <div class="card-title" style="margin:0;">Active Students (<span id="live-count">0</span>)</div>
+          </div>
+          <div id="live-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:9px;"></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div class="card">
+            <div class="card-title">Broadcast</div>
+            <textarea id="ann-txt" class="inp" rows="2" placeholder="Message to all…" style="resize:none;margin-bottom:7px;"></textarea>
+            <button class="btn btn-p btn-sm btn-w" onclick="sendBroadcast()">📢 Send to All</button>
+          </div>
+          <div class="card">
+            <div class="card-title">Direct Message</div>
+            <select id="dm-sel" class="inp" style="margin-bottom:7px;"><option value="">Select student</option></select>
+            <textarea id="dm-txt" class="inp" rows="2" placeholder="Private message…" style="resize:none;margin-bottom:7px;"></textarea>
+            <button class="btn btn-o btn-sm btn-w" onclick="sendDM()">💬 Send</button>
+          </div>
+          <div class="card" style="flex:1;min-height:180px;">
+            <div class="card-title">Violation Log</div>
+            <div id="vlog" style="max-height:230px;overflow-y:auto;font-size:11.5px;font-family:monospace;color:var(--text2);line-height:1.6;"><span style="opacity:.4;">Waiting…</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ STUDENTS ═══ -->
+    <div class="tp" id="tp-students">
+      <div class="card" style="margin-bottom:18px;max-width:760px;">
+        <div class="card-title">Register Student</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+          <div><label class="lbl">Full Name</label><input id="rg-name" class="inp" placeholder="Student Name"></div>
+          <div><label class="lbl">Email</label><input id="rg-email" class="inp" type="email" placeholder="student@school.edu"></div>
+          <div><label class="lbl">Roll Number</label><input id="rg-roll" class="inp" placeholder="2400906"></div>
+          <div><label class="lbl">Branch</label><input id="rg-branch" class="inp" placeholder="CS / Civil"></div>
+          <div><label class="lbl">Year</label><input id="rg-year" class="inp" placeholder="3rd Year"></div>
+        </div>
+        <button class="btn btn-p" id="reg-btn">＋ Register Student</button>
+        <div id="reg-msg" style="font-size:13px;margin-top:9px;"></div>
+      </div>
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:13px;">
+          <div class="card-title" style="margin:0;">Student Directory</div>
+          <input id="stu-search" class="inp" style="width:210px;" placeholder="Search name / roll…" oninput="filterStus()">
+        </div>
+        <table class="gt">
+          <thead><tr><th>Roll</th><th>Name</th><th>Branch</th><th>Year</th><th>Email</th><th>Photo</th></tr></thead>
+          <tbody id="stu-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ═══ PROFILE ═══ -->
+    <div class="tp" id="tp-profile">
+      <div class="card" style="max-width:460px;">
+        <div class="card-title">My Profile</div>
+        <div style="display:grid;gap:13px;">
+          <div><label class="lbl">Display Name</label><input id="pr-name" class="inp" placeholder="Your Name"></div>
+          <div><label class="lbl">Department</label><input id="pr-dept" class="inp" placeholder="e.g. Computer Science"></div>
+          <div><label class="lbl">Profile Photo URL</label><input id="pr-photo" class="inp" placeholder="https://…"></div>
+          <button class="btn btn-p" onclick="saveProfile()">💾 Save</button>
+          <div id="pr-msg" style="font-size:13px;"></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<!-- ══════════ SUBJECT MODAL ══════════ -->
+<div class="modal-bg" id="subj-modal">
+  <div class="modal">
+    <button style="float:right;background:none;border:none;font-size:20px;cursor:pointer;color:var(--text2);" onclick="closeModal('subj-modal')">✕</button>
+    <div class="modal-title" id="subj-modal-ttl">Create New Class</div>
+    <input type="hidden" id="subj-edit-id">
+    <div style="display:grid;gap:13px;">
+      <div><label class="lbl">Subject Name</label><input id="sn-name" class="inp" placeholder="e.g. Physics, Computer Networks"></div>
+      <div><label class="lbl">Description</label><input id="sn-desc" class="inp" placeholder="Optional short description"></div>
+      <div>
+        <label class="lbl">Color</label>
+        <div id="col-pick" style="display:flex;flex-wrap:wrap;gap:7px;"></div>
+        <input type="hidden" id="sn-color" value="#1a73e8">
+      </div>
+      <div>
+        <label class="lbl">Icon</label>
+        <div id="ico-pick" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+        <input type="hidden" id="sn-icon" value="📚">
+      </div>
+      <button class="btn btn-p btn-w" onclick="saveSubj()">Save Class</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ PHOTO MODAL ══════════ -->
+<div class="modal-bg" id="photo-modal">
+  <div class="modal" style="max-width:340px;text-align:center;">
+    <button style="float:right;background:none;border:none;font-size:20px;cursor:pointer;color:var(--text2);" onclick="closeModal('photo-modal')">✕</button>
+    <div class="modal-title" id="ph-name">Photo</div>
+    <img id="ph-img" src="" alt="" style="width:160px;height:160px;border-radius:50%;object-fit:cover;border:3px solid var(--border);margin:0 auto 14px;display:block;">
+  </div>
+</div>
+
+<!-- ══════════ CLASS DETAIL PANEL ══════════ -->
+<div class="cdp-overlay" id="cdp-overlay" onclick="closeClassDetail()"></div>
+<div class="cdp-panel" id="cdp-panel">
+  <!-- header with coloured banner -->
+  <div class="cdp-header" id="cdp-header">
+    <div class="cdp-banner" id="cdp-banner">
+      <button class="cdp-close" onclick="closeClassDetail()">✕</button>
+      <span class="cdp-banner-icon" id="cdp-icon">📚</span>
+      <div>
+        <h2 id="cdp-title">Class</h2>
+        <p id="cdp-desc"></p>
+      </div>
+    </div>
+    <!-- stat chips row -->
+    <div style="display:flex;gap:14px;padding:0 2px 12px;flex-wrap:wrap;">
+      <span style="font-size:12px;color:var(--text2);">📄 <strong id="cdp-bank-count">0</strong> Question Banks</span>
+      <span style="font-size:12px;color:var(--text2);">📝 <strong id="cdp-exam-count">0</strong> Exams</span>
+      <span style="font-size:12px;color:var(--text2);">👥 <strong id="cdp-attempt-count">0</strong> Total Attempts</span>
+    </div>
+    <!-- tabs -->
+    <div class="cdp-tabs">
+      <button class="cdp-tab on" data-cdp="banks" onclick="switchCdpTab('banks')">📄 Question Banks</button>
+      <button class="cdp-tab" data-cdp="exams" onclick="switchCdpTab('exams')">📝 Exams</button>
+      <button class="cdp-tab" data-cdp="results" onclick="switchCdpTab('results')">📊 Results</button>
     </div>
   </div>
 
-  <script src="/js/api.js"></script>
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      if (!Api.getToken()) { window.location.href = '/teacher/login.html'; return; }
+  <div class="cdp-body">
+    <!-- BANKS PANE -->
+    <div class="cdp-pane on" id="cdp-pane-banks">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div style="font-size:13px;color:var(--text2);">All question banks in this class</div>
+        <button class="btn btn-p btn-sm" onclick="closeClassDetail();switchTab('banks')">＋ Upload PDF</button>
+      </div>
+      <div id="cdp-banks-body"><div class="emp"><div class="emp-ic">⏳</div></div></div>
+    </div>
 
-      let activeExamResultsData = [];
-      let fullStudentsDirectory = [];
+    <!-- EXAMS PANE -->
+    <div class="cdp-pane" id="cdp-pane-exams">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div style="font-size:13px;color:var(--text2);">Exams created for this class</div>
+        <button class="btn btn-p btn-sm" onclick="closeClassDetail();switchTab('create-exam')">＋ Create Exam</button>
+      </div>
+      <div id="cdp-exams-body"><div class="emp"><div class="emp-ic">⏳</div></div></div>
+    </div>
 
-      // Upload drop zone logic
-      const dropZone = document.getElementById('upload-drop-zone');
-      const fileInput = document.getElementById('bank-file');
+    <!-- RESULTS PANE -->
+    <div class="cdp-pane" id="cdp-pane-results">
+      <div style="margin-bottom:14px;font-size:13px;color:var(--text2);">Results across all exams in this class</div>
+      <div id="cdp-results-body"><div class="emp"><div class="emp-ic">⏳</div></div></div>
+    </div>
+  </div>
+</div>
 
-      // Click on zone → open file picker (ignore clicks that originate from the input itself)
-      dropZone.addEventListener('click', (e) => {
-        if (e.target !== fileInput) fileInput.click();
-      });
+<script src="/js/api.js"></script>
+<script>
+/* ════════════════════════════════════════
+   GLOBALS
+════════════════════════════════════════ */
+let allSubjects=[], allBanks=[], allExams=[], allStudents=[];
+let subjChart=null, curResExamId=null, curResTitle='';
+let liveSocket=null, liveStus={}, bslotN=0;
+const COLORS=['#1a73e8','#e52592','#f29900','#188038','#c26401','#9334e6','#d93025','#007b83','#1e8e3e','#e91e63'];
+const ICONS=['📚','🔬','📐','🌍','💻','🧪','📝','🎯','⚛️','🏛️','🔭','🎨'];
 
-      function showSelectedFile(name) {
-        const fn = document.getElementById('chosen-file-name');
-        fn.textContent = '📄 Selected: ' + name;
-        fn.classList.remove('hidden');
-      }
+/* ════════════════════════════════════════
+   BOOT
+════════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', async () => {
+  if (!Api.getToken()) { window.location.href = '/teacher/login.html'; return; }
+  initTheme(); initNav(); initDz(); initUpload(); initCreateExam(); initRegStudent();
+  await Promise.all([loadProfile(), loadSubjects(), loadBanks(), loadExams(), loadStudents()]);
+  loadOverview();
+});
 
-      fileInput.addEventListener('change', () => {
-        if (fileInput.files[0]) showSelectedFile(fileInput.files[0].name);
-      });
+/* ════════════════════════════════════════
+   THEME
+════════════════════════════════════════ */
+function initTheme() {
+  const t = localStorage.getItem('exam_theme') || 'light';
+  applyTheme(t);
+  document.querySelectorAll('.th-dot').forEach(d => d.addEventListener('click', () => applyTheme(d.dataset.t)));
+}
+function applyTheme(t) {
+  document.documentElement.setAttribute('data-theme', t);
+  localStorage.setItem('exam_theme', t);
+  document.querySelectorAll('.th-dot').forEach(d => d.classList.toggle('on', d.dataset.t === t));
+}
 
-      dropZone.addEventListener('dragover', e => {
-        e.preventDefault();
-        dropZone.style.borderColor = '#6366f1';
-        dropZone.style.background = '#eef2ff';
-      });
-      dropZone.addEventListener('dragleave', () => {
-        dropZone.style.borderColor = '#cbd5e1';
-        dropZone.style.background = '#f8fafc';
-      });
-      dropZone.addEventListener('drop', e => {
-        e.preventDefault();
-        dropZone.style.borderColor = '#cbd5e1';
-        dropZone.style.background = '#f8fafc';
-        const dropped = e.dataTransfer.files;
-        if (dropped && dropped.length > 0) {
-          // Use DataTransfer to assign files to the input (FileList is read-only)
-          const dt = new DataTransfer();
-          dt.items.add(dropped[0]);
-          fileInput.files = dt.files;
-          showSelectedFile(dropped[0].name);
-        }
-      });
+/* ════════════════════════════════════════
+   NAVIGATION
+════════════════════════════════════════ */
+const TITLES={overview:'Overview',subjects:'My Classes',banks:'Question Banks','create-exam':'Create Exam',exams:'All Exams',results:'Results',live:'Live Monitor',students:'Students',profile:'Profile'};
+function initNav() {
+  document.querySelectorAll('.nb[data-tab]').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
+  document.getElementById('btn-logout').addEventListener('click', () => { Api.clearToken(); window.location.href='/teacher/login.html'; });
+}
+function switchTab(tab) {
+  document.querySelectorAll('.tp').forEach(p => p.classList.remove('on'));
+  document.querySelectorAll('.nb[data-tab]').forEach(b => b.classList.remove('active'));
+  const p = document.getElementById('tp-' + tab);
+  const b = document.querySelector(`.nb[data-tab="${tab}"]`);
+  if (p) p.classList.add('on');
+  if (b) b.classList.add('active');
+  document.getElementById('pg-title').textContent = TITLES[tab] || tab;
+  if (tab === 'results') loadResultsGrid();
+  if (tab === 'live')    populateLiveSel();
+}
 
-      document.getElementById('logout-btn').addEventListener('click', () => { Api.clearToken(); window.location.href = '/teacher/login.html'; });
+/* ════════════════════════════════════════
+   PROFILE
+════════════════════════════════════════ */
+async function loadProfile() {
+  try {
+    const { profile } = await Api.request('/teacher/profile');
+    document.getElementById('pr-name').value  = profile.name  || '';
+    document.getElementById('pr-dept').value  = profile.department || '';
+    document.getElementById('pr-photo').value = profile.profile_photo || '';
+    updTopbarProfile(profile);
+  } catch(e) {}
+}
+function updTopbarProfile(p) {
+  const name = p.name || p.email || 'Teacher';
+  document.getElementById('pname').textContent = name;
+  const av = document.getElementById('pav');
+  if (p.profile_photo) {
+    av.outerHTML = `<img id="pav" src="${p.profile_photo}" class="pchip-av" style="font-size:0;">`;
+  } else {
+    av.textContent = name.charAt(0).toUpperCase();
+  }
+}
+async function saveProfile() {
+  const name = document.getElementById('pr-name').value.trim();
+  const dept = document.getElementById('pr-dept').value.trim();
+  const photo= document.getElementById('pr-photo').value.trim();
+  const msg  = document.getElementById('pr-msg');
+  try {
+    await Api.request('/teacher/profile', { method:'POST', body: JSON.stringify({ name, department:dept, profile_photo:photo }) });
+    msg.textContent = '✅ Saved!'; msg.style.color = 'var(--success)';
+    updTopbarProfile({ name, profile_photo:photo });
+    setTimeout(() => msg.textContent = '', 2000);
+  } catch(e) { msg.textContent = '❌ ' + e.message; msg.style.color = 'var(--danger)'; }
+}
 
-      const pageTitles = {
-        dashboard: ['Dashboard Overview', 'Real-time metrics and quick management console'],
-        banks: ['Question Banks', 'Manage, view and upload PDF question repositories'],
-        'create-exam': ['Create Exam Paper', 'Configure rules and generate student exam codes'],
-        'live-monitor': ['Live Proctoring Console', 'Socket-based proctoring and real-time student alerts'],
-        results: ['Results & Reports', 'Inspect candidate marksheets and export grade logs'],
-        students: ['Student Directory', 'Roster management and student account creation']
-      };
+/* ════════════════════════════════════════
+   SUBJECTS / CLASSES
+════════════════════════════════════════ */
+function buildColPicker(selColor, selIcon) {
+  document.getElementById('col-pick').innerHTML = COLORS.map(c =>
+    `<div class="col-dot" onclick="pickColor('${c}')" data-c="${c}" style="background:${c};${c===selColor?'border-color:#202124;transform:scale(1.18)':''}"></div>`
+  ).join('');
+  document.getElementById('ico-pick').innerHTML = ICONS.map(i =>
+    `<div onclick="pickIcon('${i}')" data-i="${i}" style="font-size:22px;cursor:pointer;padding:3px 6px;border-radius:6px;border:2px solid ${i===selIcon?'var(--primary)':'transparent'};">${i}</div>`
+  ).join('');
+  document.getElementById('sn-color').value = selColor;
+  document.getElementById('sn-icon').value  = selIcon;
+}
+function pickColor(c) {
+  document.getElementById('sn-color').value = c;
+  document.querySelectorAll('#col-pick .col-dot').forEach(d => { d.style.borderColor = d.dataset.c === c ? '#202124' : 'transparent'; d.style.transform = d.dataset.c === c ? 'scale(1.18)' : ''; });
+}
+function pickIcon(i) {
+  document.getElementById('sn-icon').value = i;
+  document.querySelectorAll('#ico-pick div').forEach(d => { d.style.borderColor = d.dataset.i === i ? 'var(--primary)' : 'transparent'; });
+}
+function openSubjModal(s) {
+  const c = s?.color || COLORS[Math.floor(Math.random()*COLORS.length)];
+  const ic= s?.icon  || ICONS[Math.floor(Math.random()*ICONS.length)];
+  buildColPicker(c, ic);
+  document.getElementById('subj-modal-ttl').textContent = s ? 'Edit Class' : 'Create New Class';
+  document.getElementById('subj-edit-id').value = s?.id || '';
+  document.getElementById('sn-name').value = s?.name || '';
+  document.getElementById('sn-desc').value = s?.description || '';
+  openModal('subj-modal');
+}
+async function saveSubj() {
+  const id   = document.getElementById('subj-edit-id').value;
+  const name = document.getElementById('sn-name').value.trim();
+  const desc = document.getElementById('sn-desc').value.trim();
+  const color= document.getElementById('sn-color').value;
+  const icon = document.getElementById('sn-icon').value;
+  if (!name) return alert('Subject name is required.');
+  try {
+    if (id) await Api.request('/subjects/'+id, { method:'PUT', body:JSON.stringify({name,description:desc,color,icon}) });
+    else     await Api.request('/subjects',     { method:'POST',body:JSON.stringify({name,description:desc,color,icon}) });
+    closeModal('subj-modal');
+    await loadSubjects(); loadOverview();
+  } catch(e) { alert('Error: ' + e.message); }
+}
+async function delSubj(id, name) {
+  if (!confirm(`Delete class "${name}"? Banks and exams will be unlinked.`)) return;
+  try { await Api.request('/subjects/'+id, { method:'DELETE' }); await loadSubjects(); loadOverview(); }
+  catch(e) { alert(e.message); }
+}
+async function loadSubjects() {
+  try {
+    const { subjects } = await Api.request('/subjects');
+    allSubjects = subjects || [];
+    document.getElementById('badge-sub').textContent = allSubjects.length;
+    document.getElementById('s-sub').textContent = allSubjects.length;
+    renderSubjGrid(); populateSubjSelects();
+  } catch(e) { allSubjects = []; }
+}
+function renderSubjGrid() {
+  const g = document.getElementById('subj-grid');
+  if (!allSubjects.length) { g.innerHTML = `<div class="emp" style="grid-column:1/-1;"><div class="emp-ic">📚</div><p>No classes yet. Create one!</p></div>`; return; }
+  g.innerHTML = allSubjects.map(s => `
+    <div class="cc">
+      <div class="cc-banner" style="background:${s.color||'#1a73e8'};cursor:pointer;" title="Click to open class" onclick="openClassDetail('${s.id}')">
+        <span class="cc-icon">${s.icon||'📚'}</span>
+        <h3>${esc(s.name)}</h3>
+        <p>${esc(s.description||'')}</p>
+      </div>
+      <div class="cc-foot">
+        <div style="display:flex;gap:12px;">
+          <span class="cc-stat">📄 ${s.bank_count||0} banks</span>
+          <span class="cc-stat">📝 ${s.exam_count||0} exams</span>
+        </div>
+        <div style="display:flex;gap:5px;">
+          <button class="btn btn-o btn-sm" onclick='event.stopPropagation();openSubjModal(${JSON.stringify(s)})'>Edit</button>
+          <button class="btn btn-d btn-sm" onclick="event.stopPropagation();delSubj('${s.id}','${esc(s.name)}')">🗑</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+function populateSubjSelects() {
+  const opts = allSubjects.map(s => `<option value="${s.id}">${esc(s.name)}</option>`).join('');
+  [['bk-subj','— No Class —'],['ex-subj','— Select Class —'],['bk-filter-subj','All Classes'],['ex-filter-subj','All Classes']].forEach(([id, def]) => {
+    const el = document.getElementById(id); if (!el) return;
+    el.innerHTML = `<option value="">${def}</option>` + opts;
+  });
+}
 
-      window.switchTab = function(tabName) {
-        document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-        document.querySelectorAll('aside nav button').forEach(btn => btn.className = 'nav-item');
-        document.getElementById(`section-${tabName}`).classList.remove('hidden');
-        document.getElementById(`nav-${tabName}`).classList.add('active');
-        const [title, sub] = pageTitles[tabName] || [tabName, ''];
-        document.getElementById('page-title').textContent = title;
-        document.getElementById('page-subtitle').textContent = sub;
+/* ════════════════════════════════════════
+   QUESTION BANKS
+════════════════════════════════════════ */
+function initDz() {
+  const dz = document.getElementById('dz');
+  const fi = document.getElementById('bk-file');
+  dz.addEventListener('click', () => fi.click());
+  fi.addEventListener('change', () => { if (fi.files[0]) { document.getElementById('dz-txt').textContent = '📄 ' + fi.files[0].name; dz.classList.add('over'); } });
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('over'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('over'));
+  dz.addEventListener('drop', e => {
+    e.preventDefault(); dz.classList.remove('over');
+    if (e.dataTransfer.files[0]) {
+      const dt = new DataTransfer(); dt.items.add(e.dataTransfer.files[0]); fi.files = dt.files;
+      document.getElementById('dz-txt').textContent = '📄 ' + e.dataTransfer.files[0].name;
+      dz.classList.add('over');
+    }
+  });
+}
+function initUpload() {
+  document.getElementById('upload-btn').addEventListener('click', async () => {
+    const title = document.getElementById('bk-title').value.trim();
+    const subjId= document.getElementById('bk-subj').value;
+    const fi    = document.getElementById('bk-file');
+    if (!title) return alert('Enter a bank title.');
+    if (!fi.files[0]) return alert('Select a PDF file.');
+    if (!fi.files[0].name.toLowerCase().endsWith('.pdf')) return alert('PDF only.');
+    const wrap=document.getElementById('up-wrap'), bar=document.getElementById('up-bar');
+    const msg=document.getElementById('up-msg'), pct=document.getElementById('up-pct');
+    wrap.classList.remove('hidden');
+    const sp = (p,m) => { bar.style.width=p+'%'; pct.textContent=p+'%'; msg.textContent=m; };
+    sp(10,'Uploading…');
+    const fd = new FormData();
+    fd.append('title', title);
+    fd.append('subject_id', subjId);
+    fd.append('subject', subjId ? (allSubjects.find(s => s.id === subjId)?.name || 'General') : 'General');
+    fd.append('file', fi.files[0]);
+    const prog = setInterval(() => { const c=parseInt(bar.style.width); if(c<70) sp(c+Math.floor(Math.random()*8)+3,'Parsing PDF…'); }, 600);
+    try {
+      const res = await Api.request('/banks/upload', { method:'POST', body:fd, isFormData:true });
+      clearInterval(prog);
+      const aiTag   = res.parserUsed === 'gemini-ai' ? ' ✨ AI' : '';
+      const imgTag  = res.stats?.withImages ? ` · 🖼 ${res.stats.withImages} with images` : '';
+      sp(100, `✅ ${res.stats?.total || res.message} questions extracted${aiTag}${imgTag}`);
+      bar.style.background='#188038';
+      document.getElementById('bk-title').value=''; document.getElementById('bk-file').value='';
+      document.getElementById('dz-txt').textContent='📄 Click or drag a PDF file here'; document.getElementById('dz').classList.remove('over');
+      setTimeout(() => { wrap.classList.add('hidden'); bar.style.width='0%'; bar.style.background=''; }, 3000);
+      await loadBanks();
+    } catch(e) { clearInterval(prog); sp(100,'❌ '+e.message); bar.style.background='#d93025'; }
+  });
+}
+async function loadBanks() {
+  try {
+    const { banks } = await Api.request('/banks');
+    allBanks = banks || [];
+    document.getElementById('s-bnk').textContent = allBanks.length;
+    renderBanks();
+  } catch(e) { allBanks=[]; }
+}
+function renderBanks() {
+  const fs = document.getElementById('bk-filter-subj').value;
+  let list = fs ? allBanks.filter(b => b.subject_id === fs) : allBanks;
+  const el = document.getElementById('banks-list');
+  const sm = Object.fromEntries(allSubjects.map(s=>[s.id,s]));
+  if (!list.length) { el.innerHTML=`<div class="emp"><div class="emp-ic">📄</div><p>No question banks.</p></div>`; return; }
+  el.innerHTML = `<table class="gt"><thead><tr><th>Title</th><th>Class</th><th>Questions</th><th>Created</th><th>Actions</th></tr></thead><tbody>` +
+    list.map(b => {
+      const s = sm[b.subject_id];
+      const stag = s ? `<span class="pill pb" style="background:${s.color}18;color:${s.color};">${s.icon} ${esc(s.name)}</span>` : '<span class="pill pn">—</span>';
+      return `<tr><td><strong>${esc(b.title)}</strong></td><td>${stag}</td><td>${b.question_count??'—'}</td><td>${new Date(b.created_at).toLocaleDateString('en-IN')}</td><td style="display:flex;gap:5px;">
+        <a href="/teacher/editor.html?bankId=${b.id}" class="btn btn-o btn-sm">Edit</a>
+        <button class="btn btn-d btn-sm" onclick="delBank('${b.id}','${esc(b.title)}')">🗑</button>
+      </td></tr>`;
+    }).join('') + `</tbody></table>`;
+}
+async function delBank(id, title) {
+  if (!confirm(`Delete bank "${title}"?`)) return;
+  try { await Api.request('/banks/'+id, {method:'DELETE'}); await loadBanks(); }
+  catch(e) { alert(e.message); }
+}
 
-        if (tabName === 'banks') loadBanks();
-        if (tabName === 'create-exam') loadBanksForExam();
-        if (tabName === 'live-monitor') loadLiveMonitorExams();
-        if (tabName === 'results') loadExamsResultsGrid();
-        if (tabName === 'students') loadStudentsDirectory();
-        if (tabName === 'dashboard') loadStats();
-      };
+/* ════════════════════════════════════════
+   MULTI-BANK EXAM CREATOR
+════════════════════════════════════════ */
+function initCreateExam() {
+  document.getElementById('create-btn').addEventListener('click', doCreateExam);
+}
+function onExSubjChange() {
+  bslotN = 0; document.getElementById('bslots').innerHTML = '';
+  const hasSubj = !!document.getElementById('ex-subj').value;
+  document.getElementById('add-bslot-btn').disabled = !hasSubj;
+  if (hasSubj) addBankSlot();
+}
+function banksForSubj(subjId) { return subjId ? allBanks.filter(b => b.subject_id === subjId) : allBanks; }
+function addBankSlot() {
+  if (bslotN >= 5) return alert('Max 5 banks.');
+  const subjId = document.getElementById('ex-subj').value;
+  const banks  = banksForSubj(subjId);
+  if (!banks.length) return alert('No banks in this class. Upload a PDF first.');
+  const sid = 'bslot-' + bslotN; const n = bslotN + 1; bslotN++;
+  const bopts = banks.map(b => `<option value="${b.id}">${esc(b.title)}</option>`).join('');
+  const d = document.createElement('div');
+  d.className = 'bslot'; d.id = sid;
+  d.innerHTML = `<div class="bslot-hd"><strong style="font-size:13px;color:var(--text);">Bank ${n}</strong>${n>1?`<button type="button" class="btn btn-d btn-sm" onclick="rmBslot('${sid}')">Remove</button>`:''}</div>
+    <select class="inp bsel" style="margin-bottom:9px;" onchange="loadBslotQs('${sid}')"><option value="">— Select Bank —</option>${bopts}</select>
+    <div class="bslot-qhd hidden" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;font-size:12px;font-weight:600;color:var(--text2);">
+      <span>Selected: <strong class="bqcnt">0</strong></span>
+      <button type="button" class="btn btn-o btn-sm" onclick="togAllQ('${sid}')">Toggle All</button>
+    </div>
+    <div class="qcl bqlst hidden"></div>`;
+  document.getElementById('bslots').appendChild(d);
+}
+function rmBslot(id) { document.getElementById(id)?.remove(); bslotN = Math.max(0,bslotN-1); }
+async function loadBslotQs(sid) {
+  const slot   = document.getElementById(sid);
+  const bankId = slot.querySelector('.bsel').value;
+  const qlist  = slot.querySelector('.bqlst');
+  const qhd    = slot.querySelector('.bslot-qhd');
+  if (!bankId) { qlist.classList.add('hidden'); qhd.classList.add('hidden'); return; }
+  qlist.classList.remove('hidden'); qhd.classList.remove('hidden');
+  qlist.innerHTML = '<div style="padding:10px;font-size:12px;color:var(--text2);">Loading…</div>';
+  try {
+    const { questions } = await Api.request('/banks/' + bankId + '/questions');
+    qlist.innerHTML = (questions||[]).map(q =>
+      `<label class="qci"><input type="checkbox" class="bqchk" value="${q.id}" onchange="updBqCnt('${sid}')">
+       <span style="flex:1;">${esc((q.question_text||'').substring(0,110))}${(q.question_text||'').length>110?'…':''}</span>
+       <span class="pill ${q.question_type==='MCQ'?'pb':'pn'}" style="flex-shrink:0;">${q.question_type}</span></label>`
+    ).join('') || '<div style="padding:10px;font-size:12px;color:var(--text2);">No questions.</div>';
+  } catch(e) { qlist.innerHTML=`<div style="padding:10px;color:var(--danger);font-size:12px;">Error loading.</div>`; }
+}
+function updBqCnt(sid) {
+  const s = document.getElementById(sid);
+  if (s) { const c = s.querySelectorAll('.bqchk:checked').length; const el = s.querySelector('.bqcnt'); if(el) el.textContent=c; }
+}
+function togAllQ(sid) {
+  const s=document.getElementById(sid); if(!s) return;
+  const boxes = s.querySelectorAll('.bqchk');
+  const all = Array.from(boxes).every(b=>b.checked);
+  boxes.forEach(b=>b.checked=!all); updBqCnt(sid);
+}
+async function doCreateExam() {
+  const title  = document.getElementById('ex-title').value.trim();
+  const subjId = document.getElementById('ex-subj').value;
+  const dur    = parseInt(document.getElementById('ex-dur').value);
+  const qc     = parseInt(document.getElementById('ex-qc').value);
+  const tm     = parseInt(document.getElementById('ex-tm').value)||100;
+  const pm     = parseInt(document.getElementById('ex-pm').value)||40;
+  if (!title) return alert('Exam title required.');
+  const slots = document.querySelectorAll('.bslot');
+  const banks = [];
+  for (const s of slots) {
+    const bankId = s.querySelector('.bsel').value; if (!bankId) continue;
+    const sel = Array.from(s.querySelectorAll('.bqchk:checked')).map(c=>c.value);
+    if (!sel.length) return alert('Select at least one question from each bank.');
+    banks.push({ bank_id:bankId, selected_question_ids:sel });
+  }
+  if (!banks.length) return alert('Add at least one question bank.');
+  const btn=document.getElementById('create-btn');
+  btn.disabled=true; btn.textContent='Creating…';
+  try {
+    const res = await Api.request('/exams/create', { method:'POST', body:JSON.stringify({
+      title, subject_id:subjId||null, banks,
+      duration_minutes:dur, required_attempts_count:qc,
+      shuffle_questions:true, shuffle_options:true, proctoring_level:'STRICT',
+      total_marks:tm, pass_marks:pm,
+      start_time:new Date().toISOString(),
+      end_time:new Date(Date.now()+7*86400000).toISOString()
+    })});
+    btn.disabled=false; btn.textContent='🚀 Generate Exam Code';
+    const box=document.getElementById('exam-box'); box.classList.remove('hidden');
+    document.getElementById('exam-code').textContent = res.examCode;
+    const link=`${location.protocol}//${location.host}/launch-exam?key=${res.examCode}`;
+    document.getElementById('exam-link').textContent = link;
+    await loadExams(); loadOverview();
+  } catch(e) { btn.disabled=false; btn.textContent='🚀 Generate Exam Code'; alert('Error: '+e.message); }
+}
 
-      async function loadLiveMonitorExams() {
-        const container = document.getElementById('live-exam-shortcuts');
-        if (!container) return;
-        container.innerHTML = '<p class="text-xs text-slate-400 text-center py-6">Loading active examination sessions...</p>';
-        try {
-          const res = await Api.request('/teacher/exams', { method: 'GET' });
-          const exams = res.exams || [];
-          container.innerHTML = '';
-          if (!exams.length) {
-            container.innerHTML = `
-              <div class="text-center py-10 bg-slate-50/70 border border-slate-200 rounded-2xl p-6">
-                <div class="text-4xl mb-3">📡</div>
-                <h4 class="font-bold text-slate-800 text-sm">No Active Exams Available</h4>
-                <p class="text-xs text-slate-500 mt-1 mb-5">Schedule an exam paper first to unlock live proctoring and socket monitoring controls.</p>
-                <button onclick="switchTab('create-exam')" class="btn-primary">📝 Create New Exam</button>
-              </div>`;
-            return;
-          }
-          const grid = document.createElement('div');
-          grid.className = 'grid grid-cols-1 md:grid-cols-2 gap-5';
-          exams.forEach(e => {
-            const card = document.createElement('div');
-            card.className = 'bg-white p-5 rounded-2xl border border-slate-200/80 hover:border-amber-400/80 hover:shadow-md transition-all space-y-4 flex flex-col justify-between';
-            card.innerHTML = `
-              <div>
-                <div class="flex justify-between items-center mb-3">
-                  <span class="badge bg-amber-50 text-amber-800 border border-amber-200">CODE: ${e.code || 'EXAM'}</span>
-                  <span class="text-xs font-semibold text-emerald-600 flex items-center gap-1.5 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
-                    <span class="pulse-dot"></span> Proctor Active
-                  </span>
-                </div>
-                <h4 class="font-bold text-slate-900 text-base">${e.title}</h4>
-                <p class="text-xs text-slate-500 mt-1">Duration: ${e.duration_minutes || 60} Mins | Proctoring: STRICT</p>
-              </div>
-              <a href="/teacher/live-monitor.html?examId=${e.id}" target="_blank" class="btn-primary w-full text-center text-xs py-2.5 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 shadow-amber-500/20">
-                📡 Open Proctor Control Window
-              </a>`;
-            grid.appendChild(card);
-          });
-          container.appendChild(grid);
-        } catch(err) {
-          container.innerHTML = '<p class="text-xs text-rose-500 text-center py-4">Failed to load active exams for proctoring.</p>';
-        }
-      }
+/* ════════════════════════════════════════
+   EXAMS
+════════════════════════════════════════ */
+async function loadExams() {
+  try {
+    const { exams } = await Api.request('/exams');
+    allExams = exams||[];
+    document.getElementById('s-exm').textContent = allExams.length;
+    renderExams();
+  } catch(e) { allExams=[]; }
+}
+function renderExams() {
+  const fs=document.getElementById('ex-filter-subj')?.value;
+  let list = fs ? allExams.filter(e=>e.subject_id===fs) : allExams;
+  const el=document.getElementById('exams-list');
+  if (!list.length) { el.innerHTML=`<div class="emp"><div class="emp-ic">📋</div><p>No exams yet.</p></div>`; return; }
+  el.innerHTML=`<table class="gt"><thead><tr><th>Exam</th><th>Class</th><th>Code</th><th>Duration</th><th>Attempts</th><th>Status</th><th>Actions</th></tr></thead><tbody>`+
+    list.map(e => {
+      const sc=e.subject_color||'#1a73e8';
+      const stag=e.subject_name&&e.subject_name!=='—'?`<span class="pill pb" style="background:${sc}18;color:${sc};">${esc(e.subject_name)}</span>`:'<span class="pill pn">—</span>';
+      const on=e.is_active!==0;
+      return `<tr><td><strong>${esc(e.title)}</strong></td><td>${stag}</td>
+        <td><code style="font-size:13px;font-weight:800;color:var(--primary);">${e.code||'—'}</code></td>
+        <td>${e.duration_minutes}m</td><td>${e.attempt_count||0}</td>
+        <td><label class="tog-wrap" title="${on?'Active (click to deactivate)':'Inactive (click to activate)'}">
+          <span class="tog"><input type="checkbox" ${on?'checked':''} onchange="togExam('${e.id}',this)"><span class="tog-sl"></span></span>
+          <span class="pill ${on?'pg':'pr'}" id="epill-${e.id}">${on?'Active':'Inactive'}</span>
+        </label></td>
+        <td style="display:flex;gap:5px;flex-wrap:wrap;">
+          <button class="btn btn-o btn-sm" onclick="viewRes('${e.id}','${esc(e.title)}')">📊 Results</button>
+          <button class="btn btn-o btn-sm" onclick="openLiveFor('${e.id}','${esc(e.title)}')">📡 Monitor</button>
+        </td></tr>`;
+    }).join('')+`</tbody></table>`;
+}
+async function togExam(id, cb) {
+  try {
+    const { is_active } = await Api.request('/exams/'+id+'/toggle', {method:'PATCH'});
+    const p=document.getElementById('epill-'+id);
+    if (p) { p.textContent=is_active?'Active':'Inactive'; p.className='pill '+(is_active?'pg':'pr'); }
+    cb.checked = is_active===1;
+  } catch(e) { alert(e.message); cb.checked=!cb.checked; }
+}
 
-      async function loadStats() {
-        try {
-          const [banks, students, results] = await Promise.all([
-            Api.getBanks(),
-            Api.request('/teacher/students', { method: 'GET' }),
-            Api.request('/teacher/results', { method: 'GET' })
-          ]);
-          document.getElementById('stat-banks-count').textContent = banks.banks?.length || 0;
-          document.getElementById('stat-students-count').textContent = students.students?.length || 0;
-          document.getElementById('stat-results-count').textContent = results.results?.length || 0;
-        } catch(e) {}
-      }
+/* ════════════════════════════════════════
+   RESULTS
+════════════════════════════════════════ */
+async function loadResultsGrid() {
+  const g=document.getElementById('res-grid');
+  const sm=Object.fromEntries(allSubjects.map(s=>[s.id,s]));
+  g.innerHTML=(allExams||[]).map(e => {
+    const s=sm[e.subject_id]; const c=s?.color||'#1a73e8';
+    return `<div class="card" style="cursor:pointer;border-top:4px solid ${c};" onclick="viewRes('${e.id}','${esc(e.title)}')">
+      <div style="font-family:'Google Sans';font-size:14px;font-weight:700;color:var(--text);margin-bottom:6px;">${esc(e.title)}</div>
+      ${s?`<span class="pill pb" style="background:${c}18;color:${c};margin-bottom:8px;display:inline-flex;">${s.icon} ${esc(s.name)}</span>`:''}
+      <div style="font-size:12px;color:var(--text2);">Code: <strong style="color:var(--primary);font-family:monospace;">${e.code||'—'}</strong></div>
+      <div style="font-size:12px;color:var(--text2);margin-top:3px;">${e.attempt_count||0} attempts · ${e.duration_minutes}m</div>
+    </div>`;
+  }).join('')||`<div class="emp" style="grid-column:1/-1;"><div class="emp-ic">📊</div><p>No exams yet.</p></div>`;
+}
+async function viewRes(examId, title) {
+  curResExamId=examId; curResTitle=title;
+  document.getElementById('res-list-view').classList.add('hidden');
+  document.getElementById('res-detail-view').classList.remove('hidden');
+  document.getElementById('res-detail-title').textContent = title;
+  const tb=document.getElementById('res-tbody');
+  tb.innerHTML='<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text2);">Loading…</td></tr>';
+  switchTab('results');
+  try {
+    const { results } = await Api.request('/teacher/results/'+examId);
+    if (!results.length) { tb.innerHTML='<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text2);">No submissions.</td></tr>'; return; }
+    tb.innerHTML=results.map(r => {
+      const pass=r.total_score>=(r.pass_marks||40);
+      return `<tr><td><code>${esc(r.roll_number)}</code></td><td>${esc(r.name)}</td><td>${esc(r.branch)} ${esc(r.year)}</td>
+        <td><strong>${r.total_score??0}</strong></td><td>${r.total_marks??100}</td>
+        <td><span class="pill ${r.status==='SUBMITTED'?(pass?'pg':'pr'):'py'}">${r.status==='SUBMITTED'?(pass?'PASS':'FAIL'):r.status}</span></td></tr>`;
+    }).join('');
+  } catch(e) { tb.innerHTML=`<tr><td colspan="6" style="color:var(--danger);text-align:center;">${e.message}</td></tr>`; }
+}
+function backRes() {
+  document.getElementById('res-list-view').classList.remove('hidden');
+  document.getElementById('res-detail-view').classList.add('hidden');
+  loadResultsGrid();
+}
+function expXls() {
+  const rows=[['Roll','Name','Branch','Score','Total','Status']];
+  document.querySelectorAll('#res-tbody tr').forEach(tr => {
+    const c=tr.querySelectorAll('td'); rows.push([c[0]?.textContent,c[1]?.textContent,c[2]?.textContent,c[3]?.textContent,c[4]?.textContent,c[5]?.textContent]);
+  });
+  const ws=XLSX.utils.aoa_to_sheet(rows); const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Results'); XLSX.writeFile(wb,(curResTitle||'results')+'.xlsx');
+}
+function expPdf() {
+  const { jsPDF }=window.jspdf; const doc=new jsPDF();
+  doc.setFontSize(15); doc.text(curResTitle||'Results',14,18);
+  doc.setFontSize(9); let y=28;
+  ['Roll','Name','Score','Status'].forEach((h,i)=>doc.text(h,14+i*45,y)); y+=6;
+  document.querySelectorAll('#res-tbody tr').forEach(tr=>{
+    const c=tr.querySelectorAll('td'); if(y>280){doc.addPage();y=20;}
+    [0,1,3,5].forEach((ci,i)=>doc.text(String(c[ci]?.textContent||'').substring(0,20),14+i*45,y)); y+=7;
+  });
+  doc.save((curResTitle||'results')+'.pdf');
+}
 
-      async function loadBanks() {
-        const container = document.getElementById('banks-table-container');
-        container.innerHTML = '<p class="text-xs text-slate-400 text-center py-6">Loading question banks...</p>';
-        try {
-          const res = await Api.getBanks();
-          container.innerHTML = '';
-          if (!res.banks?.length) { container.innerHTML = '<p class="text-xs text-slate-400 text-center py-10">No question banks uploaded yet. Upload a PDF paper above to get started.</p>'; return; }
-          res.banks.forEach(b => {
-            const div = document.createElement('div');
-            div.className = 'flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 p-4.5 rounded-2xl bg-white border border-slate-200/90 hover:border-indigo-300 hover:shadow-sm transition-all';
-            div.innerHTML = `
-              <div>
-                <p class="font-bold text-slate-900 text-sm">${b.title}</p>
-                <p class="text-xs text-slate-500 mt-1 flex items-center gap-2">
-                  <span class="badge bg-indigo-50 text-indigo-700 border border-indigo-100">Subject: ${b.subject}</span>
-                </p>
-              </div>
-              <div class="flex items-center gap-2">
-                <a href="/teacher/editor.html?bankId=${b.id}" class="btn-secondary text-xs">✏️ Edit Questions</a>
-                <button onclick="deleteBank('${b.id}')" class="btn-danger">🗑️ Delete</button>
-              </div>`;
-            container.appendChild(div);
-          });
-        } catch (err) { container.textContent = 'Failed to load banks.'; }
-      }
+/* ════════════════════════════════════════
+   OVERVIEW / STATS
+════════════════════════════════════════ */
+function loadOverview() {
+  const re=document.getElementById('recent-exams');
+  const l5=allExams.slice(0,5);
+  re.innerHTML=l5.length?`<table class="gt"><thead><tr><th>Exam</th><th>Code</th><th>Status</th><th>Attempts</th></tr></thead><tbody>`+
+    l5.map(e=>`<tr><td><strong>${esc(e.title)}</strong></td><td><code style="color:var(--primary);font-weight:800;">${e.code||'—'}</code></td>
+      <td><span class="pill ${e.is_active!==0?'pg':'pr'}">${e.is_active!==0?'Active':'Inactive'}</span></td><td>${e.attempt_count||0}</td></tr>`).join('')+`</tbody></table>`
+    :`<div class="emp" style="padding:20px;"><div class="emp-ic" style="font-size:30px;">📋</div><p>No exams yet.</p></div>`;
+  loadSubjectStats();
+}
+async function loadSubjectStats() {
+  try {
+    const { subjects } = await Api.request('/teacher/subject-results');
+    drawSubChart(subjects||[]);
+    const sl=document.getElementById('sub-stats');
+    sl.innerHTML=(subjects||[]).map(s=>`
+      <div class="card" style="padding:13px;cursor:pointer;" onclick="switchTab('results')">
+        <div style="display:flex;align-items:center;gap:7px;margin-bottom:7px;"><span style="font-size:18px;">${s.subject_icon||'📚'}</span><strong style="font-size:13px;">${esc(s.subject_name)}</strong></div>
+        <div style="font-size:12px;color:var(--text2);">${s.total_exams} exams · ${s.total_attempts} attempts</div>
+        <div style="font-size:14px;font-weight:700;color:${s.subject_color||'var(--primary)'};">${s.avg_score??'—'} avg</div>
+      </div>`).join('');
+  } catch(e) {}
+}
+function drawSubChart(subs) {
+  const cv=document.getElementById('sub-chart'); if(!cv||!window.Chart) return;
+  if (subjChart) subjChart.destroy();
+  if (!subs.length) return;
+  subjChart=new Chart(cv,{type:'bar',data:{
+    labels:subs.map(s=>s.subject_name),
+    datasets:[{label:'Avg Score',data:subs.map(s=>s.avg_score||0),
+      backgroundColor:subs.map(s=>(s.subject_color||'#1a73e8')+'aa'),
+      borderColor:subs.map(s=>s.subject_color||'#1a73e8'),
+      borderWidth:2,borderRadius:6}]
+  },options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+    scales:{y:{beginAtZero:true,ticks:{color:'var(--text2)'},grid:{color:'rgba(0,0,0,.05)'}},x:{ticks:{color:'var(--text2)'},grid:{display:false}}}}});
+}
 
-      window.deleteBank = async function(bankId) {
-        if (!confirm('Are you sure you want to delete this entire Question Bank and all its questions?')) return;
-        try { await Api.request(`/banks/${bankId}`, { method: 'DELETE' }); loadBanks(); } catch (err) { alert(`Error: ${err.message}`); }
-      };
+/* ════════════════════════════════════════
+   STUDENTS
+════════════════════════════════════════ */
+async function loadStudents() {
+  try {
+    const { students } = await Api.request('/teacher/students');
+    allStudents=students||[];
+    document.getElementById('s-stu').textContent=allStudents.length;
+    renderStus(allStudents);
+  } catch(e) { allStudents=[]; }
+}
+function renderStus(data) {
+  const tb=document.getElementById('stu-tbody');
+  if (!data.length) { tb.innerHTML='<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text2);">No students.</td></tr>'; return; }
+  tb.innerHTML=data.map(s=>`<tr>
+    <td><code style="color:var(--primary);font-weight:700;">${esc(s.roll_number)}</code></td>
+    <td>${esc(s.name)}</td><td>${esc(s.branch)}</td><td>${esc(s.year)}</td>
+    <td style="font-size:12px;">${esc(s.email)}</td>
+    <td>${s.profile_photo?`<img src="${esc(s.profile_photo)}" onclick="openPhoto('${esc(s.name)}','${esc(s.profile_photo)}')" style="width:28px;height:28px;border-radius:50%;object-fit:cover;cursor:pointer;border:2px solid var(--border);">` :'<span style="font-size:12px;color:var(--text2);">—</span>'}</td>
+  </tr>`).join('');
+}
+function filterStus() {
+  const q=document.getElementById('stu-search').value.toLowerCase();
+  renderStus(allStudents.filter(s=>(s.name||'').toLowerCase().includes(q)||(s.roll_number||'').toLowerCase().includes(q)));
+}
+function initRegStudent() {
+  document.getElementById('reg-btn').addEventListener('click', async () => {
+    const name=document.getElementById('rg-name').value.trim(),email=document.getElementById('rg-email').value.trim();
+    const roll=document.getElementById('rg-roll').value.trim(),branch=document.getElementById('rg-branch').value.trim(),year=document.getElementById('rg-year').value.trim();
+    if (!name||!email||!roll) return alert('Name, email, roll required.');
+    const msg=document.getElementById('reg-msg');
+    try {
+      await Api.request('/teacher/students/register',{method:'POST',body:JSON.stringify({name,email,roll_number:roll,branch,year})});
+      msg.textContent='✅ Registered! Default password = roll number.'; msg.style.color='var(--success)';
+      ['rg-name','rg-email','rg-roll','rg-branch','rg-year'].forEach(id=>document.getElementById(id).value='');
+      await loadStudents();
+    } catch(e) { msg.textContent='❌ '+e.message; msg.style.color='var(--danger)'; }
+  });
+}
+function openPhoto(name, photo) {
+  document.getElementById('ph-name').textContent=name;
+  document.getElementById('ph-img').src=photo;
+  openModal('photo-modal');
+}
 
-      async function loadBanksForExam() {
-        const select = document.getElementById('exam-bank-select');
-        try {
-          const res = await Api.getBanks();
-          select.innerHTML = '<option value="">-- Select Question Bank --</option>';
-          res.banks?.forEach(b => select.innerHTML += `<option value="${b.id}">${b.title} (${b.subject})</option>`);
-        } catch(e) { select.innerHTML = '<option value="">-- Failed to load --</option>'; }
-      }
+/* ════════════════════════════════════════
+   LIVE MONITOR
+════════════════════════════════════════ */
+function populateLiveSel() {
+  const sel=document.getElementById('live-sel');
+  sel.innerHTML='<option value="">— Select —</option>'+allExams.filter(e=>e.is_active!==0).map(e=>`<option value="${e.id}">${esc(e.title)} [${e.code}]</option>`).join('');
+}
+function openLiveFor(examId) {
+  switchTab('live');
+  setTimeout(()=>{ document.getElementById('live-sel').value=examId; connectLive(); },120);
+}
+function connectLive() {
+  const examId=document.getElementById('live-sel').value; if (!examId) return;
+  if (liveSocket) { liveSocket.disconnect(); liveSocket=null; }
+  liveStus={}; document.getElementById('live-grid').innerHTML='';
+  document.getElementById('live-count').textContent='0';
+  document.getElementById('dm-sel').innerHTML='<option value="">Select student</option>';
+  document.getElementById('vlog').innerHTML='<span style="opacity:.4;">Connecting…</span>';
+  document.getElementById('live-dot').style.background='#f29900';
+  document.getElementById('live-txt').textContent='Connecting…';
+  const url=location.protocol==='file:'?'http://localhost:5000':location.origin;
+  liveSocket=window.io?io(url):null;
+  if (!liveSocket) { document.getElementById('live-txt').textContent='Socket.io not loaded'; return; }
+  liveSocket.emit('teacher:monitor',{examId});
+  document.getElementById('live-dot').style.background='#188038';
+  document.getElementById('live-txt').textContent='Connected';
+  addLog('🟢 Connected','#188038');
+  liveSocket.on('proctor:student-online',({studentId,studentName})=>{ liveStus[studentId]={name:studentName,id:studentId}; rendLive(); addLog(`🟢 ${studentName} joined`,'#188038'); });
+  liveSocket.on('proctor:student-offline',({studentId})=>{ const n=liveStus[studentId]?.name||studentId; delete liveStus[studentId]; rendLive(); addLog(`🔴 ${n} left`,'#d93025'); });
+  liveSocket.on('proctor:alert',({studentName,eventType,details})=>addLog(`⚠️ ${studentName}: ${eventType} — ${details}`,'#f29900'));
+  liveSocket.on('proctor:camera-frame',({studentId,frame})=>{ const img=document.querySelector(`#lc-${studentId} img`); if(img) img.src=frame; });
+  liveSocket.on('proctor:face-result',({studentId,studentName,matched})=>{ const b=document.querySelector(`#lc-${studentId} .fb`); if(b){b.textContent=matched?'✅ OK':'⚠️ Mismatch';b.className='pill fb '+(matched?'pg':'pr');} if(!matched) addLog(`⚠️ Face mismatch: ${studentName}`,'#d93025'); });
+}
+function rendLive() {
+  const g=document.getElementById('live-grid'), s=document.getElementById('dm-sel');
+  const count=Object.keys(liveStus).length;
+  document.getElementById('live-count').textContent=count;
+  s.innerHTML='<option value="">Select student</option>'+Object.values(liveStus).map(st=>`<option value="${st.id}">${esc(st.name)}</option>`).join('');
+  if(!count){g.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:24px;font-size:13px;color:var(--text2);">No active students</div>';return;}
+  g.innerHTML=Object.values(liveStus).map(st=>`
+    <div id="lc-${st.id}" style="background:var(--bg);border:1px solid var(--border);border-radius:10px;overflow:hidden;">
+      <div style="background:#000;aspect-ratio:4/3;position:relative;">
+        <img src="" alt="" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.opacity=0">
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.25);font-size:11px;">Live</div>
+      </div>
+      <div style="padding:7px 9px;">
+        <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:3px;">${esc(st.name)}</div>
+        <span class="pill pn fb" style="font-size:10px;">Waiting…</span>
+      </div>
+    </div>`).join('');
+}
+function addLog(m,c='var(--text2)') {
+  const l=document.getElementById('vlog');
+  const d=document.createElement('div');
+  d.style.cssText=`color:${c};padding:2px 0;border-bottom:1px solid var(--border);`;
+  d.textContent=`[${new Date().toLocaleTimeString()}] ${m}`;
+  l.prepend(d); if(l.children.length>80) l.removeChild(l.lastChild);
+}
+function sendBroadcast() {
+  const examId=document.getElementById('live-sel').value, msg=document.getElementById('ann-txt').value.trim();
+  if (!examId||!msg) return;
+  if (liveSocket) liveSocket.emit('teacher:announce',{examId,message:msg});
+  Api.request('/exams/announce',{method:'POST',body:JSON.stringify({exam_id:examId,message:msg,type:'BROADCAST'})}).catch(()=>{});
+  document.getElementById('ann-txt').value='';
+  addLog('📢 Broadcast: '+msg,'#1a73e8');
+}
+function sendDM() {
+  const examId=document.getElementById('live-sel').value, stuId=document.getElementById('dm-sel').value, msg=document.getElementById('dm-txt').value.trim();
+  if (!examId||!stuId||!msg) return;
+  if (liveSocket) liveSocket.emit('teacher:dm',{examId,studentId:stuId,message:msg});
+  Api.request('/exams/announce',{method:'POST',body:JSON.stringify({exam_id:examId,target_student_id:stuId,message:msg,type:'INDIVIDUAL'})}).catch(()=>{});
+  document.getElementById('dm-txt').value='';
+  addLog('💬 DM → '+document.getElementById('dm-sel').selectedOptions[0]?.text+': '+msg,'#1a73e8');
+}
 
-      const bankSelect = document.getElementById('exam-bank-select');
-      const pickerContainer = document.getElementById('question-picker-container');
-      const checkboxList = document.getElementById('questions-checkbox-list');
-      const countSpan = document.getElementById('selected-q-count');
+/* ════════════════════════════════════════
+   CLASS DETAIL PANEL
+════════════════════════════════════════ */
+let cdpSubjectId = null;
 
-      bankSelect.addEventListener('change', async () => {
-        if (!bankSelect.value) { pickerContainer.classList.add('hidden'); return; }
-        try {
-          const res = await Api.getBankQuestions(bankSelect.value);
-          const questions = res.questions || [];
-          checkboxList.innerHTML = questions.length === 0 ? '<p class="text-slate-400 p-3">No questions found in this bank.</p>' : '';
-          questions.forEach((q, idx) => {
-            checkboxList.innerHTML += `<label class="flex items-start gap-2.5 bg-white p-3 rounded-xl border border-slate-200 hover:border-indigo-300 cursor-pointer transition-all shadow-2xs"><input type="checkbox" name="selected_questions" value="${q.id}" class="q-checkbox mt-0.5 accent-indigo-600 rounded" checked><span class="text-slate-700 text-xs"><strong class="text-indigo-600 font-bold">Q${idx+1}.</strong> ${q.question_text.substring(0,110)}${q.question_text.length > 110 ? '…' : ''}</span></label>`;
-          });
-          pickerContainer.classList.remove('hidden');
-          updateSelectedCount();
-          document.querySelectorAll('.q-checkbox').forEach(cb => cb.addEventListener('change', updateSelectedCount));
-        } catch(err) { alert('Failed to load questions from bank'); }
-      });
+function switchCdpTab(tab) {
+  document.querySelectorAll('.cdp-tab').forEach(b => b.classList.toggle('on', b.dataset.cdp === tab));
+  document.querySelectorAll('.cdp-pane').forEach(p => p.classList.remove('on'));
+  const pane = document.getElementById('cdp-pane-' + tab);
+  if (pane) pane.classList.add('on');
+}
 
-      function updateSelectedCount() { countSpan.textContent = document.querySelectorAll('.q-checkbox:checked').length; }
-      document.getElementById('select-all-q-btn').addEventListener('click', () => {
-        const cbs = document.querySelectorAll('.q-checkbox');
-        const allChecked = Array.from(cbs).every(cb => cb.checked);
-        cbs.forEach(cb => cb.checked = !allChecked);
-        updateSelectedCount();
-      });
+async function openClassDetail(subjectId) {
+  cdpSubjectId = subjectId;
+  const s = allSubjects.find(x => x.id === subjectId);
+  if (!s) return;
 
-      async function loadExamsResultsGrid() {
-        const grid = document.getElementById('exams-results-grid');
-        grid.innerHTML = '<p class="text-xs text-slate-400 col-span-3 text-center py-6">Loading exam records...</p>';
-        try {
-          const res = await Api.request('/teacher/exams', { method: 'GET' });
-          const exams = res.exams || [];
-          grid.innerHTML = '';
-          if (!exams.length) { grid.innerHTML = '<p class="text-xs text-slate-400 col-span-3 text-center py-10">No exams created yet.</p>'; return; }
-          exams.forEach(e => {
-            grid.innerHTML += `<div onclick="openExamResultDetails('${e.id}', '${e.title}')" class="bg-white p-5 rounded-2xl border border-slate-200/90 hover:border-indigo-400 hover:shadow-md cursor-pointer transition-all group">
-              <span class="badge bg-indigo-50 text-indigo-700 border border-indigo-200 font-mono">CODE: ${e.code || 'EXAM'}</span>
-              <h4 class="font-bold text-slate-900 text-sm mt-3 group-hover:text-indigo-600 transition-colors">${e.title}</h4>
-              <p class="text-xs text-slate-400 mt-2 font-medium flex items-center justify-between">
-                <span>View scorecards & reports</span>
-                <span class="text-indigo-600 group-hover:translate-x-1 transition-transform">→</span>
-              </p>
-            </div>`;
-          });
-        } catch(err) { grid.innerHTML = '<p class="text-xs text-rose-500 col-span-3">Failed to load exam grid.</p>'; }
-      }
+  // Populate header
+  document.getElementById('cdp-banner').style.background = s.color || '#1a73e8';
+  document.getElementById('cdp-icon').textContent  = s.icon  || '📚';
+  document.getElementById('cdp-title').textContent = s.name  || 'Class';
+  document.getElementById('cdp-desc').textContent  = s.description || '';
+  document.getElementById('cdp-bank-count').textContent = s.bank_count || 0;
+  document.getElementById('cdp-exam-count').textContent = s.exam_count || 0;
+  document.getElementById('cdp-attempt-count').textContent = '…';
 
-      window.openExamResultDetails = async function(examId, title) {
-        document.getElementById('selected-exam-title-heading').textContent = title;
-        document.getElementById('results-exam-list-view').classList.add('hidden');
-        document.getElementById('results-detail-view').classList.remove('hidden');
-        const tbody = document.getElementById('exam-detail-table-body');
-        tbody.innerHTML = '<tr><td colspan="6" class="p-6 text-center text-slate-400 text-xs">Loading candidate results...</td></tr>';
-        try {
-          const res = await Api.request(`/teacher/results/${examId}`, { method: 'GET' });
-          activeExamResultsData = res.results || [];
-          tbody.innerHTML = '';
-          if (!activeExamResultsData.length) { tbody.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-slate-400">No submissions recorded for this examination session yet.</td></tr>'; return; }
-          activeExamResultsData.forEach(r => {
-            const pass = r.score >= (r.pass_marks || 20);
-            tbody.innerHTML += `<tr class="hover:bg-slate-50/80 transition-colors">
-              <td class="table-cell font-mono font-bold text-indigo-600 bg-indigo-50/50 rounded-lg px-2">${r.roll_number}</td>
-              <td class="table-cell font-bold text-slate-900">${r.name || r.student_name}</td>
-              <td class="table-cell text-slate-600">${r.branch || 'N/A'}</td>
-              <td class="table-cell text-slate-600">${r.year || 'N/A'}</td>
-              <td class="table-cell font-extrabold text-slate-900">${r.score || r.total_score} <span class="text-slate-400 font-normal">/ ${r.total_marks || 50}</span></td>
-              <td class="table-cell"><span class="badge ${pass ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'}">${pass ? 'PASSED' : 'FAILED'}</span></td>
-            </tr>`;
-          });
-        } catch(err) { tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-rose-500">Failed to load detailed results.</td></tr>'; }
-      };
+  // Reset to Banks tab
+  switchCdpTab('banks');
 
-      window.backToExamResultsList = function() {
-        document.getElementById('results-detail-view').classList.add('hidden');
-        document.getElementById('results-exam-list-view').classList.remove('hidden');
-      };
+  // Show panel
+  document.getElementById('cdp-overlay').classList.add('open');
+  document.getElementById('cdp-panel').classList.add('open');
 
-      window.exportExamResults = function(format) {
-        if (!activeExamResultsData?.length) { alert('No result data available to export.'); return; }
-        const title = document.getElementById('selected-exam-title-heading').textContent;
-        if (format === 'excel') {
-          const ws = XLSX.utils.json_to_sheet(activeExamResultsData);
-          const wb = XLSX.utils.book_new();
-          XLSX.utils.book_append_sheet(wb, ws, 'Results');
-          XLSX.writeFile(wb, `${title}_Results.xlsx`);
-        } else if (format === 'pdf') {
-          const { jsPDF } = window.jspdf;
-          const doc = new jsPDF();
-          doc.setFontSize(14); doc.text(`Exam Results: ${title}`, 10, 15);
-          doc.setFontSize(9);
-          let y = 28;
-          activeExamResultsData.forEach((r, idx) => {
-            doc.text(`${idx+1}. Roll: ${r.roll_number} | ${r.name||r.student_name} | ${r.branch} | Score: ${r.score}`, 10, y);
-            y += 8;
-          });
-          doc.save(`${title}_Results.pdf`);
-        } else if (format === 'doc') {
-          let html = `<html><head><title>Export</title></head><body><h2>${title} — Results</h2><table border='1' cellpadding='5'><tr><th>Roll</th><th>Name</th><th>Branch</th><th>Year</th><th>Score</th></tr>`;
-          activeExamResultsData.forEach(r => html += `<tr><td>${r.roll_number}</td><td>${r.name||r.student_name}</td><td>${r.branch}</td><td>${r.year}</td><td>${r.score}</td></tr>`);
-          html += '</table></body></html>';
-          const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
-          const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: `${title}_Results.doc` });
-          a.click();
-        }
-      };
+  // Load all three panes in parallel
+  await Promise.all([
+    cdpLoadBanks(subjectId),
+    cdpLoadExams(subjectId),
+    cdpLoadResults(subjectId)
+  ]);
+}
 
-      async function loadStudentsDirectory() {
-        const tbody = document.getElementById('students-table-body');
-        tbody.innerHTML = '<tr><td colspan="6" class="p-6 text-center text-slate-400 text-xs">Loading directory...</td></tr>';
-        try {
-          const res = await Api.request('/teacher/students', { method: 'GET' });
-          fullStudentsDirectory = res.students || [];
-          renderStudentsDirectoryTable(fullStudentsDirectory);
-        } catch(err) { tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-rose-500">Failed to load directory.</td></tr>'; }
-      }
+function closeClassDetail() {
+  document.getElementById('cdp-overlay').classList.remove('open');
+  document.getElementById('cdp-panel').classList.remove('open');
+}
 
-      function renderStudentsDirectoryTable(data) {
-        const tbody = document.getElementById('students-table-body');
-        tbody.innerHTML = '';
-        if (!data?.length) { tbody.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-slate-400">No matching student records found.</td></tr>'; return; }
-        data.forEach(s => {
-          tbody.innerHTML += `<tr class="hover:bg-slate-50/80 transition-colors">
-            <td class="table-cell font-mono font-bold text-indigo-600 bg-indigo-50/40 rounded-lg">${s.roll_number}</td>
-            <td class="table-cell font-bold text-slate-900">${s.name}</td>
-            <td class="table-cell text-slate-600 font-medium">${s.branch}</td>
-            <td class="table-cell text-slate-600 font-medium">${s.year}</td>
-            <td class="table-cell text-slate-500 text-xs font-mono">${s.email}</td>
-            <td class="table-cell">
-              <button onclick="openPhotoModal('${s.name}', '${s.profile_photo}')" class="btn-secondary text-xs bg-indigo-50/80 text-indigo-700 hover:bg-indigo-600 hover:text-white border-indigo-200/80 shadow-2xs">📷 View Photo</button>
-            </td>
-          </tr>`;
-        });
-      }
+async function cdpLoadBanks(subjectId) {
+  const el = document.getElementById('cdp-banks-body');
+  el.innerHTML = '<div class="emp"><div class="emp-ic" style="font-size:28px;">⏳</div><p>Loading…</p></div>';
+  try {
+    const { banks } = await Api.request('/subjects/' + subjectId + '/banks');
+    if (!banks || !banks.length) {
+      el.innerHTML = `<div class="emp"><div class="emp-ic">📄</div><p>No question banks yet.<br><small>Upload a PDF and assign it to this class.</small></p></div>`;
+      return;
+    }
+    el.innerHTML = `<table class="gt">
+      <thead><tr><th>Title</th><th>Questions</th><th>Created</th><th>Actions</th></tr></thead>
+      <tbody>` +
+      banks.map(b => `<tr>
+        <td><strong>${esc(b.title)}</strong></td>
+        <td><span class="pill pb">${b.question_count ?? '—'} Qs</span></td>
+        <td style="font-size:12px;color:var(--text2);">${new Date(b.created_at).toLocaleDateString('en-IN')}</td>
+        <td style="display:flex;gap:5px;">
+          <a href="/teacher/editor.html?bankId=${b.id}" class="btn btn-o btn-sm">✏️ Edit</a>
+          <button class="btn btn-d btn-sm" onclick="delBankFromPanel('${b.id}','${esc(b.title)}')">🗑</button>
+        </td>
+      </tr>`).join('') +
+      `</tbody></table>`;
+    document.getElementById('cdp-bank-count').textContent = banks.length;
+  } catch(e) {
+    el.innerHTML = `<div class="emp"><p style="color:var(--danger);">Failed to load banks: ${esc(e.message)}</p></div>`;
+  }
+}
 
-      window.applyStudentFilters = function() {
-        const branch = document.getElementById('filter-branch-input').value.toLowerCase();
-        const year = document.getElementById('filter-year-input').value.toLowerCase();
-        renderStudentsDirectoryTable(fullStudentsDirectory.filter(s => (s.branch||'').toLowerCase().includes(branch) && (s.year||'').toString().toLowerCase().includes(year)));
-      };
+async function cdpLoadExams(subjectId) {
+  const el = document.getElementById('cdp-exams-body');
+  el.innerHTML = '<div class="emp"><div class="emp-ic" style="font-size:28px;">⏳</div><p>Loading…</p></div>';
+  try {
+    const { exams } = await Api.request('/subjects/' + subjectId + '/exams');
+    if (!exams || !exams.length) {
+      el.innerHTML = `<div class="emp"><div class="emp-ic">📝</div><p>No exams for this class yet.<br><small>Use Create Exam to get started.</small></p></div>`;
+      return;
+    }
+    let totalAttempts = 0;
+    el.innerHTML = `<table class="gt">
+      <thead><tr><th>Exam Title</th><th>Code</th><th>Duration</th><th>Qs/Student</th><th>Attempts</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody>` +
+      exams.map(e => {
+        totalAttempts += (e.attempt_count || 0);
+        const on = e.is_active !== 0;
+        return `<tr>
+          <td><strong>${esc(e.title)}</strong></td>
+          <td><code style="font-weight:800;color:var(--primary);font-size:13px;">${e.code || '—'}</code></td>
+          <td>${e.duration_minutes}m</td>
+          <td>${e.required_attempts_count || '—'}</td>
+          <td>${e.attempt_count || 0}</td>
+          <td><span class="pill ${on ? 'pg' : 'pr'}">${on ? 'Active' : 'Inactive'}</span></td>
+          <td style="display:flex;gap:5px;flex-wrap:wrap;">
+            <button class="btn btn-o btn-sm" onclick="closeClassDetail();viewRes('${e.id}','${esc(e.title)}')">📊 Results</button>
+            <button class="btn btn-o btn-sm" onclick="closeClassDetail();openLiveFor('${e.id}')">📡 Monitor</button>
+          </td>
+        </tr>`;
+      }).join('') +
+      `</tbody></table>`;
+    document.getElementById('cdp-exam-count').textContent  = exams.length;
+    document.getElementById('cdp-attempt-count').textContent = totalAttempts;
+  } catch(e) {
+    el.innerHTML = `<div class="emp"><p style="color:var(--danger);">Failed to load exams: ${esc(e.message)}</p></div>`;
+  }
+}
 
-      window.openPhotoModal = function(name, photo) {
-        document.getElementById('modal-student-name').textContent = name;
-        document.getElementById('modal-student-img').src = photo || '/assets/default-avatar.png';
-        document.getElementById('photo-modal').classList.remove('hidden');
-      };
-      window.closePhotoModal = function() { document.getElementById('photo-modal').classList.add('hidden'); };
+async function cdpLoadResults(subjectId) {
+  const el = document.getElementById('cdp-results-body');
+  el.innerHTML = '<div class="emp"><div class="emp-ic" style="font-size:28px;">⏳</div><p>Loading…</p></div>';
+  try {
+    // Get all exams for this subject, then fetch results for each
+    const { exams } = await Api.request('/subjects/' + subjectId + '/exams');
+    if (!exams || !exams.length) {
+      el.innerHTML = `<div class="emp"><div class="emp-ic">📊</div><p>No exams yet — results will appear here after students attempt exams.</p></div>`;
+      return;
+    }
 
-      // Upload form with progress simulation
-      document.getElementById('upload-bank-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const msgEl = document.getElementById('upload-status-msg');
-        const pctEl = document.getElementById('upload-pct');
-        const barEl = document.getElementById('upload-progress-bar');
-        const wrap = document.getElementById('upload-progress-wrap');
-        const fileInp = document.getElementById('bank-file');
+    // Fetch results for all exams in parallel
+    const allResultRows = await Promise.all(exams.map(async ex => {
+      try {
+        const { results } = await Api.request('/teacher/results/' + ex.id);
+        return (results || []).map(r => ({ ...r, exam_title: ex.title, exam_code: ex.code }));
+      } catch(e) { return []; }
+    }));
+    const rows = allResultRows.flat();
 
-        if (!fileInp.files[0]) return alert('Please select a PDF file.');
-        const selectedFile = fileInp.files[0];
-        if (!selectedFile.name.toLowerCase().endsWith('.pdf') && selectedFile.type !== 'application/pdf') {
-          return alert('Only PDF files are supported. Please select a .pdf file.');
-        }
-        wrap.classList.remove('hidden');
+    if (!rows.length) {
+      el.innerHTML = `<div class="emp"><div class="emp-ic">📊</div><p>No submissions yet for this class.</p></div>`;
+      return;
+    }
 
-        const setProgress = (pct, msg) => { barEl.style.width = pct + '%'; pctEl.textContent = pct + '%'; msgEl.textContent = msg; };
-        setProgress(10, 'Uploading document...');
+    // Summary cards
+    const submitted = rows.filter(r => r.status === 'SUBMITTED');
+    const passed    = submitted.filter(r => (r.total_score || 0) >= (r.pass_marks || 40)).length;
+    const avg       = submitted.length
+      ? (submitted.reduce((s, r) => s + (r.total_score || 0), 0) / submitted.length).toFixed(1)
+      : '—';
 
-        const formData = new FormData();
-        formData.append('title', document.getElementById('bank-title').value);
-        formData.append('subject', document.getElementById('bank-subject').value);
-        formData.append('file', selectedFile);
+    el.innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;">
+        <div class="card" style="padding:13px;text-align:center;">
+          <div style="font-size:22px;font-weight:800;color:var(--primary);">${submitted.length}</div>
+          <div style="font-size:11px;color:var(--text2);">Submissions</div>
+        </div>
+        <div class="card" style="padding:13px;text-align:center;">
+          <div style="font-size:22px;font-weight:800;color:var(--success);">${passed}</div>
+          <div style="font-size:11px;color:var(--text2);">Passed</div>
+        </div>
+        <div class="card" style="padding:13px;text-align:center;">
+          <div style="font-size:22px;font-weight:800;color:var(--warn);">${avg}</div>
+          <div style="font-size:11px;color:var(--text2);">Avg Score</div>
+        </div>
+      </div>
+      <table class="gt">
+        <thead><tr><th>Roll</th><th>Name</th><th>Exam</th><th>Score</th><th>Total</th><th>Status</th></tr></thead>
+        <tbody>` +
+      rows.map(r => {
+        const pass = r.status === 'SUBMITTED' && (r.total_score || 0) >= (r.pass_marks || 40);
+        return `<tr>
+          <td><code style="color:var(--primary);font-weight:700;">${esc(r.roll_number)}</code></td>
+          <td>${esc(r.name)}</td>
+          <td style="font-size:12px;color:var(--text2);">${esc(r.exam_title)}</td>
+          <td><strong>${r.total_score ?? 0}</strong></td>
+          <td>${r.total_marks ?? 100}</td>
+          <td><span class="pill ${r.status === 'SUBMITTED' ? (pass ? 'pg' : 'pr') : 'py'}">
+            ${r.status === 'SUBMITTED' ? (pass ? '✓ PASS' : '✗ FAIL') : r.status}
+          </span></td>
+        </tr>`;
+      }).join('') +
+      `</tbody></table>`;
+  } catch(e) {
+    el.innerHTML = `<div class="emp"><p style="color:var(--danger);">Failed to load results: ${esc(e.message)}</p></div>`;
+  }
+}
 
-        const prog = setInterval(() => {
-          const cur = parseInt(barEl.style.width);
-          if (cur < 70) setProgress(cur + Math.floor(Math.random() * 8) + 3, 'Extracting questions from PDF...');
-        }, 600);
+async function delBankFromPanel(id, title) {
+  if (!confirm(`Delete bank "${title}"?`)) return;
+  try {
+    await Api.request('/banks/' + id, { method: 'DELETE' });
+    await loadBanks();
+    await loadSubjects();
+    if (cdpSubjectId) cdpLoadBanks(cdpSubjectId);
+  } catch(e) { alert(e.message); }
+}
 
-        try {
-          setProgress(75, 'Parsing document structure...');
-          const res = await Api.uploadBank(formData);
-          clearInterval(prog);
-          setProgress(100, `Success! ${res.message || 'Question bank created.'}`);
-          barEl.style.background = 'linear-gradient(90deg, #10b981, #059669)';
-          document.getElementById('upload-bank-form').reset();
-          document.getElementById('chosen-file-name').classList.add('hidden');
-          setTimeout(() => { wrap.classList.add('hidden'); barEl.style.width = '0%'; barEl.style.background = 'linear-gradient(90deg, #6366f1, #a855f7)'; loadBanks(); }, 3000);
-        } catch(err) {
-          clearInterval(prog);
-          setProgress(100, `Error: ${err.message}`);
-          barEl.style.background = 'linear-gradient(90deg, #f43f5e, #e11d48)';
-        }
-      });
-
-      document.getElementById('create-exam-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const selectedIds = Array.from(document.querySelectorAll('.q-checkbox:checked')).map(cb => cb.value);
-        if (!selectedIds.length) return alert('Please select at least 1 question for the exam pool.');
-        const reqCount = parseInt(document.getElementById('exam-questions-count').value);
-        if (reqCount > selectedIds.length) return alert(`Questions per student (${reqCount}) cannot exceed pool size (${selectedIds.length}).`);
-
-        try {
-          const res = await Api.createExam({
-            title: document.getElementById('exam-title').value,
-            bank_id: bankSelect.value,
-            duration_minutes: parseInt(document.getElementById('exam-duration').value),
-            start_time: new Date().toISOString(),
-            end_time: new Date(Date.now() + 86400000).toISOString(),
-            required_attempts_count: reqCount,
-            shuffle_questions: true, shuffle_options: true,
-            proctoring_level: 'STRICT', selected_question_ids: selectedIds
-          });
-          const url = `${location.protocol}//${location.host}/launch-exam?key=${res.examCode}`;
-          const box = document.getElementById('created-exam-link');
-          box.classList.remove('hidden');
-          box.innerHTML = `
-            <div class="flex items-center gap-2 mb-3">
-              <span class="text-emerald-600 font-extrabold text-sm">✅ Exam Created & Scheduled Successfully</span>
-            </div>
-            <div class="flex items-center justify-between bg-white rounded-xl p-4 border border-indigo-200 mb-3 shadow-sm">
-              <div>
-                <p class="text-xs text-slate-500 font-semibold uppercase tracking-wider">6-Digit Student Access Code</p>
-                <p class="text-3xl font-black font-mono text-indigo-700 tracking-widest mt-1">${res.examCode}</p>
-              </div>
-              <div class="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center text-2xl">🔐</div>
-            </div>
-            <p class="text-xs text-slate-600 font-bold mb-1">🔗 Direct Student Launch Link:</p>
-            <a href="${url}" target="_blank" class="font-mono text-indigo-600 underline text-xs break-all block bg-white/70 p-2.5 rounded-lg border border-indigo-100 hover:bg-white transition-colors">${url}</a>`;
-        } catch(err) { alert(`Error: ${err.message}`); }
-      });
-
-      document.getElementById('register-student-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const msg = document.getElementById('stu-reg-msg');
-        try {
-          await Api.request('/teacher/students/register', { method: 'POST', body: JSON.stringify({ name: document.getElementById('stu-name').value, email: document.getElementById('stu-email').value, roll_number: document.getElementById('stu-roll').value, branch: document.getElementById('stu-branch').value, year: document.getElementById('stu-year').value }) });
-          msg.textContent = '✅ Student account registered successfully!';
-          msg.className = 'text-xs font-semibold mt-3 text-emerald-600';
-          document.getElementById('register-student-form').reset();
-          loadStudentsDirectory();
-        } catch(err) {
-          msg.textContent = `❌ Error: ${err.message}`;
-          msg.className = 'text-xs font-semibold mt-3 text-rose-600';
-        }
-      });
-
-      loadStats();
-    });
-  </script>
+/* ════════════════════════════════════════
+   HELPERS
+════════════════════════════════════════ */
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-bg').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');}));
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+</script>
+<script src="/socket.io/socket.io.js"></script>
 </body>
 </html>

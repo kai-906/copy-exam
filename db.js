@@ -135,15 +135,77 @@ db.serialize(() => {
   db.run(`CREATE INDEX IF NOT EXISTS idx_answers_attempt ON StudentAnswers(attempt_id);`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_proctor_student ON ProctorLogs(student_id);`);
 
-  // Safe non-destructive column migrations
+  // ── Subjects table ────────────────────────────────────────────
+  db.run(`
+    CREATE TABLE IF NOT EXISTS Subjects (
+      id TEXT PRIMARY KEY,
+      teacher_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      description TEXT,
+      color TEXT DEFAULT '#4f46e5',
+      icon TEXT DEFAULT '📚',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(teacher_id) REFERENCES Users(id) ON DELETE CASCADE,
+      UNIQUE(teacher_id, name)
+    )
+  `);
+
+  // ── Exam ↔ multiple question banks ────────────────────────────
+  db.run(`
+    CREATE TABLE IF NOT EXISTS ExamBanks (
+      exam_id TEXT NOT NULL,
+      bank_id TEXT NOT NULL,
+      selected_question_ids TEXT DEFAULT '[]',
+      PRIMARY KEY(exam_id, bank_id),
+      FOREIGN KEY(exam_id) REFERENCES Exams(id) ON DELETE CASCADE,
+      FOREIGN KEY(bank_id) REFERENCES QuestionBanks(id) ON DELETE CASCADE
+    )
+  `);
+
+  // ── Exam announcements ────────────────────────────────────────
+  db.run(`
+    CREATE TABLE IF NOT EXISTS Announcements (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      exam_id TEXT NOT NULL,
+      teacher_id TEXT NOT NULL,
+      target_student_id TEXT,
+      message TEXT NOT NULL,
+      type TEXT CHECK(type IN ('BROADCAST','INDIVIDUAL')) DEFAULT 'BROADCAST',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(exam_id) REFERENCES Exams(id) ON DELETE CASCADE
+    )
+  `);
+
+  // ── Teacher profiles ──────────────────────────────────────────
+  db.run(`
+    CREATE TABLE IF NOT EXISTS TeacherProfiles (
+      teacher_id TEXT PRIMARY KEY,
+      name TEXT NOT NULL DEFAULT 'Teacher',
+      profile_photo TEXT,
+      department TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(teacher_id) REFERENCES Users(id) ON DELETE CASCADE
+    )
+  `);
+
+  // ── Safe non-destructive column migrations ────────────────────
   db.run(`ALTER TABLE Exams ADD COLUMN selected_question_ids TEXT`, () => {});
   db.run(`ALTER TABLE Exams ADD COLUMN code TEXT`, () => {});
   db.run(`ALTER TABLE Exams ADD COLUMN total_marks REAL DEFAULT 100`, () => {});
   db.run(`ALTER TABLE Exams ADD COLUMN pass_marks REAL DEFAULT 40`, () => {});
+  db.run(`ALTER TABLE Exams ADD COLUMN is_active INTEGER DEFAULT 1`, () => {});
+  db.run(`ALTER TABLE Exams ADD COLUMN subject_id TEXT`, () => {});
   db.run(`ALTER TABLE Questions ADD COLUMN image_url TEXT`, () => {});
   db.run(`ALTER TABLE StudentProfiles ADD COLUMN profile_photo TEXT`, () => {});
   db.run(`ALTER TABLE Users ADD COLUMN reset_token TEXT`, () => {});
   db.run(`ALTER TABLE Users ADD COLUMN reset_token_expiry DATETIME`, () => {});
+  db.run(`ALTER TABLE Users ADD COLUMN otp_code TEXT`, () => {});
+  db.run(`ALTER TABLE Users ADD COLUMN otp_expiry DATETIME`, () => {});
+  db.run(`ALTER TABLE QuestionBanks ADD COLUMN subject_id TEXT`, () => {});
+
+  db.run(`CREATE INDEX IF NOT EXISTS idx_subjects_teacher ON Subjects(teacher_id);`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_exambanks_exam ON ExamBanks(exam_id);`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_announcements_exam ON Announcements(exam_id);`);
 });
 
 module.exports = db;

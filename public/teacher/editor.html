@@ -5,6 +5,27 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Question Bank Editor - Smart Exam System</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- KaTeX for math rendering -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+  <style>
+    .math-text { font-size: 0.92em; line-height: 1.7; }
+    .katex { font-size: 1.05em; }
+    .katex-display { margin: 0.3em 0; }
+    .q-preview {
+      background:#f8fafc; border:1px solid #e2e8f0;
+      border-radius:8px; padding:10px 14px;
+      font-size:13.5px; line-height:1.75;
+      color:#1e293b; min-height:32px;
+    }
+    .opt-preview {
+      background:#f1f5f9; border-radius:6px;
+      padding:6px 10px; font-size:12.5px;
+      color:#334155; min-height:24px; line-height:1.6;
+    }
+    .opt-preview.correct { background:#dcfce7; border:1px solid #86efac; color:#166534; font-weight:600; }
+  </style>
 </head>
 <body class="bg-slate-100 min-h-screen text-slate-800">
 
@@ -147,46 +168,84 @@
 
           const card = document.createElement('div');
           card.className = "bg-white p-5 rounded-lg shadow-sm border border-slate-200 space-y-3";
+
+          // Build options rows
+          const optsHtml = [0,1,2,3].map(i => `
+            <div>
+              <label class="text-slate-500 font-medium text-xs">Option ${String.fromCharCode(65+i)}</label>
+              <input type="text" id="opt-${q.id}-${i}" value="${escAttr(opts[i] || '')}" class="w-full border border-slate-300 p-1.5 rounded mt-0.5 text-sm">
+            </div>`).join('');
+
+          // Build math previews for each option
+          const optPreviewsHtml = [0,1,2,3].map(i => {
+            const val = opts[i] || '';
+            const isCorrect = val && q.correct_answer && val.trim() === q.correct_answer.trim();
+            return `<div class="opt-preview${isCorrect?' correct':''}" id="optprev-${q.id}-${i}">
+              <span class="text-slate-400 text-xs font-bold mr-1">${String.fromCharCode(65+i)}.</span>${val || '<span class="text-slate-300 text-xs">—</span>'}
+            </div>`;
+          }).join('');
+
           card.innerHTML = `
             <div class="flex justify-between items-center border-b pb-2">
-              <span class="font-bold text-slate-800 text-sm">Question ${idx + 1}</span>
+              <span class="font-bold text-slate-800 text-sm">Q${idx + 1}
+                <span class="ml-2 text-xs font-normal px-2 py-0.5 rounded-full ${q.image_url ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500'}">
+                  ${q.image_url ? '🖼 Has Image' : q.question_type || 'MCQ'}
+                </span>
+              </span>
               <div class="flex items-center space-x-3">
                 <select id="type-${q.id}" onchange="toggleCardType('${q.id}')" class="border text-xs rounded p-1 font-semibold bg-slate-50">
-                  <option value="MCQ" ${q.question_type === 'MCQ' ? 'selected' : ''}>MCQ</option>
-                  <option value="FILL_BLANK" ${q.question_type === 'FILL_BLANK' ? 'selected' : ''}>Fill in Blank</option>
-                  <option value="SHORT_ANSWER" ${q.question_type === 'SHORT_ANSWER' ? 'selected' : ''}>Short Answer</option>
+                  <option value="MCQ" ${q.question_type==='MCQ'?'selected':''}>MCQ</option>
+                  <option value="FILL_BLANK" ${q.question_type==='FILL_BLANK'?'selected':''}>Fill in Blank</option>
+                  <option value="SHORT_ANSWER" ${q.question_type==='SHORT_ANSWER'?'selected':''}>Short Answer</option>
                 </select>
                 <button onclick="deleteQ('${q.id}')" class="text-xs text-red-600 font-semibold hover:underline">Delete</button>
               </div>
             </div>
-            
-            <textarea id="text-${q.id}" class="w-full border rounded-md p-2 text-sm border-slate-300">${q.question_text || ''}</textarea>
+
+            <!-- Math preview of question -->
+            <div class="q-preview math-text" id="qprev-${q.id}">${q.question_text || ''}</div>
+
+            <textarea id="text-${q.id}" class="w-full border rounded-md p-2 text-sm border-slate-300 text-xs font-mono" rows="2"
+              oninput="updatePreview('${q.id}')">${escAttr(q.question_text || '')}</textarea>
 
             <div>
-              <label class="block text-xs text-slate-500 mb-1 font-medium">Image URL (Optional Diagram/Question Image):</label>
-              <input type="text" id="img-${q.id}" value="${q.image_url || ''}" placeholder="https://..." class="w-full border p-1.5 rounded text-xs">
+              <label class="block text-xs text-slate-500 mb-1 font-medium">Image URL <span class="text-slate-300">(optional — paste a URL or upload below)</span></label>
+              <input type="text" id="img-${q.id}" value="${escAttr(q.image_url && !q.image_url.startsWith('[image:') ? q.image_url : '')}"
+                placeholder="https://..." class="w-full border p-1.5 rounded text-xs" oninput="updateImagePreview('${q.id}')">
+              ${(q.image_url && !q.image_url.startsWith('[image:'))
+                ? `<img id="imgprev-${q.id}" src="${escAttr(q.image_url)}" alt="diagram"
+                     class="mt-2 max-h-56 rounded border border-slate-200 shadow-sm"
+                     onerror="this.style.display='none'">`
+                : `<img id="imgprev-${q.id}" src="" alt="diagram"
+                     class="mt-2 max-h-56 rounded border border-slate-200 shadow-sm hidden">`
+              }
+              ${(q.image_url && q.image_url.startsWith('[image:'))
+                ? `<div class="mt-1 text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded px-2 py-1">
+                     📌 AI note: ${escAttr(q.image_url)} — paste the actual image URL above if available.
+                   </div>`
+                : ''
+              }
             </div>
 
-            <!-- Dynamic Options Grid per Card -->
-            <div id="opts-grid-${q.id}" class="grid grid-cols-2 gap-2 text-xs" style="display: ${q.question_type === 'MCQ' ? 'grid' : 'none'};">
-              ${[0,1,2,3].map(i => `
-                <div>
-                  <label class="text-slate-500 font-medium">Option ${i + 1}</label>
-                  <input type="text" id="opt-${q.id}-${i}" value="${opts[i] || ''}" class="w-full border border-slate-300 p-1.5 rounded mt-0.5">
-                </div>
-              `).join('')}
+            <div id="opts-grid-${q.id}" style="display:${q.question_type==='MCQ'?'block':'none'}">
+              <div class="grid grid-cols-2 gap-2 text-xs mb-2">${optsHtml}</div>
+              <div class="grid grid-cols-2 gap-2 mt-1" id="optpreviews-${q.id}">${optPreviewsHtml}</div>
             </div>
 
             <div class="flex justify-between items-center pt-3 border-t text-xs">
-              <div>
-                <label class="font-bold text-slate-700">Correct Answer Match:</label>
-                <input type="text" id="ans-${q.id}" value="${q.correct_answer || ''}" class="border border-slate-300 p-1.5 rounded ml-2 font-mono">
+              <div class="flex items-center gap-2 flex-wrap">
+                <label class="font-bold text-slate-700">Correct Answer:</label>
+                <input type="text" id="ans-${q.id}" value="${escAttr(q.correct_answer || '')}" class="border border-slate-300 p-1.5 rounded font-mono text-xs w-48">
+                <div class="opt-preview correct math-text" id="ansprev-${q.id}" style="min-width:80px;">${q.correct_answer || ''}</div>
               </div>
-              <button onclick="saveQ('${q.id}')" class="bg-blue-600 text-white px-4 py-1.5 rounded hover:bg-blue-700 font-semibold">Save Changes</button>
-            </div>
-          `;
+              <button onclick="saveQ('${q.id}')" class="bg-blue-600 text-white px-4 py-1.5 rounded hover:bg-blue-700 font-semibold">Save</button>
+            </div>`;
+
           container.appendChild(card);
         });
+
+        // Render math in all cards after DOM insertion
+        renderAllMath();
       } catch (err) {
         document.getElementById('questions-list').innerHTML = `<p class="text-red-600 text-sm font-bold text-center">Failed to load questions: ${err.message}</p>`;
       }
@@ -203,7 +262,9 @@
     async function saveQ(qId) {
       const question_text = document.getElementById(`text-${qId}`).value;
       const question_type = document.getElementById(`type-${qId}`).value;
-      const image_url = document.getElementById(`img-${qId}`).value;
+      const raw_image_url = document.getElementById(`img-${qId}`).value.trim();
+      // Don't save AI placeholder notes as image_url
+      const image_url = (raw_image_url && !raw_image_url.startsWith('[image:')) ? raw_image_url : '';
       const correct_answer = document.getElementById(`ans-${qId}`).value;
       
       const options = question_type === 'MCQ' ? [
@@ -218,7 +279,9 @@
           method: 'PUT',
           body: JSON.stringify({ question_text, question_type, options, image_url, correct_answer })
         });
-        alert('Question saved successfully!');
+        // Visual feedback without alert
+        const btn = document.querySelector(`button[onclick="saveQ('${qId}')"]`);
+        if (btn) { btn.textContent = '✓ Saved'; btn.className = btn.className.replace('bg-blue-600','bg-green-600'); setTimeout(()=>{ btn.textContent='Save'; btn.className=btn.className.replace('bg-green-600','bg-blue-600'); },1500); }
       } catch (err) {
         alert(`Error: ${err.message}`);
       }
@@ -293,6 +356,64 @@
     });
 
     loadQuestions();
+
+    // ── KaTeX helpers ───────────────────────────────────────────────
+    function renderAllMath() {
+      // Wait for KaTeX to load (it's deferred)
+      if (typeof renderMathInElement === 'undefined') {
+        setTimeout(renderAllMath, 200);
+        return;
+      }
+      const container = document.getElementById('questions-list');
+      if (!container) return;
+      renderMathInElement(container, {
+        delimiters: [
+          { left: '$$', right: '$$', display: true  },
+          { left: '$',  right: '$',  display: false },
+          { left: '\\(', right: '\\)', display: false },
+          { left: '\\[', right: '\\]', display: true  }
+        ],
+        throwOnError: false,
+        strict: false
+      });
+    }
+
+    // Live preview update when teacher edits question text
+    window.updatePreview = function(qId) {
+      const ta   = document.getElementById('text-' + qId);
+      const prev = document.getElementById('qprev-' + qId);
+      if (!ta || !prev) return;
+      prev.textContent = ta.value;
+      if (typeof renderMathInElement !== 'undefined') {
+        renderMathInElement(prev, {
+          delimiters: [
+            { left:'$$', right:'$$', display:true  },
+            { left:'$',  right:'$',  display:false },
+            { left:'\\(', right:'\\)', display:false }
+          ],
+          throwOnError: false, strict: false
+        });
+      }
+    };
+
+    // Live image URL preview
+    window.updateImagePreview = function(qId) {
+      const inp  = document.getElementById('img-' + qId);
+      const img  = document.getElementById('imgprev-' + qId);
+      if (!inp || !img) return;
+      const url  = inp.value.trim();
+      if (url && !url.startsWith('[image:')) {
+        img.src = url;
+        img.classList.remove('hidden');
+      } else {
+        img.classList.add('hidden');
+        img.src = '';
+      }
+    };
+
+    function escAttr(s) {
+      return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
   </script>
 </body>
 </html>

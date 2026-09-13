@@ -1,5 +1,34 @@
 document.addEventListener('DOMContentLoaded', async () => {
 
+  // ── KaTeX math renderer ────────────────────────────────────────────
+  // Renders $...$ and \(...\) LaTeX expressions inside any DOM element.
+  // Waits for KaTeX to load (it's deferred in the HTML head).
+  function renderKatex(element) {
+    if (!element) return;
+    const doRender = () => {
+      try {
+        if (typeof renderMathInElement !== 'undefined') {
+          renderMathInElement(element, {
+            delimiters: [
+              { left: '$$', right: '$$', display: true  },
+              { left: '$',  right: '$',  display: false },
+              { left: '\\(', right: '\\)', display: false },
+              { left: '\\[', right: '\\]', display: true  }
+            ],
+            throwOnError: false,
+            strict: false
+          });
+        }
+      } catch(e) { /* silent — never break exam */ }
+    };
+    if (window.__katexReady) {
+      doRender();
+    } else {
+      // KaTeX still loading — retry after short delay
+      setTimeout(doRender, 300);
+    }
+  }
+
   // ============================================================
   // RENDERER-SIDE LOCKDOWN
   // All keyboard/mouse protections run in the renderer process
@@ -295,12 +324,28 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (numLabel) numLabel.textContent = `Question No. ${index + 1} of ${questions.length}`;
 
     const textBox = getEl('questionText', 'question-text-box');
-    if (textBox) textBox.textContent = q.question_text || '';
+    if (textBox) {
+      textBox.textContent = q.question_text || '';
+      renderKatex(textBox);
+    }
 
+    // ── Question image / diagram ───────────────────────────────
+    // Show real image URL; ignore AI-placeholder notes like "[image: ...]"
     const imgEl = getEl('questionImage');
     if (imgEl) {
-      if (q.image_url) { imgEl.src = q.image_url; imgEl.style.display = 'block'; }
-      else imgEl.style.display = 'none';
+      const hasRealImage = q.image_url && !q.image_url.startsWith('[image:');
+      if (hasRealImage) {
+        imgEl.src = q.image_url;
+        imgEl.style.display = 'block';
+        imgEl.style.maxWidth = '100%';
+        imgEl.style.maxHeight = '280px';
+        imgEl.style.borderRadius = '8px';
+        imgEl.style.margin = '10px 0';
+        imgEl.style.border = '1px solid rgba(255,255,255,0.1)';
+      } else {
+        imgEl.style.display = 'none';
+        imgEl.src = '';
+      }
     }
 
     const optBox = getEl('optionsContainer', 'options-container');
@@ -321,6 +366,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const span   = document.createElement('span');
         span.className = 'option-text';
         span.textContent = optText;
+        renderKatex(span);
 
         label.appendChild(radio);
         label.appendChild(span);

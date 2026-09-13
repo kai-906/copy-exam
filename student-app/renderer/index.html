@@ -2,156 +2,180 @@
 <html lang="en">
 <head>
   <link rel="manifest" href="/manifest.json">
-<meta name="theme-color" content="#0f172a">
+  <meta name="theme-color" content="#0f172a">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Student Portal - Smart Exam Client</title>
+  <title>Student Login — SmartExam</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%); min-height: 100vh; }
+    .inp { @apply w-full bg-slate-900 border border-slate-700 text-white px-4 py-2.5 rounded-lg outline-none transition; }
+    .inp:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.18); }
+    .inp::placeholder { color: #475569; }
+    .lbl { display:block; font-size:0.7rem; font-weight:700; text-transform:uppercase;
+           letter-spacing:.06em; color:#94a3b8; margin-bottom:5px; }
+    .btn-primary { background: linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff;
+                   border:none; border-radius:.6rem; padding:.75rem 1.5rem;
+                   font-weight:700; font-size:.9rem; cursor:pointer; width:100%;
+                   transition:opacity .2s,transform .1s; }
+    .btn-primary:hover:not(:disabled) { opacity:.9; transform:translateY(-1px); }
+    .btn-primary:disabled { opacity:.5; cursor:not-allowed; }
+    .card { background:rgba(30,41,59,0.85); border:1px solid rgba(99,102,241,0.18);
+            border-radius:1.2rem; padding:2.2rem; backdrop-filter:blur(12px);
+            box-shadow:0 24px 48px rgba(0,0,0,0.45); }
+  </style>
 </head>
-<body class="bg-slate-100 flex items-center justify-center min-h-screen">
-  <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-lg">
-    
-    <h2 class="text-2xl font-bold text-center text-slate-800 mb-1">Student Exam Entry</h2>
-    <p class="text-xs text-center text-slate-500 mb-6">Enter candidate credentials and Exam Access Key to enter examination</p>
+<body class="flex items-center justify-center min-h-screen p-4">
 
-    <div id="alert-box" class="hidden px-4 py-2 rounded mb-4 text-xs font-semibold bg-red-100 border border-red-400 text-red-700"></div>
+  <div class="w-full max-w-sm">
 
-    <form id="student-entry-form" class="space-y-3">
-      <div class="grid grid-cols-2 gap-3">
+    <!-- Logo / Brand -->
+    <div class="text-center mb-7">
+      <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-indigo-600/20 border border-indigo-500/30 mb-3">
+        <svg class="w-7 h-7 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+        </svg>
+      </div>
+      <h1 class="text-2xl font-extrabold text-white tracking-tight">SmartExam</h1>
+      <p class="text-slate-400 text-xs mt-1">Student Portal</p>
+    </div>
+
+    <!-- Login Card -->
+    <div class="card">
+      <h2 class="text-lg font-bold text-white mb-5">Sign In</h2>
+
+      <div id="alert-box" class="hidden mb-4 px-4 py-2.5 rounded-lg text-xs font-semibold bg-red-500/10 border border-red-500/30 text-red-400"></div>
+
+      <form id="login-form" class="space-y-4" autocomplete="off">
+
         <div>
-          <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Full Name</label>
-          <input type="text" id="stu-name" required placeholder="John Doe" class="w-full px-3 py-2 border rounded-md text-sm">
+          <label class="lbl" for="roll">Roll Number</label>
+          <input type="text" id="roll" name="roll" required autocomplete="off"
+            placeholder="e.g. 2400906"
+            class="w-full bg-slate-900 border border-slate-700 text-white px-4 py-2.5 rounded-lg outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 placeholder-slate-600">
         </div>
+
         <div>
-          <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Roll Number</label>
-          <input type="text" id="stu-roll" required placeholder="2400906" class="w-full px-3 py-2 border rounded-md text-sm">
+          <label class="lbl" for="pass">Password</label>
+          <div class="relative">
+            <input type="password" id="pass" name="pass" required autocomplete="current-password"
+              placeholder="••••••••"
+              class="w-full bg-slate-900 border border-slate-700 text-white px-4 py-2.5 rounded-lg outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 placeholder-slate-600 pr-10">
+            <button type="button" id="toggle-pass"
+              class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition text-xs"
+              tabindex="-1">👁</button>
+          </div>
         </div>
-      </div>
 
-      <div class="grid grid-cols-2 gap-3">
         <div>
-          <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Branch</label>
-          <input type="text" id="stu-branch" required placeholder="Civil / CS" class="w-full px-3 py-2 border rounded-md text-sm">
+          <label class="lbl" for="exam-key">Exam Access Key <span class="text-slate-600 font-normal normal-case">(optional)</span></label>
+          <input type="text" id="exam-key" name="exam-key"
+            placeholder="Leave blank to go to Dashboard"
+            class="w-full bg-slate-900 border border-slate-700 text-white px-4 py-2.5 rounded-lg outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 placeholder-slate-600 font-mono text-sm">
         </div>
-        <div>
-          <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Year</label>
-          <input type="text" id="stu-year" required placeholder="3rd Year" class="w-full px-3 py-2 border rounded-md text-sm">
-        </div>
-      </div>
 
-      <div>
-        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Email</label>
-        <input type="email" id="stu-email" required placeholder="student@example.com" class="w-full px-3 py-2 border rounded-md text-sm">
-      </div>
+        <button type="submit" id="login-btn" class="btn-primary mt-1">
+          Sign In →
+        </button>
 
-      <div>
-        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Password</label>
-        <input type="password" id="stu-pass" required placeholder="••••••••" class="w-full px-3 py-2 border rounded-md text-sm">
-      </div>
+      </form>
 
-      <div>
-        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Exam Access Key / ID <span class="text-slate-400 font-normal">(optional)</span></label>
-        <input type="text" id="stu-exam-id" placeholder="Paste Exam ID — leave blank to go to Dashboard" class="w-full px-3 py-2 border rounded-md text-sm font-mono">
+      <div class="mt-4 flex items-center justify-between text-xs">
+        <a href="forgot-password.html" class="text-indigo-400 hover:text-indigo-300 transition font-medium">Forgot Password?</a>
+        <a href="register.html" class="text-indigo-400 hover:text-indigo-300 transition font-medium">New student? Register →</a>
       </div>
+    </div>
 
-      <button type="submit" class="w-full bg-blue-600 text-white py-2.5 rounded-md hover:bg-blue-700 font-semibold text-sm transition mt-2">Proceed to Verification &amp; Rules →</button>
-      <div class="flex items-center justify-between mt-2 text-xs">
-        <label class="flex items-center gap-1.5 text-slate-400 cursor-pointer">
-          <input type="checkbox" class="rounded border-slate-700 bg-slate-800 text-blue-500 focus:ring-blue-500">
-          Remember me
-        </label>
-        <a href="forgot-password.html" class="text-blue-400 hover:text-blue-300 font-semibold">Forgot Password?</a>
-      </div>
-      <p class="text-center text-xs text-slate-400 mt-2">Don't have an account? <a href="register.html" class="text-blue-600 hover:underline font-semibold">Register here</a></p>
-    </form>
   </div>
 
   <script>
+    // ── Deep link / URL key auto-fill ─────────────────────────────
     window.addEventListener('DOMContentLoaded', () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      const key = urlParams.get('key');
-      if (key) {
-        document.getElementById('stu-exam-id').value = key;
-      }
+      const key = new URLSearchParams(window.location.search).get('key');
+      if (key) document.getElementById('exam-key').value = key;
 
-      // Listen for Electron deep-link auto-fill
-      if (typeof require !== 'undefined') {
-        try {
-          const { ipcRenderer } = require('electron');
-          ipcRenderer.on('auto-fill-key', (event, examKey) => {
-            if (examKey) document.getElementById('stu-exam-id').value = examKey;
-          });
-        } catch (e) {}
-      }
+      // Electron deep-link
+      try {
+        const { ipcRenderer } = require('electron');
+        ipcRenderer.on('auto-fill-key', (_, k) => {
+          if (k) document.getElementById('exam-key').value = k;
+        });
+      } catch(e) {}
     });
 
-    // ← Change this to your deployed server URL after deployment
-    const PRODUCTION_SERVER = 'http://localhost:5000';
-    const API_BASE = (window.location.protocol === 'file:' || !window.location.origin || window.location.origin === 'null')
-      ? `${PRODUCTION_SERVER}/api`
-      : `${window.location.origin}/api`;
+    // ── Show/hide password ────────────────────────────────────────
+    document.getElementById('toggle-pass').addEventListener('click', () => {
+      const inp = document.getElementById('pass');
+      inp.type = inp.type === 'password' ? 'text' : 'password';
+    });
 
-    const getApiUrl = (path) => `${API_BASE}${path}`;
+    // ── API base ──────────────────────────────────────────────────
+    const API_BASE = (
+      window.location.protocol === 'file:' ||
+      !window.location.origin ||
+      window.location.origin === 'null'
+    ) ? 'http://localhost:5000/api' : `${window.location.origin}/api`;
 
-    document.getElementById('student-entry-form').addEventListener('submit', async (e) => {
+    // ── Login ─────────────────────────────────────────────────────
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const alertBox = document.getElementById('alert-box');
+      const btn      = document.getElementById('login-btn');
       alertBox.classList.add('hidden');
 
-      const name = document.getElementById('stu-name').value.trim();
-      const rollNumber = document.getElementById('stu-roll').value.trim();
-      const branch = document.getElementById('stu-branch').value.trim();
-      const year = document.getElementById('stu-year').value.trim();
-      const email = document.getElementById('stu-email').value.trim();
-      const password = document.getElementById('stu-pass').value;
-      let rawExamId = document.getElementById('stu-exam-id').value.trim();
+      const roll     = document.getElementById('roll').value.trim();
+      const password = document.getElementById('pass').value;
+      let   examKey  = document.getElementById('exam-key').value.trim();
 
-      if (rawExamId.includes('key=')) {
-        rawExamId = rawExamId.split('key=')[1].split('&')[0];
+      if (examKey.includes('key=')) {
+        examKey = examKey.split('key=')[1].split('&')[0];
       }
 
-      try {
-        // Step 1: Auto-register student (silently proceeds if user already exists)
-        try {
-          await fetch(getApiUrl('/auth/student/register'), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password, name, roll_number: rollNumber, branch, year })
-          });
-        } catch (regErr) {}
+      if (!roll || !password) {
+        alertBox.textContent = 'Roll number and password are required.';
+        alertBox.classList.remove('hidden');
+        return;
+      }
 
-        // Step 2: Login Student
-        const loginRes = await fetch(getApiUrl('/auth/student/login'), {
-          method: 'POST',
+      btn.disabled    = true;
+      btn.textContent = 'Signing in…';
+
+      try {
+        const res  = await fetch(`${API_BASE}/auth/student/login`, {
+          method:  'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ roll_number: rollNumber, password })
+          body:    JSON.stringify({ roll_number: roll, password })
         });
 
-        const loginData = await loginRes.json();
+        const data = await res.json();
 
-        if (!loginRes.ok) {
-          throw new Error(loginData.error || 'Login failed. Please check credentials.');
+        if (!res.ok) {
+          throw new Error(data.error || 'Login failed. Please check your credentials.');
         }
 
-        // Store tokens across all keys for seamless client script compatibility
-        localStorage.setItem('student_token', loginData.token);
-        localStorage.setItem('token', loginData.token);
-        localStorage.setItem('studentToken', loginData.token);
-        if (loginData.student) {
-          localStorage.setItem('student_user', JSON.stringify(loginData.student));
+        // Store tokens
+        localStorage.setItem('student_token', data.token);
+        localStorage.setItem('token',         data.token);
+        localStorage.setItem('studentToken',  data.token);
+        if (data.student) {
+          localStorage.setItem('student_user', JSON.stringify(data.student));
         }
 
-        // Step 3: Route conditionally based on whether Exam ID was provided
-        if (rawExamId) {
-          localStorage.setItem('active_exam_id', rawExamId);
+        // Route
+        if (examKey) {
+          localStorage.setItem('active_exam_id', examKey);
           window.location.href = 'rules.html';
         } else {
           localStorage.removeItem('active_exam_id');
           window.location.href = 'dashboard.html';
         }
+
       } catch (err) {
-        alertBox.textContent = err.message || 'Connection error with backend server.';
+        alertBox.textContent = err.message || 'Connection error with server.';
         alertBox.classList.remove('hidden');
+        btn.disabled    = false;
+        btn.textContent = 'Sign In →';
       }
     });
   </script>

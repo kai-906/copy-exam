@@ -3,6 +3,7 @@ const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const db = require('../db');
 const PDFParser = require('pdf2json');
+const { parseWithGemini } = require('../utils/geminiParser');
 
 // ─────────────────────────────────────────────────────────────────────
 // ADVANCED HELPER FUNCTIONS
@@ -62,11 +63,14 @@ function convertToLatex(text) {
     .trim();
 }
 
-// Detect Diagrams or Figures in Questions
+// Detect Diagrams or Figures in Questions — expanded for engineering PDFs
 const DIAGRAM_KEYWORDS = [
   'figure', 'fig.', 'diagram', 'image', 'sketch', 'cross-section', 'cross section',
   'layout', 'shown below', 'shown above', 'refer to', 'circuit', 'graph', 'chart',
-  'table below', 'as shown', 'see figure', 'shaded', 'given figure'
+  'table below', 'as shown', 'see figure', 'shaded', 'given figure',
+  // Engineering specific
+  'beam', 'section', 'load', 'msq', 'the figure', 'following figure',
+  'shown in', 'given in figure', 'cross section'
 ];
 
 function detectDiagram(text) {
@@ -74,8 +78,8 @@ function detectDiagram(text) {
   return DIAGRAM_KEYWORDS.some(kw => lower.includes(kw));
 }
 
-// Flexible Question Number Matcher
-const QUESTION_START_RE = /^\s*(?:Q(?:uestion|ues|ue)?\s*[.\-:]?\s*(\d{1,3})\b[.):\-]?|\((\d{1,3})\)|(\d{1,3})\s*[.):\-])(?=\s|$)/i;
+// Flexible Question Number Matcher — supports: 1) 1. (1) Q1 Q.1 Q-1
+const QUESTION_START_RE = /^\s*(?:Q(?:uestion|ues|ue)?\s*[.\-:]?\s*(\d{1,3})\s*[.):\-]?|\((\d{1,3})\)\s*|(\d{1,3})\s*[.):\-]\s*)(?=\S)/i;
 
 function matchQuestionNumber(line) {
   const m = QUESTION_START_RE.exec(line || '');
@@ -92,9 +96,15 @@ function splitIntoQuestionBlocks(text) {
 
   lines.forEach(line => {
     const num = matchQuestionNumber(line);
-    const looksLikeNewQuestion = num !== null && (lastNum === 0 || num > lastNum || num === lastNum + 1) && num < 1000;
 
-    if (looksLikeNewQuestion) {
+    // Accept: first question, sequential, skipped numbers (like Q17 missing → Q18 still ok),
+    // or a number that is within a reasonable lookahead window (+10) to handle gaps/skips
+    const isNewQ = num !== null &&
+      num < 1000 &&
+      num >= 1 &&
+      (lastNum === 0 || num === lastNum + 1 || (num > lastNum && num <= lastNum + 10));
+
+    if (isNewQ) {
       if (current) blocks.push(current);
       current = { number: num, lines: [line] };
       lastNum = num;
@@ -128,31 +138,52 @@ function parseAnswerKey(fullText) {
   return map;
 }
 
-// Convert inline options like "(A) option1 (B) option2" into new lines
+// Convert inline options — handles ALL formats found in engineering PDFs:
+//   "(A) text (B) text" — inline
+//   "a) 360  c) 480\nb) 720  d) 5040" — 2x2 grid
+//   "(A) 15.42 mm   (B) 21.37 mm\n(C) 13.74 mm   (D) 9.68 mm" — 2x2 with parens
+//   Multi-line: "(A)\nsome text\n(B)\nother text"
 function splitInlineOptions(text) {
-  return text.replace(/(\s+)(?=[•\-]?\s*(?:\(?([A-Da-d1-4])[\).:\-]|\[([A-Da-d1-4])\])\s)/g, '\n');
+  // Handle 2-column grid: "a) ans1  c) ans2" split on 2+ spaces before option letter
+  text = text.replace(/([^\n])\s{2,}(\(?[a-dA-D1-4][\)\.:])/g, '$1\n$2');
+
+  // Handle inline packed: "(A) text (B) text" or "(A)text(B)text"
+  text = text.replace(/(\s*)(\([A-Da-d1-4]\)|\b[A-Da-d1-4][).])\s/g, '\n$2 ');
+
+  return text;
 }
 
-const OPTION_LINE_RE = /^\s*(?:[•\-]?\s*(?:\(?([A-Da-d1-4])[\).:\-]|\[([A-Da-d1-4])\])\s*)\s*(.+)/;
+// Enhanced option line regex — matches ALL formats:
+//   (A) text  /  A) text  /  A. text  /  [A] text  /  a) text
+const OPTION_LINE_RE = /^\s*[\(\[]?([A-Da-d1-4])[\)\].:\-]\s*(.+)/;
 
 function extractOptionsAndQuestionText(bodyText) {
   const normalized = splitInlineOptions(bodyText);
   const optionsMap = {};
   const questionLines = [];
+  let optionsStarted = false;
 
   normalized.split('\n').forEach(line => {
-    const optMatch = OPTION_LINE_RE.exec(line);
+    const trimmed = line.trim();
+    if (!trimmed) return;
+
+    const optMatch = OPTION_LINE_RE.exec(trimmed);
     if (optMatch) {
-      let key = (optMatch[1] || optMatch[2]).toUpperCase();
+      let key = optMatch[1].toUpperCase();
       if (key === '1') key = 'A';
       if (key === '2') key = 'B';
       if (key === '3') key = 'C';
       if (key === '4') key = 'D';
-      const val = optMatch[3].trim();
-      if (val) optionsMap[key] = val;
-    } else if (Object.keys(optionsMap).length === 0) {
-      questionLines.push(line.trim());
+      const val = optMatch[2].trim();
+      if (val && val.length > 0) {
+        // Don't overwrite if already set (keeps first occurrence)
+        if (!optionsMap[key]) optionsMap[key] = val;
+        optionsStarted = true;
+      }
+    } else if (!optionsStarted) {
+      questionLines.push(trimmed);
     }
+    // After options start, non-matching lines are noise (page headers, watermarks)
   });
 
   return { optionsMap, questionText: questionLines.join(' ').replace(/\s+/g, ' ').trim() };
@@ -163,9 +194,12 @@ function buildQuestionObject(block, answerKeyMap, state) {
   const { optionsMap, questionText } = extractOptionsAndQuestionText(bodyText);
 
   const cleanQuestionText = convertToLatex(questionText);
-  if (!cleanQuestionText || cleanQuestionText.length < 5) return null;
+  // Accept questions with short text if they have an image (diagram-based Qs)
+  if (!cleanQuestionText || cleanQuestionText.length < 3) return null;
 
   const hasOptions = Object.keys(optionsMap).length >= 2;
+
+  // For questions with no extracted options but has answer key → mark as MCQ with placeholders
   const optionsList = hasOptions
     ? [
         convertToLatex(optionsMap['A'] || 'Option A'),
@@ -173,20 +207,27 @@ function buildQuestionObject(block, answerKeyMap, state) {
         convertToLatex(optionsMap['C'] || 'Option C'),
         convertToLatex(optionsMap['D'] || 'Option D')
       ]
-    : ['Numerical / Short Answer'];
+    : answerKeyMap && answerKeyMap[block.number]
+      ? ['Option A', 'Option B', 'Option C', 'Option D']  // has answer key but options in image
+      : ['Numerical / Short Answer'];
+
+  const isMCQ = hasOptions || (answerKeyMap && answerKeyMap[block.number] !== undefined);
 
   let correctAnswer = null;
-  if (hasOptions) {
+  if (isMCQ) {
     const keyLetter = block.number != null ? answerKeyMap[block.number] : undefined;
-    if (keyLetter && optionsMap[keyLetter]) {
+    if (keyLetter && optionsList[['A','B','C','D'].indexOf(keyLetter)]) {
       const idx = ['A', 'B', 'C', 'D'].indexOf(keyLetter);
       correctAnswer = optionsList[idx];
+    } else if (keyLetter) {
+      // Answer key says letter but options were in image — store letter as answer
+      correctAnswer = keyLetter;
     } else {
       state.unresolvedCount++;
     }
   }
 
-  const fallbackAnswer = hasOptions ? (optionsList[0] || 'Option A') : 'Short Answer';
+  const fallbackAnswer = isMCQ ? (optionsList[0] || 'Option A') : 'Short Answer';
   if (!correctAnswer) correctAnswer = fallbackAnswer;
 
   const hasImage = detectDiagram(cleanQuestionText) || detectDiagram(Object.values(optionsMap).join(' '));
@@ -195,7 +236,7 @@ function buildQuestionObject(block, answerKeyMap, state) {
     question_text: cleanQuestionText,
     options: JSON.stringify(optionsList),
     correct_answer: correctAnswer,
-    type: hasOptions ? 'MCQ' : 'SHORT_ANSWER',
+    type: isMCQ ? 'MCQ' : 'SHORT_ANSWER',
     has_image: hasImage
   };
 }
@@ -255,24 +296,29 @@ function extractWithCoordinates(filePath) {
 function groupIntoQuestions(items) {
   if (!items || !items.length) return [];
 
+  // Sort: page → column → Y (top to bottom within each column)
   items.sort((a, b) => {
     if (a.page !== b.page) return a.page - b.page;
     if (a.col !== b.col) return a.col - b.col;
     return a.y - b.y;
   });
 
+  // Group items into text lines — items on same Y (within tolerance) join as one line
   const lines = [];
-  let prevY = -999, prevCol = 0, prevPage = 0;
+  let prevY = -999, prevCol = -1, prevPage = -1;
 
   items.forEach(item => {
-    const isNewLine = (item.page !== prevPage) || (item.col !== prevCol) || Math.abs(item.y - prevY) > 0.4;
+    // A new line if: page changed, column changed, or Y differs by > 0.3 units
+    const isNewLine = (item.page !== prevPage) ||
+                      (item.col !== prevCol) ||
+                      Math.abs(item.y - prevY) > 0.3;
     if (isNewLine) {
       lines.push(item.text);
     } else {
       lines[lines.length - 1] += ' ' + item.text;
     }
-    prevY = item.y;
-    prevCol = item.col;
+    prevY    = item.y;
+    prevCol  = item.col;
     prevPage = item.page;
   });
 
@@ -295,7 +341,7 @@ function groupIntoQuestions(items) {
   return questions;
 }
 
-// Plain-text Fallback Parser
+// Plain-text Fallback Parser (PDF)
 async function fallbackPlainTextParse(filePath) {
   const pdfParseModule = require('pdf-parse');
   const dataBuffer = fs.readFileSync(filePath);
@@ -304,12 +350,19 @@ async function fallbackPlainTextParse(filePath) {
   const rawText = data && data.text ? data.text : '';
   if (!rawText.trim()) return [];
 
-  let text = rawText.replace(/Android App|iOS App|PW Website|https?:\/\/\S+|www\.\S+/gi, '');
-  text = text.replace(/Page\s*\d+/gi, '');
-  text = text.replace(/\r/g, '\n');
+  return parseRawText(rawText);
+}
+
+// Core text → questions parser (shared by all file types)
+function parseRawText(rawText) {
+  let text = rawText
+    .replace(/Android App|iOS App|PW Website|https?:\/\/\S+|www\.\S+/gi, '')
+    .replace(/Page\s*\d+\s*(of\s*\d+)?/gi, '')
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n');
 
   const answerKeyMap = parseAnswerKey(text);
-  const keyIdx = text.search(/(?:answer\s*key|solutions|explanations)/i);
+  const keyIdx = text.search(/(?:answer\s*key|answers?\s*:|solutions|explanations)/i);
   const bodyText = keyIdx !== -1 ? text.substring(0, keyIdx) : text;
 
   const blocks = splitIntoQuestionBlocks(bodyText);
@@ -326,6 +379,115 @@ async function fallbackPlainTextParse(filePath) {
   return questions;
 }
 
+// ── DOCX parser ──────────────────────────────────────────────────────
+async function parseDocx(filePath) {
+  try {
+    const mammoth = require('mammoth');
+    const result  = await mammoth.extractRawText({ path: filePath });
+    return parseRawText(result.value || '');
+  } catch(e) {
+    throw new Error('DOCX parsing failed: ' + e.message + '. Make sure mammoth is installed (npm install mammoth).');
+  }
+}
+
+// ── TXT / plain-text parser ──────────────────────────────────────────
+function parseTxt(filePath) {
+  const text = fs.readFileSync(filePath, 'utf8');
+  return parseRawText(text);
+}
+
+// ── JSON question bank parser ────────────────────────────────────────
+// Supports two formats:
+//   1. Array of question objects: [{question, options:[...], answer}]
+//   2. Wrapper: { questions: [...] }
+function parseJsonBank(filePath) {
+  const raw = fs.readFileSync(filePath, 'utf8');
+  let data;
+  try { data = JSON.parse(raw); } catch(e) { throw new Error('Invalid JSON file.'); }
+
+  const arr = Array.isArray(data) ? data : (data.questions || data.bank || []);
+  if (!arr.length) throw new Error('No questions found in JSON file.');
+
+  return arr.map(item => {
+    const qText = item.question || item.question_text || item.text || item.q || '';
+    const opts  = item.options || item.choices || item.answers || [];
+    const ans   = item.answer  || item.correct_answer || item.correct || item.key || '';
+
+    if (!qText) return null;
+
+    const optsList = Array.isArray(opts)
+      ? opts.map(o => (typeof o === 'object' ? (o.text || o.value || String(o)) : String(o)))
+      : [];
+
+    // Resolve correct answer to full text if it's a letter
+    let correctAnswer = String(ans).trim();
+    if (/^[A-Da-d1-4]$/.test(correctAnswer)) {
+      const idx = ['A','B','C','D','1','2','3','4'].indexOf(correctAnswer.toUpperCase());
+      const mapped = idx < 4 ? idx : idx - 4;
+      correctAnswer = optsList[mapped] || correctAnswer;
+    }
+
+    return {
+      question_text: qText.trim(),
+      options: JSON.stringify(optsList.length >= 2 ? optsList : ['Option A','Option B','Option C','Option D']),
+      correct_answer: correctAnswer || (optsList[0] || 'Option A'),
+      type: optsList.length >= 2 ? 'MCQ' : 'SHORT_ANSWER',
+      has_image: false
+    };
+  }).filter(Boolean);
+}
+
+// ── XLSX / CSV parser ────────────────────────────────────────────────
+// Expected columns (any order, case-insensitive):
+//   question | option_a / a / opt_a | option_b | option_c | option_d | answer / correct_answer
+function parseXlsxOrCsv(filePath, ext) {
+  const XLSX = require('xlsx');
+  const wb   = XLSX.readFile(filePath);
+  const ws   = wb.Sheets[wb.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+  if (!rows.length) throw new Error('Spreadsheet is empty.');
+
+  // Normalise header keys
+  const norm = k => k.toLowerCase().replace(/[\s_\-]+/g, '');
+
+  return rows.map((row, i) => {
+    const get = (...keys) => {
+      for (const k of keys) {
+        for (const rk of Object.keys(row)) {
+          if (norm(rk) === norm(k)) return String(row[rk]).trim();
+        }
+      }
+      return '';
+    };
+
+    const qText = get('question','question_text','q','ques','text');
+    if (!qText) return null;
+
+    const optA = get('option_a','opta','a','opt1','option1','choice_a','choicea');
+    const optB = get('option_b','optb','b','opt2','option2','choice_b','choiceb');
+    const optC = get('option_c','optc','c','opt3','option3','choice_c','choicec');
+    const optD = get('option_d','optd','d','opt4','option4','choice_d','choiced');
+    const ans  = get('answer','correct_answer','correct','key','ans');
+
+    const optsList = [optA, optB, optC, optD].filter(Boolean);
+
+    let correctAnswer = ans;
+    if (/^[A-Da-d1-4]$/.test(correctAnswer)) {
+      const idx = ['A','B','C','D'].indexOf(correctAnswer.toUpperCase());
+      correctAnswer = optsList[idx < 0 ? 0 : idx] || correctAnswer;
+    }
+    if (!correctAnswer) correctAnswer = optsList[0] || 'Option A';
+
+    return {
+      question_text: qText,
+      options: JSON.stringify(optsList.length >= 2 ? optsList : ['Option A','Option B','Option C','Option D']),
+      correct_answer: correctAnswer,
+      type: optsList.length >= 2 ? 'MCQ' : 'SHORT_ANSWER',
+      has_image: false
+    };
+  }).filter(Boolean);
+}
+
 // ─────────────────────────────────────────────────────────────────────
 // ROUTE HANDLERS
 // ─────────────────────────────────────────────────────────────────────
@@ -339,30 +501,62 @@ exports.uploadBank = async (req, res) => {
     const fileExt = path.extname(req.file.originalname).toLowerCase();
     if (fileExt !== '.pdf') {
       if (filePath && fs.existsSync(filePath)) fs.unlinkSync(filePath);
-      return res.status(400).json({ error: 'Only .pdf files are supported.' });
+      return res.status(400).json({ error: 'Only PDF files (.pdf) are supported.' });
     }
 
     let parsedQuestions = [];
+    let parserUsed = 'built-in';
 
-    try {
-      const items = await extractWithCoordinates(filePath);
-      parsedQuestions = groupIntoQuestions(items);
-    } catch (coordErr) {
-      console.warn('Fallback to text parser:', coordErr.message);
+    // ── Step 1: Try Gemini AI parser ─────────────────────────────────
+    if (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== 'your_gemini_api_key_here') {
+      try {
+        console.log('[Bank Upload] Trying Gemini AI parser…');
+        parsedQuestions = await parseWithGemini(filePath);
+        if (parsedQuestions.length > 0) {
+          parserUsed = 'gemini-ai';
+          console.log(`[Bank Upload] Gemini extracted ${parsedQuestions.length} questions ✓`);
+        } else {
+          console.warn('[Bank Upload] Gemini returned 0 questions, falling back…');
+        }
+      } catch (geminiErr) {
+        console.warn('[Bank Upload] Gemini failed, falling back to built-in parser:', geminiErr.message);
+      }
     }
 
+    // ── Step 2: Fallback — coordinate-aware PDF parser ────────────────
     if (parsedQuestions.length === 0) {
-      parsedQuestions = await fallbackPlainTextParse(filePath);
+      try {
+        const items = await extractWithCoordinates(filePath);
+        parsedQuestions = groupIntoQuestions(items);
+        if (parsedQuestions.length > 0) {
+          console.log(`[Bank Upload] Coordinate parser extracted ${parsedQuestions.length} questions ✓`);
+        }
+      } catch (coordErr) {
+        console.warn('[Bank Upload] Coordinate parser failed:', coordErr.message);
+      }
+    }
+
+    // ── Step 3: Last resort — plain-text parser ───────────────────────
+    if (parsedQuestions.length === 0) {
+      try {
+        parsedQuestions = await fallbackPlainTextParse(filePath);
+        console.log(`[Bank Upload] Plain-text parser extracted ${parsedQuestions.length} questions`);
+      } catch (txtErr) {
+        console.warn('[Bank Upload] Plain-text parser failed:', txtErr.message);
+      }
     }
 
     if (parsedQuestions.length === 0) {
       if (filePath && fs.existsSync(filePath)) fs.unlinkSync(filePath);
-      return res.status(400).json({ error: 'No structured questions could be parsed from this PDF.' });
+      return res.status(400).json({
+        error: 'No questions could be extracted from this PDF. Make sure the file contains numbered MCQ questions.'
+      });
     }
 
-    const bankId = uuidv4();
-    const title = req.body.title || req.file.originalname;
-    const subject = req.body.subject || 'General';
+    const bankId   = uuidv4();
+    const title    = req.body.title    || req.file.originalname;
+    const subject  = req.body.subject  || 'General';
+    const subjectId= req.body.subject_id || req.body.subjectId || null;
 
     let teacherId = req.user ? req.user.id : null;
     if (!teacherId) {
@@ -371,8 +565,8 @@ exports.uploadBank = async (req, res) => {
     }
 
     db.run(
-      `INSERT INTO QuestionBanks (id, teacher_id, title, subject) VALUES (?, ?, ?, ?)`,
-      [bankId, teacherId, title, subject],
+      `INSERT INTO QuestionBanks (id, teacher_id, title, subject, subject_id) VALUES (?, ?, ?, ?, ?)`,
+      [bankId, teacherId, title, subject, subjectId],
       function (bankErr) {
         if (bankErr) {
           if (filePath && fs.existsSync(filePath)) fs.unlinkSync(filePath);
@@ -380,16 +574,25 @@ exports.uploadBank = async (req, res) => {
         }
 
         const stmt = db.prepare(`
-          INSERT INTO Questions (id, bank_id, question_text, question_type, options, correct_answer, difficulty)
-          VALUES (?, ?, ?, ?, ?, ?, 'MEDIUM')
+          INSERT INTO Questions
+            (id, bank_id, question_text, question_type, options, correct_answer, difficulty, image_url)
+          VALUES (?, ?, ?, ?, ?, ?, 'MEDIUM', ?)
         `);
 
         let insertErr = null;
         parsedQuestions.forEach(q => {
           const finalAnswer = q.correct_answer || 'Option A';
-          stmt.run(uuidv4(), bankId, q.question_text, q.type || 'MCQ', q.options, finalAnswer, err => {
-            if (err && !insertErr) insertErr = err;
-          });
+          // Store image_description as a JSON note in image_url field when no real URL
+          const imageNote = q.has_image && q.image_description
+            ? `[image: ${q.image_description}]`
+            : null;
+          stmt.run(
+            uuidv4(), bankId,
+            q.question_text, q.type || 'MCQ',
+            q.options, finalAnswer,
+            imageNote,
+            err => { if (err && !insertErr) insertErr = err; }
+          );
         });
 
         stmt.finalize(qErr => {
@@ -399,13 +602,16 @@ exports.uploadBank = async (req, res) => {
           const finalErr = insertErr || qErr;
           if (finalErr) return res.status(500).json({ error: 'Failed to save questions: ' + finalErr.message });
 
+          const imageQs = parsedQuestions.filter(q => q.has_image).length;
           res.status(200).json({
-            message: `Successfully parsed ${parsedQuestions.length} questions!`,
+            message: `Successfully extracted ${parsedQuestions.length} questions!`,
             bankId,
+            parserUsed,
             stats: {
-              total: parsedQuestions.length,
-              mcq: parsedQuestions.filter(q => q.type === 'MCQ').length,
-              shortAnswer: parsedQuestions.filter(q => q.type === 'SHORT_ANSWER').length
+              total:       parsedQuestions.length,
+              mcq:         parsedQuestions.filter(q => q.type === 'MCQ').length,
+              shortAnswer: parsedQuestions.filter(q => q.type === 'SHORT_ANSWER').length,
+              withImages:  imageQs
             }
           });
         });
@@ -423,8 +629,17 @@ exports.uploadBank = async (req, res) => {
 exports.getTeacherBanks = (req, res) => {
   const teacherId = req.user ? req.user.id : null;
   const query = teacherId
-    ? `SELECT * FROM QuestionBanks WHERE teacher_id = ? ORDER BY created_at DESC`
-    : `SELECT * FROM QuestionBanks ORDER BY created_at DESC`;
+    ? `SELECT qb.*, COUNT(q.id) AS question_count
+       FROM QuestionBanks qb
+       LEFT JOIN Questions q ON q.bank_id = qb.id
+       WHERE qb.teacher_id = ?
+       GROUP BY qb.id
+       ORDER BY qb.created_at DESC`
+    : `SELECT qb.*, COUNT(q.id) AS question_count
+       FROM QuestionBanks qb
+       LEFT JOIN Questions q ON q.bank_id = qb.id
+       GROUP BY qb.id
+       ORDER BY qb.created_at DESC`;
   db.all(query, teacherId ? [teacherId] : [], (err, rows) => {
     if (err) return res.status(500).json({ error: 'Failed to fetch question banks' });
     res.json({ banks: rows || [] });
@@ -493,25 +708,51 @@ exports.appendFileToBank = async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded to append' });
 
+    const fileExt = path.extname(req.file.originalname).toLowerCase();
+    if (fileExt !== '.pdf') {
+      if (filePath && fs.existsSync(filePath)) fs.unlinkSync(filePath);
+      return res.status(400).json({ error: 'Only PDF files (.pdf) are supported.' });
+    }
+
     let parsedQuestions = [];
-    try {
-      const items = await extractWithCoordinates(filePath);
-      parsedQuestions = groupIntoQuestions(items);
-    } catch(e) {
+
+    // Try Gemini first
+    if (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== 'your_gemini_api_key_here') {
+      try {
+        parsedQuestions = await parseWithGemini(filePath);
+      } catch(e) {
+        console.warn('[Append] Gemini failed:', e.message);
+      }
+    }
+    // Coordinate fallback
+    if (!parsedQuestions.length) {
+      try {
+        const items = await extractWithCoordinates(filePath);
+        parsedQuestions = groupIntoQuestions(items);
+      } catch(e) { /* ignore */ }
+    }
+    // Plain-text last resort
+    if (!parsedQuestions.length) {
       parsedQuestions = await fallbackPlainTextParse(filePath);
     }
 
+    if (!parsedQuestions.length) {
+      if (filePath && fs.existsSync(filePath)) fs.unlinkSync(filePath);
+      return res.status(400).json({ error: 'No questions could be extracted from this PDF.' });
+    }
+
     const stmt = db.prepare(`
-      INSERT INTO Questions (id, bank_id, question_text, question_type, options, correct_answer, difficulty)
-      VALUES (?, ?, ?, ?, ?, ?, 'MEDIUM')
+      INSERT INTO Questions
+        (id, bank_id, question_text, question_type, options, correct_answer, difficulty, image_url)
+      VALUES (?, ?, ?, ?, ?, ?, 'MEDIUM', ?)
     `);
 
     let insertErr = null;
     parsedQuestions.forEach(q => {
       const finalAnswer = q.correct_answer || 'Option A';
-      stmt.run(uuidv4(), req.params.bankId, q.question_text, q.type || 'MCQ', q.options, finalAnswer, err => {
-        if (err && !insertErr) insertErr = err;
-      });
+      const imageNote   = q.has_image && q.image_description ? `[image: ${q.image_description}]` : null;
+      stmt.run(uuidv4(), req.params.bankId, q.question_text, q.type || 'MCQ', q.options, finalAnswer, imageNote,
+        err => { if (err && !insertErr) insertErr = err; });
     });
 
     stmt.finalize(err => {

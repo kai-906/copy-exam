@@ -5,6 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Smart Exam System - CBT Exam</title>
   <link rel="stylesheet" href="css/custom.css">
+  <!-- KaTeX math rendering -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="window.__katexReady=true;"></script>
+  <style>
+    .q-text .katex, .option-text .katex { font-size: 1em; }
+    .q-text { line-height: 1.9; }
+    .option-text { line-height: 1.8; }
+  </style>
 </head>
 <body class="exam-body">
 
@@ -36,6 +46,13 @@
         <p id="questionText" class="q-text">
           Which layer is responsible for IP Addressing in the OSI Model?
         </p>
+
+        <!-- Question image / diagram — shown only when image_url is set -->
+        <img id="questionImage" src="" alt="Question diagram"
+          style="display:none; max-width:100%; max-height:280px; border-radius:8px;
+                 margin:10px 0 14px; border:1px solid rgba(255,255,255,0.12);
+                 background:#0f172a; object-fit:contain;"
+          onerror="this.style.display='none'">
 
         <div id="optionsContainer" class="options-group">
           <label class="option-card">

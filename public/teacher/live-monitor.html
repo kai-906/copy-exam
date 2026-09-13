@@ -1,52 +1,694 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Live Proctoring Console - Smart Exam System</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="/socket.io/socket.io.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>SmartExam — Live Proctoring Console</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&family=Roboto+Mono:wght@400;500&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f1f3f4;--surface:#fff;--sidebar:#1d2125;--sb-text:#9aa0a6;
+  --sb-hover:rgba(255,255,255,.07);--sb-active:rgba(138,180,248,.15);--sb-actxt:#8ab4f8;
+  --border:#e0e0e0;--text:#202124;--text2:#5f6368;
+  --primary:#1a73e8;--primary-h:#1558b0;--danger:#d93025;--success:#188038;--warn:#f29900;
+  --sh:0 1px 3px rgba(0,0,0,.12),0 1px 2px rgba(0,0,0,.1);
+  --sh-h:0 4px 14px rgba(0,0,0,.15);
+  --cam-bg:#0d1117;
+}
+[data-theme=dark]{
+  --bg:#202124;--surface:#292a2d;--border:#3c4043;
+  --text:#e8eaed;--text2:#9aa0a6;--cam-bg:#111;
+  --sh:0 1px 3px rgba(0,0,0,.5);--sh-h:0 4px 14px rgba(0,0,0,.55);
+}
+*{box-sizing:border-box;font-family:'Roboto',sans-serif;}
+body{margin:0;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden;transition:background .25s,color .25s;}
+::-webkit-scrollbar{width:5px;height:5px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+
+/* ── TOPBAR ── */
+.topbar{height:56px;flex-shrink:0;background:var(--sidebar);display:flex;align-items:center;justify-content:space-between;padding:0 18px;gap:12px;}
+.tb-left{display:flex;align-items:center;gap:14px;}
+.tb-logo{font-family:'Google Sans';font-size:16px;font-weight:700;color:#fff;display:flex;align-items:center;gap:8px;}
+.live-dot{width:9px;height:9px;border-radius:50%;background:#ccc;flex-shrink:0;transition:background .3s;}
+.live-dot.on{background:#34d399;box-shadow:0 0 0 3px rgba(52,211,153,.25);animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 3px rgba(52,211,153,.25);}50%{box-shadow:0 0 0 6px rgba(52,211,153,.1);}}
+.tb-status{font-size:12px;color:#9aa0a6;}
+.tb-right{display:flex;align-items:center;gap:10px;}
+.th-dot{width:22px;height:22px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .18s;}
+.th-dot:hover{transform:scale(1.15);}
+.th-dot.on{border-color:#8ab4f8;}
+.back-btn{display:flex;align-items:center;gap:5px;font-size:12px;font-weight:500;color:#9aa0a6;background:rgba(255,255,255,.08);border:none;border-radius:20px;padding:5px 13px;cursor:pointer;transition:background .18s;text-decoration:none;}
+.back-btn:hover{background:rgba(255,255,255,.14);color:#fff;}
+
+/* ── EXAM SELECTOR BAR ── */
+.exambar{height:48px;flex-shrink:0;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 18px;gap:14px;transition:background .25s,border-color .25s;}
+.inp{padding:7px 12px;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;font-size:13px;color:var(--text);outline:none;transition:border-color .18s;}
+.inp:focus{border-color:var(--primary);}
+select.inp{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235f6368' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;cursor:pointer;padding-right:28px;}
+.stat-chip{display:flex;align-items:center;gap:6px;background:var(--bg);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:12px;font-weight:600;color:var(--text2);}
+.stat-chip .num{color:var(--text);font-size:14px;font-weight:700;}
+
+/* ── MAIN GRID ── */
+.main-grid{flex:1;display:grid;grid-template-columns:1fr 310px;overflow:hidden;}
+
+/* ── LEFT: CAMERA GRID ── */
+.cam-section{overflow-y:auto;padding:14px;background:var(--bg);transition:background .25s;}
+.cam-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;}
+.cam-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:var(--sh);transition:box-shadow .2s,border-color .3s;}
+.cam-card:hover{box-shadow:var(--sh-h);}
+.cam-card.alert{border-color:var(--warn);box-shadow:0 0 0 2px rgba(242,153,0,.3);}
+.cam-card.mismatch{border-color:var(--danger);box-shadow:0 0 0 2px rgba(217,48,37,.3);}
+.cam-video-wrap{background:var(--cam-bg);aspect-ratio:4/3;position:relative;overflow:hidden;}
+.cam-video-wrap img{width:100%;height:100%;object-fit:cover;display:block;transition:opacity .3s;}
+.cam-placeholder{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:rgba(255,255,255,.2);font-size:11px;}
+.cam-placeholder svg{opacity:.3;}
+.cam-footer{padding:8px 10px;}
+.cam-name{font-size:12.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px;}
+.cam-badges{display:flex;gap:5px;flex-wrap:wrap;align-items:center;}
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;gap:3px;}
+.bg{background:rgba(16,185,129,.12);color:#065f46;}
+.br{background:rgba(217,48,37,.1);color:#b91c1c;}
+.by{background:rgba(242,153,0,.12);color:#92400e;}
+.bb{background:rgba(26,115,232,.1);color:#1558b0;}
+.bn{background:var(--bg);color:var(--text2);border:1px solid var(--border);}
+.cam-actions{display:flex;gap:5px;margin-top:5px;}
+.btn{display:inline-flex;align-items:center;gap:4px;padding:5px 11px;border-radius:7px;font-size:11.5px;font-weight:500;cursor:pointer;border:none;transition:all .18s;}
+.btn-o{background:var(--surface);color:var(--primary);border:1.5px solid var(--primary);}
+.btn-o:hover{background:rgba(26,115,232,.06);}
+.btn-d{background:var(--danger);color:#fff;}
+.btn-d:hover{background:#b52e22;}
+.btn-w{background:var(--warn);color:#fff;}
+.btn-w:hover{background:#c07600;}
+.btn-s{background:var(--success);color:#fff;}
+.btn-full{width:100%;justify-content:center;padding:9px;}
+
+/* no-cam empty state */
+.no-cam{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--text2);gap:10px;}
+.no-cam svg{opacity:.25;}
+.no-cam p{font-size:14px;margin:0;}
+
+/* ── RIGHT PANEL ── */
+.right-panel{background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;transition:background .25s,border-color .25s;}
+.rp-section{padding:14px;border-bottom:1px solid var(--border);}
+.rp-title{font-family:'Google Sans';font-size:13px;font-weight:700;color:var(--text);margin:0 0 10px;}
+
+/* announce */
+.ann-tabs{display:flex;gap:4px;margin-bottom:10px;}
+.ann-tab{flex:1;padding:6px;border-radius:7px;border:1.5px solid var(--border);background:none;font-size:12px;font-weight:600;color:var(--text2);cursor:pointer;transition:all .18s;}
+.ann-tab.on{background:var(--primary);color:#fff;border-color:var(--primary);}
+textarea.inp{resize:none;width:100%;font-size:12.5px;line-height:1.5;}
+
+/* student list */
+.stu-list{overflow-y:auto;max-height:220px;flex-shrink:0;}
+.stu-row{display:flex;align-items:center;gap:8px;padding:7px 10px;cursor:pointer;transition:background .15s;border-bottom:1px solid var(--border);}
+.stu-row:hover{background:var(--bg);}
+.stu-row.selected{background:rgba(26,115,232,.07);}
+.stu-row:last-child{border-bottom:none;}
+.stu-av{width:26px;height:26px;border-radius:50%;object-fit:cover;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;}
+.stu-info{flex:1;min-width:0;}
+.stu-name{font-size:12px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.stu-roll{font-size:10px;color:var(--text2);}
+.stu-status{flex-shrink:0;}
+
+/* event log */
+.log-wrap{flex:1;overflow-y:auto;padding:10px 12px;background:var(--cam-bg);font-family:'Roboto Mono',monospace;font-size:11px;line-height:1.65;}
+.log-entry{padding:2px 0;border-bottom:1px solid rgba(255,255,255,.04);}
+.log-entry:last-child{border-bottom:none;}
+.log-ts{color:rgba(255,255,255,.2);margin-right:5px;}
+.log-c-green{color:#34d399;}
+.log-c-red  {color:#f87171;}
+.log-c-yellow{color:#fbbf24;}
+.log-c-blue {color:#60a5fa;}
+.log-c-gray {color:#6b7280;}
+
+/* modal */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1000;align-items:center;justify-content:center;}
+.modal-bg.open{display:flex;}
+.modal{background:var(--surface);border-radius:14px;padding:22px;width:100%;max-width:440px;box-shadow:0 20px 48px rgba(0,0,0,.3);}
+.modal-title{font-family:'Google Sans';font-size:17px;font-weight:700;color:var(--text);margin:0 0 16px;}
+
+/* violation counter badge on card */
+.viol-badge{position:absolute;top:6px;left:6px;background:var(--danger);color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;}
+
+@media(max-width:800px){.main-grid{grid-template-columns:1fr;}.right-panel{display:none;}}
+</style>
 </head>
-<body class="bg-gray-900 text-white min-h-screen flex flex-col">
+<body>
 
-  <header class="bg-gray-800 border-b border-gray-700 px-6 py-4 flex justify-between items-center">
-    <div class="flex items-center space-x-3">
-      <span class="w-3 h-3 bg-green-500 rounded-full animate-ping"></span>
-      <h1 class="text-lg font-bold">Live Proctoring Dashboard</h1>
+<!-- ══ TOPBAR ══ -->
+<header class="topbar">
+  <div class="tb-left">
+    <div class="tb-logo">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 19V5a2 2 0 012-2h12a2 2 0 012 2v14" stroke="#8ab4f8" stroke-width="2.2" stroke-linecap="round"/><path d="M8 11h8M8 15h5" stroke="#8ab4f8" stroke-width="1.8" stroke-linecap="round"/></svg>
+      SmartExam
     </div>
-    <div id="active-exam-label" class="text-sm font-mono text-gray-400">Exam ID: Not Selected</div>
-  </header>
+    <div style="width:1px;height:20px;background:rgba(255,255,255,.12);"></div>
+    <span style="font-size:13px;color:#9aa0a6;font-weight:500;">Live Proctoring Console</span>
+    <div class="live-dot" id="ldot"></div>
+    <span class="tb-status" id="ltxt">Not connected</span>
+  </div>
+  <div class="tb-right">
+    <div style="display:flex;gap:5px;">
+      <div class="th-dot on" data-t="light"  style="background:linear-gradient(135deg,#f1f3f4,#d2d5d9);" title="Light"></div>
+      <div class="th-dot"    data-t="dark"   style="background:linear-gradient(135deg,#202124,#3c4043);" title="Dark"></div>
+    </div>
+    <a href="/teacher/dashboard.html" class="back-btn">← Dashboard</a>
+  </div>
+</header>
 
-  <main class="flex-grow p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
-    
-    <!-- Connected Candidates List -->
-    <div class="bg-gray-800 rounded-lg p-4 border border-gray-700">
-      <h2 class="font-bold text-sm text-gray-300 uppercase mb-4">Active Candidates (<span id="candidate-count">0</span>)</h2>
-      <div id="student-list" class="space-y-2 max-h-[70vh] overflow-y-auto">
-        <!-- Dynamic Student Items -->
+<!-- ══ EXAM SELECTOR BAR ══ -->
+<div class="exambar">
+  <select id="exam-sel" class="inp" style="min-width:280px;" onchange="connectExam()">
+    <option value="">— Select running exam —</option>
+  </select>
+  <div class="stat-chip"><span>Students</span><span class="num" id="cnt-total">0</span></div>
+  <div class="stat-chip" style="color:var(--success);">✅<span>OK</span><span class="num" id="cnt-ok" style="color:var(--success);">0</span></div>
+  <div class="stat-chip" style="color:var(--warn);">⚠️<span>Alert</span><span class="num" id="cnt-alert" style="color:var(--warn);">0</span></div>
+  <div class="stat-chip" style="color:var(--danger);">❌<span>Mismatch</span><span class="num" id="cnt-mis" style="color:var(--danger);">0</span></div>
+  <div style="margin-left:auto;display:flex;gap:8px;">
+    <button class="btn btn-w" onclick="openAnnModal('BROADCAST')" style="font-size:12px;">📢 Broadcast</button>
+    <button class="btn btn-d" onclick="confirmEndAll()" style="font-size:12px;">⏹ End All</button>
+  </div>
+</div>
+
+<!-- ══ MAIN ══ -->
+<div class="main-grid">
+
+  <!-- Camera Grid -->
+  <div class="cam-section" id="cam-section">
+    <div class="no-cam" id="no-cam">
+      <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+      <p>Select an exam above to begin monitoring</p>
+    </div>
+    <div class="cam-grid" id="cam-grid" style="display:none;"></div>
+  </div>
+
+  <!-- Right Panel -->
+  <aside class="right-panel">
+
+    <!-- Students list -->
+    <div class="rp-section" style="padding-bottom:0;">
+      <div class="rp-title">Connected Students</div>
+    </div>
+    <div class="stu-list" id="stu-list"></div>
+
+    <!-- Announce -->
+    <div class="rp-section">
+      <div class="rp-title">Announcements</div>
+      <div class="ann-tabs">
+        <button class="ann-tab on" id="tab-broad" onclick="setAnnTab('broad')">📢 Broadcast</button>
+        <button class="ann-tab"    id="tab-dm"    onclick="setAnnTab('dm')">💬 Direct</button>
+      </div>
+      <div id="broad-form">
+        <textarea id="broad-txt" class="inp" rows="2" placeholder="Message to all students…" style="margin-bottom:7px;"></textarea>
+        <button class="btn btn-s btn-full" onclick="sendBroadcast()">Send to All</button>
+      </div>
+      <div id="dm-form" style="display:none;">
+        <select id="dm-sel" class="inp" style="width:100%;margin-bottom:7px;"><option value="">Select student…</option></select>
+        <textarea id="dm-txt" class="inp" rows="2" placeholder="Private message…" style="margin-bottom:7px;"></textarea>
+        <button class="btn btn-o btn-full" onclick="sendDM()">Send</button>
       </div>
     </div>
 
-    <!-- Live Event Feed -->
-    <div class="lg:col-span-2 bg-gray-800 rounded-lg p-4 border border-gray-700 flex flex-col justify-between">
-      <div>
-        <h2 class="font-bold text-sm text-gray-300 uppercase mb-4">Proctoring Event Feed</h2>
-        <div id="event-log" class="space-y-2 font-mono text-xs max-h-[60vh] overflow-y-auto bg-gray-950 p-4 rounded border border-gray-800">
-          <div class="text-gray-500">[System] Connected to proctoring server...</div>
-        </div>
-      </div>
-
-      <!-- Quick Action Console -->
-      <div class="pt-4 border-t border-gray-700 flex space-x-2">
-        <input type="text" id="warn-student-id" placeholder="Student ID" class="w-1/3 bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-white">
-        <input type="text" id="warn-message" placeholder="Warning Message..." class="w-2/3 bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-white">
-        <button id="send-warn-btn" class="bg-yellow-600 hover:bg-yellow-700 font-bold px-4 py-2 rounded text-sm text-white">Warn</button>
-      </div>
+    <!-- Violation Log -->
+    <div style="padding:10px 14px 6px;flex-shrink:0;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+      <div class="rp-title" style="margin:0;">Event Log</div>
+      <button onclick="clearLog()" style="font-size:11px;color:var(--text2);background:none;border:none;cursor:pointer;">Clear</button>
+    </div>
+    <div class="log-wrap" id="elog">
+      <div class="log-entry"><span class="log-ts">—</span><span class="log-c-gray">Waiting for events…</span></div>
     </div>
 
-  </main>
+  </aside>
+</div>
 
-  <script src="/js/api.js"></script>
-  <script src="/js/live-monitor.js"></script>
+<!-- ══ ANNOUNCE MODAL ══ -->
+<div class="modal-bg" id="ann-modal">
+  <div class="modal">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+      <div class="modal-title" id="ann-modal-title" style="margin:0;">📢 Broadcast Message</div>
+      <button onclick="closeModal('ann-modal')" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text2);">✕</button>
+    </div>
+    <div id="ann-modal-dm-row" style="margin-bottom:10px;display:none;">
+      <label style="font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bottom:5px;">To Student</label>
+      <select id="ann-modal-stu" class="inp" style="width:100%;"></select>
+    </div>
+    <label style="font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bottom:5px;">Message</label>
+    <textarea id="ann-modal-txt" class="inp" rows="3" placeholder="Type your announcement…" style="margin-bottom:12px;width:100%;"></textarea>
+    <button class="btn btn-s btn-full" onclick="sendModalAnn()">Send Announcement</button>
+  </div>
+</div>
+
+<!-- ══ STUDENT DETAIL MODAL ══ -->
+<div class="modal-bg" id="stu-modal">
+  <div class="modal">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+      <div class="modal-title" id="stu-modal-name" style="margin:0;">Student Details</div>
+      <button onclick="closeModal('stu-modal')" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text2);">✕</button>
+    </div>
+    <div id="stu-modal-body" style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.7;"></div>
+    <div id="stu-modal-face" style="margin-bottom:14px;text-align:center;"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="btn btn-w" onclick="warnStudent()" style="flex:1;">⚠️ Warn</button>
+      <button class="btn btn-d" onclick="terminateStudent()" style="flex:1;">⏹ Terminate</button>
+      <button class="btn btn-o" onclick="dmStudent()" style="flex:1;">💬 Message</button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/api.js"></script>
+<script>
+/* ═══════════════════════════════════════════
+   GLOBALS
+═══════════════════════════════════════════ */
+let socket = null;
+let examId = null;
+let students = {};   // { id: { id, name, roll, photo, violations, faceOk, socketId, frame } }
+let selStuId = null; // currently selected student in modal
+const MAX_VIOL = 3;
+
+/* ═══════════════════════════════════════════
+   BOOT
+═══════════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', () => {
+  if (!Api.getToken()) { window.location.href = '/teacher/login.html'; return; }
+  initTheme();
+  loadExamList();
+  // pre-select from URL param
+  const p = new URLSearchParams(location.search).get('examId');
+  if (p) setTimeout(() => { document.getElementById('exam-sel').value = p; connectExam(); }, 800);
+});
+
+/* ═══════════════════════════════════════════
+   THEME
+═══════════════════════════════════════════ */
+function initTheme() {
+  const t = localStorage.getItem('exam_theme') || 'light';
+  applyTheme(t);
+  document.querySelectorAll('.th-dot').forEach(d => d.addEventListener('click', () => applyTheme(d.dataset.t)));
+}
+function applyTheme(t) {
+  document.documentElement.setAttribute('data-theme', t);
+  localStorage.setItem('exam_theme', t);
+  document.querySelectorAll('.th-dot').forEach(d => d.classList.toggle('on', d.dataset.t === t));
+}
+
+/* ═══════════════════════════════════════════
+   EXAM LIST
+═══════════════════════════════════════════ */
+async function loadExamList() {
+  try {
+    const { exams } = await Api.request('/exams');
+    const sel = document.getElementById('exam-sel');
+    sel.innerHTML = '<option value="">— Select running exam —</option>' +
+      (exams || []).map(e => `<option value="${e.id}">${esc(e.title)} [${e.code || '—'}]${e.is_active === 0 ? ' (Inactive)' : ''}</option>`).join('');
+  } catch(e) { log('⚠️ Could not load exams: ' + e.message, 'yellow'); }
+}
+
+/* ═══════════════════════════════════════════
+   SOCKET CONNECTION
+═══════════════════════════════════════════ */
+function connectExam() {
+  examId = document.getElementById('exam-sel').value;
+  if (!examId) return;
+
+  // Disconnect previous
+  if (socket) { socket.disconnect(); socket = null; }
+  students = {};
+  renderCamGrid();
+  renderStuList();
+  clearCounters();
+
+  setStatus('Connecting…', false);
+
+  const url = location.protocol === 'file:' ? 'http://localhost:5000' : location.origin;
+  socket = io(url);
+
+  socket.on('connect', () => {
+    socket.emit('teacher:monitor', { examId });
+    setStatus('Connected', true);
+    log('🟢 Connected to exam room', 'green');
+    // Load existing active students from REST
+    loadLiveStudents();
+  });
+
+  socket.on('disconnect', () => {
+    setStatus('Disconnected', false);
+    log('🔴 Socket disconnected', 'red');
+  });
+
+  socket.on('connect_error', () => {
+    setStatus('Connection failed', false);
+    log('🔴 Could not connect to server', 'red');
+  });
+
+  socket.on('proctor:student-online', ({ studentId, studentName, socketId }) => {
+    if (!students[studentId]) {
+      students[studentId] = mkStu(studentId, studentName);
+    }
+    students[studentId].online = true;
+    renderCamGrid(); renderStuList(); updCounters();
+    log(`🟢 ${studentName} joined the exam`, 'green');
+  });
+
+  socket.on('proctor:student-offline', ({ studentId }) => {
+    const name = students[studentId]?.name || studentId;
+    if (students[studentId]) students[studentId].online = false;
+    renderCamGrid(); renderStuList(); updCounters();
+    log(`🔴 ${name} disconnected`, 'red');
+  });
+
+  socket.on('proctor:alert', ({ studentId, studentName, eventType, details }) => {
+    if (students[studentId]) {
+      students[studentId].violations = (students[studentId].violations || 0) + 1;
+      students[studentId].lastAlert = eventType;
+    }
+    renderCamGrid(); renderStuList(); updCounters();
+    log(`⚠️ ${studentName || studentId}: ${eventType} — ${details}`, 'yellow');
+  });
+
+  socket.on('proctor:camera-frame', ({ studentId, frame }) => {
+    if (students[studentId]) students[studentId].frame = frame;
+    const img = document.querySelector(`#cc-${CSS.escape(studentId)} .cam-img`);
+    if (img) { img.src = frame; img.style.opacity = '1'; }
+  });
+
+  socket.on('proctor:face-result', ({ studentId, studentName, matched, confidence }) => {
+    if (students[studentId]) students[studentId].faceOk = matched;
+    const card = document.getElementById('cc-' + studentId);
+    if (card) {
+      const fb = card.querySelector('.face-badge');
+      if (fb) { fb.textContent = matched ? '✅ Face OK' : '❌ Mismatch'; fb.className = 'badge face-badge ' + (matched ? 'bg' : 'br'); }
+      card.classList.toggle('mismatch', !matched);
+    }
+    updCounters();
+    if (!matched) log(`❌ Face mismatch: ${studentName || studentId} (${Math.round((confidence||0)*100)}%)`, 'red');
+  });
+
+  socket.on('announcement:sent', ({ type, message, targetStudentId }) => {
+    const who = type === 'INDIVIDUAL' ? ('→ ' + (students[targetStudentId]?.name || targetStudentId)) : 'All';
+    log(`📢 Announcement [${who}]: ${message}`, 'blue');
+  });
+
+  socket.on('proctor:terminated', ({ studentId }) => {
+    const name = students[studentId]?.name || studentId;
+    if (students[studentId]) { students[studentId].terminated = true; students[studentId].online = false; }
+    renderCamGrid(); renderStuList(); updCounters();
+    log(`⏹ Terminated: ${name}`, 'red');
+  });
+}
+
+/* ═══════════════════════════════════════════
+   LOAD LIVE STUDENTS (REST)
+═══════════════════════════════════════════ */
+async function loadLiveStudents() {
+  try {
+    const { students: list } = await Api.request('/proctor/live/' + examId);
+    (list || []).forEach(s => {
+      if (!students[s.student_id]) {
+        students[s.student_id] = mkStu(s.student_id, s.name, s.roll_number, s.profile_photo);
+      }
+    });
+    renderCamGrid(); renderStuList(); updCounters();
+  } catch(e) {}
+}
+
+function mkStu(id, name, roll, photo) {
+  return { id, name: name || id, roll: roll || '—', photo: photo || null, online: true, violations: 0, faceOk: null, frame: null, terminated: false };
+}
+
+/* ═══════════════════════════════════════════
+   CAMERA GRID
+═══════════════════════════════════════════ */
+function renderCamGrid() {
+  const grid  = document.getElementById('cam-grid');
+  const noCam = document.getElementById('no-cam');
+  const stuArr = Object.values(students);
+
+  if (!stuArr.length) {
+    grid.style.display = 'none';
+    noCam.style.display = 'flex';
+    noCam.querySelector('p').textContent = examId ? 'No students connected yet' : 'Select an exam above to begin monitoring';
+    return;
+  }
+
+  noCam.style.display = 'none';
+  grid.style.display  = 'grid';
+
+  // Update existing cards or create new ones
+  stuArr.forEach(s => {
+    let card = document.getElementById('cc-' + s.id);
+    if (!card) {
+      card = document.createElement('div');
+      card.className = 'cam-card';
+      card.id = 'cc-' + s.id;
+      card.innerHTML = buildCardHTML(s);
+      grid.appendChild(card);
+    } else {
+      // Update dynamic parts only
+      const vb = card.querySelector('.viol-badge');
+      if (s.violations > 0) {
+        if (!vb) { const b = document.createElement('div'); b.className = 'viol-badge'; b.textContent = s.violations + '⚠'; card.querySelector('.cam-video-wrap').appendChild(b); }
+        else vb.textContent = s.violations + '⚠';
+      }
+      card.classList.toggle('alert',   s.violations > 0 && s.faceOk !== false);
+      card.classList.toggle('mismatch', s.faceOk === false);
+    }
+  });
+
+  // Remove cards for students no longer in list
+  Array.from(grid.children).forEach(card => {
+    const id = card.id.replace('cc-', '');
+    if (!students[id]) card.remove();
+  });
+}
+
+function buildCardHTML(s) {
+  const faceClass = s.faceOk === null ? 'bn' : (s.faceOk ? 'bg' : 'br');
+  const faceTxt   = s.faceOk === null ? '🔍 Checking' : (s.faceOk ? '✅ Face OK' : '❌ Mismatch');
+  const onCls     = s.online ? 'bg' : 'bn';
+  const onTxt     = s.online ? '● Online' : '○ Offline';
+  return `
+    <div class="cam-video-wrap">
+      ${s.violations > 0 ? `<div class="viol-badge">${s.violations}⚠</div>` : ''}
+      <img class="cam-img" src="${s.frame || ''}" alt="" style="width:100%;height:100%;object-fit:cover;opacity:${s.frame ? 1 : 0};">
+      <div class="cam-placeholder">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+        <span>Live Feed</span>
+      </div>
+    </div>
+    <div class="cam-footer">
+      <div class="cam-name">${esc(s.name)}</div>
+      <div class="cam-badges">
+        <span class="badge ${onCls}">${onTxt}</span>
+        <span class="badge face-badge ${faceClass}">${faceTxt}</span>
+        ${s.violations > 0 ? `<span class="badge by">${s.violations} violation${s.violations > 1 ? 's' : ''}</span>` : ''}
+        ${s.terminated ? '<span class="badge br">Terminated</span>' : ''}
+      </div>
+      <div class="cam-actions">
+        <button class="btn btn-o" style="font-size:11px;padding:4px 9px;" onclick="openStuModal('${s.id}')">Details</button>
+        <button class="btn btn-w" style="font-size:11px;padding:4px 9px;" onclick="quickWarn('${s.id}')">⚠ Warn</button>
+      </div>
+    </div>`;
+}
+
+/* ═══════════════════════════════════════════
+   STUDENT LIST (right panel)
+═══════════════════════════════════════════ */
+function renderStuList() {
+  const el = document.getElementById('stu-list');
+  const dm = document.getElementById('dm-sel');
+  const am = document.getElementById('ann-modal-stu');
+  const arr = Object.values(students);
+
+  // Update DM selects
+  const dmopts = '<option value="">Select student…</option>' + arr.map(s => `<option value="${s.id}">${esc(s.name)}</option>`).join('');
+  if (dm) dm.innerHTML = dmopts;
+  if (am) am.innerHTML = dmopts;
+
+  if (!arr.length) { el.innerHTML = '<div style="padding:16px;text-align:center;font-size:12px;color:var(--text2);">No students</div>'; return; }
+
+  el.innerHTML = arr.map(s => {
+    const initials = (s.name || '?').charAt(0).toUpperCase();
+    const faceClass = s.faceOk === null ? '' : (s.faceOk ? 'bg' : 'br');
+    const faceDot   = s.faceOk === null ? '' : (s.faceOk ? '✅' : '❌');
+    return `<div class="stu-row ${selStuId === s.id ? 'selected' : ''}" onclick="openStuModal('${s.id}')">
+      ${s.photo
+        ? `<img class="stu-av" src="${esc(s.photo)}" alt="">`
+        : `<div class="stu-av">${initials}</div>`}
+      <div class="stu-info">
+        <div class="stu-name">${esc(s.name)}</div>
+        <div class="stu-roll">${esc(s.roll)}</div>
+      </div>
+      <div class="stu-status">
+        <span class="badge ${s.online ? 'bg' : 'bn'}" style="font-size:9.5px;">${s.online ? '●' : '○'}</span>
+        ${faceDot ? `<span class="badge ${faceClass}" style="font-size:9.5px;margin-top:2px;">${faceDot}</span>` : ''}
+        ${s.violations > 0 ? `<span class="badge by" style="font-size:9.5px;">${s.violations}⚠</span>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ═══════════════════════════════════════════
+   COUNTERS
+═══════════════════════════════════════════ */
+function updCounters() {
+  const arr = Object.values(students);
+  const online    = arr.filter(s => s.online).length;
+  const alerts    = arr.filter(s => s.violations > 0).length;
+  const mismatches= arr.filter(s => s.faceOk === false).length;
+  document.getElementById('cnt-total').textContent = online;
+  document.getElementById('cnt-ok').textContent    = online - alerts;
+  document.getElementById('cnt-alert').textContent = alerts;
+  document.getElementById('cnt-mis').textContent   = mismatches;
+}
+function clearCounters() {
+  ['cnt-total','cnt-ok','cnt-alert','cnt-mis'].forEach(id => document.getElementById(id).textContent = '0');
+}
+
+/* ═══════════════════════════════════════════
+   STUDENT MODAL
+═══════════════════════════════════════════ */
+function openStuModal(stuId) {
+  selStuId = stuId;
+  const s = students[stuId];
+  if (!s) return;
+  document.getElementById('stu-modal-name').textContent = s.name;
+  document.getElementById('stu-modal-body').innerHTML = `
+    <strong>Roll:</strong> ${esc(s.roll)}<br>
+    <strong>Status:</strong> ${s.online ? '🟢 Online' : '⚫ Offline'}<br>
+    <strong>Violations:</strong> ${s.violations}<br>
+    <strong>Face Check:</strong> ${s.faceOk === null ? '🔍 Pending' : (s.faceOk ? '✅ Matched' : '❌ Mismatch')}
+    ${s.terminated ? '<br><strong style="color:var(--danger);">⏹ Terminated</strong>' : ''}
+  `;
+  // Show last captured frame
+  const faceEl = document.getElementById('stu-modal-face');
+  if (s.frame) {
+    faceEl.innerHTML = `<img src="${s.frame}" style="width:120px;height:90px;object-fit:cover;border-radius:8px;border:2px solid var(--border);">`;
+  } else {
+    faceEl.innerHTML = '';
+  }
+  openModal('stu-modal');
+}
+
+function warnStudent() {
+  if (!selStuId || !socket) return;
+  const msg = prompt('Warning message for ' + (students[selStuId]?.name || 'student') + ':');
+  if (!msg) return;
+  socket.emit('teacher:warn-student', { examId, studentId: selStuId, message: msg });
+  log(`⚠️ Warning sent to ${students[selStuId]?.name}: ${msg}`, 'yellow');
+  closeModal('stu-modal');
+}
+
+function terminateStudent() {
+  if (!selStuId || !socket) return;
+  const name = students[selStuId]?.name || 'student';
+  if (!confirm(`Terminate ${name}'s exam session? This will force-submit their exam.`)) return;
+  socket.emit('teacher:terminate-student', { examId, studentId: selStuId, reason: 'Terminated by proctor.' });
+  log(`⏹ Termination issued for ${name}`, 'red');
+  closeModal('stu-modal');
+}
+
+function dmStudent() {
+  closeModal('stu-modal');
+  setAnnTab('dm');
+  document.getElementById('dm-sel').value = selStuId;
+  document.getElementById('dm-txt').focus();
+}
+
+function quickWarn(stuId) {
+  if (!socket) { alert('Not connected to exam.'); return; }
+  const name = students[stuId]?.name || 'student';
+  const msg = `⚠️ Warning: Please focus on your exam, ${name}.`;
+  socket.emit('teacher:warn-student', { examId, studentId: stuId, message: msg });
+  log(`⚠️ Quick warning sent to ${name}`, 'yellow');
+}
+
+/* ═══════════════════════════════════════════
+   ANNOUNCEMENTS
+═══════════════════════════════════════════ */
+function setAnnTab(t) {
+  document.getElementById('tab-broad').classList.toggle('on', t === 'broad');
+  document.getElementById('tab-dm').classList.toggle('on', t === 'dm');
+  document.getElementById('broad-form').style.display = t === 'broad' ? 'block' : 'none';
+  document.getElementById('dm-form').style.display    = t === 'dm'    ? 'block' : 'none';
+}
+
+function sendBroadcast() {
+  const msg = document.getElementById('broad-txt').value.trim();
+  if (!msg || !examId) return;
+  if (socket) socket.emit('teacher:announce', { examId, message: msg });
+  Api.request('/exams/announce', { method:'POST', body:JSON.stringify({ exam_id:examId, message:msg, type:'BROADCAST' }) }).catch(()=>{});
+  document.getElementById('broad-txt').value = '';
+  log('📢 Broadcast: ' + msg, 'blue');
+}
+
+function sendDM() {
+  const stuId = document.getElementById('dm-sel').value;
+  const msg   = document.getElementById('dm-txt').value.trim();
+  if (!stuId || !msg || !examId) return;
+  if (socket) socket.emit('teacher:dm', { examId, studentId: stuId, message: msg });
+  Api.request('/exams/announce', { method:'POST', body:JSON.stringify({ exam_id:examId, target_student_id:stuId, message:msg, type:'INDIVIDUAL' }) }).catch(()=>{});
+  document.getElementById('dm-txt').value = '';
+  log('💬 DM → ' + (students[stuId]?.name || stuId) + ': ' + msg, 'blue');
+}
+
+function openAnnModal(type) {
+  document.getElementById('ann-modal-title').textContent = type === 'BROADCAST' ? '📢 Broadcast Message' : '💬 Direct Message';
+  document.getElementById('ann-modal-dm-row').style.display = type === 'INDIVIDUAL' ? 'block' : 'none';
+  document.getElementById('ann-modal-txt').value = '';
+  document.getElementById('ann-modal').dataset.type = type;
+  openModal('ann-modal');
+}
+
+function sendModalAnn() {
+  const type  = document.getElementById('ann-modal').dataset.type || 'BROADCAST';
+  const msg   = document.getElementById('ann-modal-txt').value.trim();
+  const stuId = type === 'INDIVIDUAL' ? document.getElementById('ann-modal-stu').value : null;
+  if (!msg || !examId) return;
+  if (socket) {
+    if (type === 'BROADCAST') socket.emit('teacher:announce', { examId, message: msg });
+    else socket.emit('teacher:dm', { examId, studentId: stuId, message: msg });
+  }
+  Api.request('/exams/announce', { method:'POST', body:JSON.stringify({ exam_id:examId, target_student_id:stuId||null, message:msg, type }) }).catch(()=>{});
+  closeModal('ann-modal');
+  log(`📢 ${type === 'BROADCAST' ? 'Broadcast' : 'DM to ' + (students[stuId]?.name||stuId)}: ${msg}`, 'blue');
+}
+
+function confirmEndAll() {
+  if (!examId || !socket) return;
+  if (!confirm('End all student sessions for this exam? All students will be auto-submitted.')) return;
+  Object.keys(students).forEach(stuId => {
+    socket.emit('teacher:terminate-student', { examId, studentId: stuId, reason: 'Exam ended by teacher.' });
+  });
+  log('⏹ All students terminated by teacher.', 'red');
+}
+
+/* ═══════════════════════════════════════════
+   EVENT LOG
+═══════════════════════════════════════════ */
+function log(msg, color = 'gray') {
+  const wrap = document.getElementById('elog');
+  const d    = document.createElement('div');
+  d.className = 'log-entry';
+  d.innerHTML = `<span class="log-ts">${new Date().toLocaleTimeString()}</span><span class="log-c-${color}">${esc(msg)}</span>`;
+  wrap.prepend(d);
+  if (wrap.children.length > 120) wrap.removeChild(wrap.lastChild);
+}
+function clearLog() { document.getElementById('elog').innerHTML = '<div class="log-entry"><span class="log-c-gray">Log cleared.</span></div>'; }
+
+/* ═══════════════════════════════════════════
+   HELPERS
+═══════════════════════════════════════════ */
+function setStatus(txt, on) {
+  document.getElementById('ldot').classList.toggle('on', on);
+  document.getElementById('ltxt').textContent = txt;
+}
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-bg').forEach(m => m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); }));
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+</script>
+<script src="/socket.io/socket.io.js"></script>
 </body>
 </html>

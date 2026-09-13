@@ -167,12 +167,6 @@
         ✅ &nbsp;Verified — Start Examination
       </button>
 
-      <!-- Skip link for offline / no-camera environments -->
-      <p class="text-center text-xs text-slate-600 pt-1">
-        Camera not available?
-        <button id="skipBtn" class="text-slate-500 underline hover:text-slate-300 transition ml-1">Skip verification</button>
-      </p>
-
     </div>
 
     <!-- Exam key indicator -->
@@ -216,7 +210,6 @@
     const captureBtn  = document.getElementById('captureBtn');
     const retakeBtn   = document.getElementById('retakeBtn');
     const proceedBtn  = document.getElementById('proceedBtn');
-    const skipBtn     = document.getElementById('skipBtn');
     const statusBox   = document.getElementById('statusBox');
     const actionArea  = document.getElementById('actionArea');
 
@@ -242,8 +235,8 @@
           <svg class="w-8 h-8 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
           </svg>
-          <span class="opacity-50 text-center px-4">Camera access denied.<br>Please allow camera or skip.</span>`;
-        setStatus('Camera unavailable — use Skip to continue', 'text-amber-400');
+          <span class="opacity-50 text-center px-4">Camera access denied.<br>Please allow camera permission to continue.</span>`;
+        setStatus('Camera unavailable — please grant camera access and reload.', 'text-amber-400');
         captureBtn.disabled = true;
       }
     }
@@ -340,12 +333,6 @@
       } catch(e) {}
       window.location.href = 'exam.html';
     }
-
-    // ─── Skip ─────────────────────────────────────────────────────────────────
-    skipBtn.addEventListener('click', () => {
-      const ok = confirm('Skip face verification?\n\nYour attempt will still be monitored and flagged if face is not visible during the exam.');
-      if (ok) launchExam();
-    });
   </script>
 </body>
 </html>

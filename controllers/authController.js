@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
 const { JWT_SECRET } = require('../middleware/auth');
+const { sendOTPEmail } = require('../utils/mailer');
 
 exports.registerTeacher = async (req, res) => {
   const { email, password } = req.body;
@@ -134,58 +135,130 @@ exports.loginStudent = (req, res) => {
   });
 };
 
+/* ══════════════════════════════════════════════════════
+   FORGOT PASSWORD — sends 6-digit OTP to registered email
+══════════════════════════════════════════════════════ */
 exports.forgotPassword = (req, res) => {
   const { email } = req.body;
   if (!email) return res.status(400).json({ error: 'Email is required.' });
 
-  db.get(`SELECT id FROM Users WHERE email = ?`, [email], (err, user) => {
-    if (err) return res.status(500).json({ error: 'Database error.' });
-    if (!user) {
-      // Simulate successful request for security
-      return res.json({ message: 'If an account exists with this email, a reset link has been generated.' });
-    }
+  // Look up user + name (students have StudentProfiles, teachers don't)
+  db.get(
+    `SELECT u.id, u.email,
+            COALESCE(sp.name, tp.name, 'User') AS name
+     FROM Users u
+     LEFT JOIN StudentProfiles sp ON sp.student_id = u.id
+     LEFT JOIN TeacherProfiles tp ON tp.teacher_id = u.id
+     WHERE u.email = ?`,
+    [email],
+    async (err, user) => {
+      if (err) return res.status(500).json({ error: 'Database error.' });
 
-    const resetToken = uuidv4();
-    const expiry = new Date(Date.now() + 1000 * 60 * 15).toISOString(); // 15 mins
-
-    db.run(
-      `UPDATE Users SET reset_token = ?, reset_token_expiry = ? WHERE id = ?`,
-      [resetToken, expiry, user.id],
-      function (updateErr) {
-        if (updateErr) return res.status(500).json({ error: 'Failed to generate reset token.' });
-        
-        console.log(`\n==================================================`);
-        console.log(`🔑 PASSWORD RESET LINK GENERATED (SIMULATED EMAIL)`);
-        console.log(`To: ${email}`);
-        console.log(`Reset Token: ${resetToken}`);
-        console.log(`==================================================\n`);
-
-        res.json({ message: 'If an account exists with this email, a reset link has been generated.', debugToken: resetToken });
+      // Always respond the same way — don't reveal if email exists
+      if (!user) {
+        return res.json({ message: 'If an account with that email exists, an OTP has been sent.' });
       }
-    );
-  });
+
+      // Generate 6-digit OTP
+      const otp    = String(Math.floor(100000 + Math.random() * 900000));
+      const expiry = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 min
+
+      db.run(
+        `UPDATE Users SET otp_code = ?, otp_expiry = ? WHERE id = ?`,
+        [otp, expiry, user.id],
+        async (updateErr) => {
+          if (updateErr) return res.status(500).json({ error: 'Failed to generate OTP.' });
+
+          // Send email (async — don't block response on failure)
+          try {
+            await sendOTPEmail(email, otp, user.name);
+            console.log(`[Auth] OTP sent to ${email}`);
+          } catch (mailErr) {
+            console.error('[Auth] Email send failed:', mailErr.message);
+            // Still respond OK — OTP saved in DB; teacher can check server console
+          }
+
+          res.json({
+            message: 'If an account with that email exists, an OTP has been sent.',
+            // In development, also return OTP so it can be used without email
+            ...(process.env.NODE_ENV !== 'production' && { _devOtp: otp })
+          });
+        }
+      );
+    }
+  );
 };
 
+/* ══════════════════════════════════════════════════════
+   VERIFY OTP — checks the 6-digit code, returns a
+   one-time reset token if correct
+══════════════════════════════════════════════════════ */
+exports.verifyOTP = (req, res) => {
+  const { email, otp } = req.body;
+  if (!email || !otp) return res.status(400).json({ error: 'Email and OTP are required.' });
+
+  db.get(
+    `SELECT id, otp_code, otp_expiry FROM Users WHERE email = ?`,
+    [email],
+    (err, user) => {
+      if (err)   return res.status(500).json({ error: 'Database error.' });
+      if (!user) return res.status(400).json({ error: 'Invalid OTP or email.' });
+
+      // Check expiry
+      if (!user.otp_code || new Date(user.otp_expiry) < new Date()) {
+        return res.status(400).json({ error: 'OTP has expired. Please request a new one.' });
+      }
+
+      // Check match (string compare)
+      if (String(user.otp_code).trim() !== String(otp).trim()) {
+        return res.status(400).json({ error: 'Incorrect OTP. Please try again.' });
+      }
+
+      // OTP correct — generate a short-lived reset token and clear OTP
+      const resetToken = uuidv4();
+      const expiry     = new Date(Date.now() + 15 * 60 * 1000).toISOString(); // 15 min
+
+      db.run(
+        `UPDATE Users SET otp_code = NULL, otp_expiry = NULL,
+                          reset_token = ?, reset_token_expiry = ?
+         WHERE id = ?`,
+        [resetToken, expiry, user.id],
+        (updErr) => {
+          if (updErr) return res.status(500).json({ error: 'Failed to issue reset token.' });
+          res.json({ message: 'OTP verified.', resetToken });
+        }
+      );
+    }
+  );
+};
+
+/* ══════════════════════════════════════════════════════
+   RESET PASSWORD — uses the token issued after OTP verify
+══════════════════════════════════════════════════════ */
 exports.resetPassword = async (req, res) => {
   const { token, newPassword } = req.body;
   if (!token || !newPassword) return res.status(400).json({ error: 'Token and new password are required.' });
 
-  db.get(`SELECT id FROM Users WHERE reset_token = ? AND reset_token_expiry > CURRENT_TIMESTAMP`, [token], async (err, user) => {
-    if (err) return res.status(500).json({ error: 'Database error.' });
-    if (!user) return res.status(400).json({ error: 'Invalid or expired reset token.' });
+  db.get(
+    `SELECT id FROM Users WHERE reset_token = ? AND reset_token_expiry > CURRENT_TIMESTAMP`,
+    [token],
+    async (err, user) => {
+      if (err)   return res.status(500).json({ error: 'Database error.' });
+      if (!user) return res.status(400).json({ error: 'Invalid or expired reset token.' });
 
-    try {
-      const hashedPassword = await bcrypt.hash(newPassword, 10);
-      db.run(
-        `UPDATE Users SET password_hash = ?, reset_token = NULL, reset_token_expiry = NULL WHERE id = ?`,
-        [hashedPassword, user.id],
-        function (updateErr) {
-          if (updateErr) return res.status(500).json({ error: 'Failed to reset password.' });
-          res.json({ message: 'Password has been successfully reset.' });
-        }
-      );
-    } catch (hashError) {
-      res.status(500).json({ error: 'Server error during password hashing.' });
+      try {
+        const hash = await bcrypt.hash(newPassword, 10);
+        db.run(
+          `UPDATE Users SET password_hash = ?, reset_token = NULL, reset_token_expiry = NULL WHERE id = ?`,
+          [hash, user.id],
+          (updErr) => {
+            if (updErr) return res.status(500).json({ error: 'Failed to reset password.' });
+            res.json({ message: 'Password has been reset successfully. You can now log in.' });
+          }
+        );
+      } catch (hashErr) {
+        res.status(500).json({ error: 'Server error during password hashing.' });
+      }
     }
-  });
+  );
 };
