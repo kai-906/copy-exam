@@ -44,6 +44,10 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/student-app', express.static(path.join(__dirname, 'student-app')));
 app.use('/downloads',   express.static(path.join(__dirname, 'public', 'downloads')));
 
+/* ── Health check ─────────────────────────────────────────────── */
+app.get('/api/health', (req, res) => res.json({ status: 'ok', version: '2.0', ts: Date.now() }));
+app.get('/health',     (req, res) => res.json({ status: 'ok', version: '2.0', ts: Date.now() }));
+
 /* ── Auth ─────────────────────────────────────────────────────── */
 app.post('/api/auth/teacher/register', authController.registerTeacher);
 app.post('/api/auth/teacher/login',    authController.loginTeacher);
