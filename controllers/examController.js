@@ -233,13 +233,13 @@ exports.startExamAttempt = (req, res) => {
                 if (selectedIds.length > 0) {
                   const ph = selectedIds.map(() => '?').join(',');
                   db.all(
-                    `SELECT id, question_text, question_type, options, default_marks
+                    `SELECT id, question_text, question_type, options, default_marks, image_url
                      FROM Questions WHERE id IN (${ph})`,
                     selectedIds, (err, rows) => resolve(rows || [])
                   );
                 } else {
                   db.all(
-                    `SELECT id, question_text, question_type, options, default_marks
+                    `SELECT id, question_text, question_type, options, default_marks, image_url
                      FROM Questions WHERE bank_id=?`,
                     [eb.bank_id], (err, rows) => resolve(rows || [])
                   );
@@ -277,6 +277,7 @@ exports.startExamAttempt = (req, res) => {
                       question_text: q.question_text,
                       question_type: q.question_type,
                       sequence_order: q.sequence_order,
+                      image_url: q.image_url || null,
                       options: typeof q.shuffled_options === 'string'
                         ? JSON.parse(q.shuffled_options)
                         : (q.options || [])

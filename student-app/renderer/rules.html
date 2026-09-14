@@ -10,8 +10,12 @@
 
   <div class="bg-slate-800 border border-slate-700 rounded-xl p-8 max-w-xl w-full space-y-6 shadow-2xl">
     <div class="border-b border-slate-700 pb-4">
-      <h2 class="text-2xl font-bold text-blue-400">Proctored Examination Rules</h2>
-      <p class="text-xs text-slate-400 mt-1">Ensure compliance before launching the exam environment.</p>
+      <div class="flex items-center justify-between">
+        <h2 class="text-2xl font-bold text-blue-400">Examination Rules</h2>
+        <span id="exam-badge" class="px-2.5 py-1 text-xs rounded-full bg-blue-500/20 text-blue-300 font-mono font-bold"></span>
+      </div>
+      <p id="exam-subtitle" class="text-xs text-slate-400 mt-1">Ensure compliance before launching the exam environment.</p>
+      <div id="student-pill" class="mt-2 text-xs text-slate-300 font-medium"></div>
     </div>
 
     <div class="space-y-3 text-xs text-slate-300 bg-slate-900/60 p-4 rounded-lg border border-slate-700">
@@ -27,16 +31,41 @@
       </div>
       <div class="flex justify-between items-center text-xs">
         <span>Security Environment:</span>
-        <span class="text-green-400 font-bold">Secure Environment</span>
+        <span class="text-green-400 font-bold">Secure Proctored Environment</span>
       </div>
     </div>
 
     <button id="start-exam-btn" class="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg font-bold text-sm transition shadow-lg">
-      I Agree & Start Examination
+      I Agree &amp; Proceed to Verification →
     </button>
   </div>
 
   <script>
+    // ── Session Guard ──────────────────────────────────────────────
+    const token  = localStorage.getItem('student_token') || localStorage.getItem('token') || localStorage.getItem('studentToken');
+    const examId = localStorage.getItem('active_exam_id');
+    if (!token || !examId) {
+      window.location.replace('index.html');
+    }
+
+    // ── Display Exam & Student Info ────────────────────────────────
+    const examTitle = localStorage.getItem('active_exam_title');
+    const examDur   = localStorage.getItem('active_exam_duration');
+    const examCode  = localStorage.getItem('active_exam_code') || examId;
+    if (examTitle) {
+      document.getElementById('exam-subtitle').textContent = `${examTitle}${examDur ? ' · Duration: ' + examDur + ' mins' : ''}`;
+    }
+    if (examCode) {
+      document.getElementById('exam-badge').textContent = examCode;
+    }
+
+    try {
+      const user = JSON.parse(localStorage.getItem('student_user') || '{}');
+      if (user.name || user.rollNumber || user.roll_number) {
+        document.getElementById('student-pill').textContent = `Candidate: ${user.name || 'Student'} (Roll: ${user.rollNumber || user.roll_number || '—'})`;
+      }
+    } catch(e) {}
+
     document.getElementById('start-exam-btn').addEventListener('click', () => {
       try {
         const { ipcRenderer } = require('electron');

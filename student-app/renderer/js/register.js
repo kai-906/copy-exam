@@ -86,8 +86,10 @@ if (form) {
       : (() => {
           const saved = localStorage.getItem('server_url');
           if (saved && saved.startsWith('http')) return saved.replace(/\/$/, '') + '/api';
-          if (typeof require !== 'undefined') return 'http://localhost:5000/api';
-          return 'https://copy-exam-production.up.railway.app/api';
+          if (typeof window !== 'undefined' && window.location && window.location.origin && window.location.protocol !== 'file:' && window.location.origin !== 'null') {
+            return `${window.location.origin}/api`;
+          }
+          return 'http://localhost:5000/api';
         })();
 
     try {

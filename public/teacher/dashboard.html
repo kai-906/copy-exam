@@ -937,10 +937,15 @@ function renderExams() {
           <span class="pill ${on?'pg':'pr'}" id="epill-${e.id}">${on?'Active':'Inactive'}</span>
         </label></td>
         <td style="display:flex;gap:5px;flex-wrap:wrap;">
+          <button class="btn btn-o btn-sm" onclick="copyExamLink('${esc(e.code||e.id)}')">🔗 Copy Link</button>
           <button class="btn btn-o btn-sm" onclick="viewRes('${e.id}','${esc(e.title)}')">📊 Results</button>
           <button class="btn btn-o btn-sm" onclick="openLiveFor('${e.id}','${esc(e.title)}')">📡 Monitor</button>
         </td></tr>`;
     }).join('')+`</tbody></table>`;
+}
+function copyExamLink(code) {
+  const link = `${location.protocol}//${location.host}/launch-exam?key=${code}`;
+  navigator.clipboard.writeText(link).then(() => alert(`✅ Exam link copied to clipboard!\n${link}`));
 }
 async function togExam(id, cb) {
   try {

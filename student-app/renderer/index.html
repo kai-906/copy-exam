@@ -1,21 +1,31 @@
-&lt;!DOCTYPE html&gt;
-&lt;html lang="en"&gt;
-&lt;head&gt;
-  &lt;link rel="manifest" href="/manifest.json"&gt;
-  &lt;meta name="theme-color" content="#0f172a"&gt;
-  &lt;meta charset="UTF-8"&gt;
-  &lt;meta name="viewport" content="width=device-width, initial-scale=1.0"&gt;
-  &lt;title&gt;Student Login — SmartExam&lt;/title&gt;
-  &lt;link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"&gt;
-  &lt;style&gt;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0f172a">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Login — SmartExam</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
     *{box-sizing:border-box;margin:0;padding:0;}
     body{font-family:'Inter',sans-serif;background:linear-gradient(135deg,#0f172a 0%,#1e1b4b 100%);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;}
-    .wrap{width:100%;max-width:360px;}
+    .wrap{width:100%;max-width:380px;}
     /* Brand */
     .brand{text-align:center;margin-bottom:26px;}
     .brand-icon{display:inline-flex;align-items:center;justify-content:center;width:58px;height:58px;border-radius:18px;background:rgba(99,102,241,.18);border:1px solid rgba(99,102,241,.35);margin-bottom:12px;}
     .brand h1{font-size:1.65rem;font-weight:800;color:#fff;letter-spacing:-0.5px;}
     .brand p{color:#94a3b8;font-size:.78rem;margin-top:4px;}
+    /* Already logged in card */
+    .session-card{background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.25);border-radius:14px;padding:16px;margin-bottom:18px;display:none;}
+    .session-card.visible{display:block;}
+    .session-name{font-size:.9rem;font-weight:700;color:#fff;margin-bottom:2px;}
+    .session-roll{font-size:.72rem;color:#94a3b8;margin-bottom:10px;}
+    .session-btns{display:flex;gap:8px;}
+    .btn-session{flex:1;text-align:center;padding:8px 10px;border-radius:8px;font-size:.75rem;font-weight:700;cursor:pointer;border:none;font-family:'Inter',sans-serif;transition:opacity .18s;text-decoration:none;}
+    .btn-session-dash{background:rgba(16,185,129,.2);color:#34d399;border:1px solid rgba(16,185,129,.3);}
+    .btn-session-out{background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.25);}
+    .btn-session-dash:hover,.btn-session-out:hover{opacity:.8;}
     /* Card */
     .card{background:rgba(30,41,59,.88);border:1px solid rgba(99,102,241,.18);border-radius:18px;padding:26px;backdrop-filter:blur(14px);box-shadow:0 24px 60px rgba(0,0,0,.5);}
     .card h2{font-size:1.05rem;font-weight:700;color:#fff;margin-bottom:18px;}
@@ -31,8 +41,11 @@
     .inp-wrap{position:relative;}
     .toggle-pass{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:#475569;cursor:pointer;font-size:.85rem;padding:0;line-height:1;}
     .toggle-pass:hover{color:#94a3b8;}
+    /* Key field optional hint */
+    .key-optional{font-size:.65rem;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-left:6px;}
     /* Submit button */
     .btn-primary{background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;border-radius:9px;padding:12px 18px;font-weight:700;font-size:.9rem;cursor:pointer;width:100%;transition:opacity .18s,transform .1s;font-family:'Inter',sans-serif;margin-top:4px;}
+    .btn-primary.green{background:linear-gradient(135deg,#10b981,#059669);}
     .btn-primary:hover:not(:disabled){opacity:.9;transform:translateY(-1px);}
     .btn-primary:disabled{opacity:.5;cursor:not-allowed;transform:none;}
     /* Footer links */
@@ -52,106 +65,259 @@
     .btn-sm{padding:9px 14px;font-size:.78rem;white-space:nowrap;font-family:'Inter',sans-serif;border-radius:8px;border:none;cursor:pointer;font-weight:600;}
     .btn-save{background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;}
     .btn-sec{background:#0f172a;color:#94a3b8;border:1px solid #334155;margin-top:8px;width:100%;}
-    /* key badge */
-    .key-required{font-size:.65rem;color:#f87171;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-left:6px;}
+    /* Exam banner */
+    #exam-banner{display:none;margin-bottom:16px;background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.3);border-radius:12px;padding:12px 14px;text-align:left;}
     /* spinner */
     @keyframes spin{to{transform:rotate(360deg);}}
     .spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px;}
-  &lt;/style&gt;
-&lt;/head&gt;
-&lt;body&gt;
+  </style>
+</head>
+<body>
 
-  &lt;div class="wrap"&gt;
+  <div class="wrap">
 
-    &lt;!-- Brand --&gt;
-    &lt;div class="brand"&gt;
-      &lt;div class="brand-icon"&gt;
-        &lt;svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="#818cf8"&gt;
-          &lt;path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/&gt;
-        &lt;/svg&gt;
-      &lt;/div&gt;
-      &lt;h1&gt;SmartExam&lt;/h1&gt;
-      &lt;p&gt;Student Examination Portal&lt;/p&gt;
-    &lt;/div&gt;
+    <!-- Brand -->
+    <div class="brand">
+      <div class="brand-icon">
+        <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="#818cf8">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+        </svg>
+      </div>
+      <h1>SmartExam</h1>
+      <p>Student Examination Portal</p>
+    </div>
 
-    &lt;!-- Login Card --&gt;
-    &lt;div class="card"&gt;
-      &lt;h2&gt;Sign In to Enter Exam&lt;/h2&gt;
+    <!-- Already Signed In Card -->
+    <div class="session-card" id="session-card">
+      <div class="session-name" id="session-name">Welcome back</div>
+      <div class="session-roll" id="session-roll"></div>
+      <div class="session-btns">
+        <a href="dashboard.html" class="btn-session btn-session-dash">📊 My Dashboard</a>
+        <button class="btn-session btn-session-out" id="btn-signout">🚪 Sign Out</button>
+      </div>
+    </div>
 
-      &lt;div id="alert-box"&gt;&lt;/div&gt;
+    <!-- Exam Info Banner (Dynamic) -->
+    <div id="exam-banner">
+      <div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;font-weight:700;color:#818cf8;margin-bottom:2px;">Target Examination</div>
+      <div id="banner-exam-title" style="font-size:.95rem;font-weight:700;color:#fff;">Examination</div>
+      <div id="banner-exam-meta" style="font-size:.74rem;color:#94a3b8;margin-top:2px;"></div>
+    </div>
 
-      &lt;form id="login-form" autocomplete="off"&gt;
+    <!-- Login Card -->
+    <div class="card">
+      <h2 id="card-title">Sign In</h2>
 
-        &lt;div class="form-group"&gt;
-          &lt;label class="lbl" for="roll"&gt;Roll Number&lt;/label&gt;
-          &lt;input type="text" id="roll" class="inp" required autocomplete="off" placeholder="e.g. 2400906"&gt;
-        &lt;/div&gt;
+      <div id="alert-box"></div>
 
-        &lt;div class="form-group"&gt;
-          &lt;label class="lbl" for="pass"&gt;Password&lt;/label&gt;
-          &lt;div class="inp-wrap"&gt;
-            &lt;input type="password" id="pass" class="inp" required autocomplete="current-password" placeholder="••••••••"&gt;
-            &lt;button type="button" id="toggle-pass" class="toggle-pass" tabindex="-1"&gt;👁&lt;/button&gt;
-          &lt;/div&gt;
-        &lt;/div&gt;
+      <form id="login-form" autocomplete="off">
 
-        &lt;div class="form-group"&gt;
-          &lt;label class="lbl" for="exam-key"&gt;
+        <div class="form-group">
+          <label class="lbl" for="roll">Roll Number</label>
+          <input type="text" id="roll" class="inp" required autocomplete="off" placeholder="e.g. 2400906">
+        </div>
+
+        <div class="form-group">
+          <label class="lbl" for="pass">Password</label>
+          <div class="inp-wrap">
+            <input type="password" id="pass" class="inp" required autocomplete="current-password" placeholder="••••••••">
+            <button type="button" id="toggle-pass" class="toggle-pass" tabindex="-1">👁</button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="lbl" for="exam-key">
             Exam Access Key
-            &lt;span class="key-required"&gt;required&lt;/span&gt;
-          &lt;/label&gt;
-          &lt;input type="text" id="exam-key" class="inp" required
-            placeholder="Enter your exam code" style="font-family:monospace;font-size:.92rem;"&gt;
-        &lt;/div&gt;
+            <span class="key-optional">(optional — leave blank for dashboard)</span>
+          </label>
+          <input type="text" id="exam-key" class="inp"
+            placeholder="Enter exam code or leave blank for dashboard" style="font-family:monospace;font-size:.92rem;">
+        </div>
 
-        &lt;button type="submit" id="login-btn" class="btn-primary"&gt;Sign In &amp; Verify →&lt;/button&gt;
+        <button type="submit" id="login-btn" class="btn-primary">Sign In →</button>
 
-      &lt;/form&gt;
+      </form>
 
-      &lt;div class="foot"&gt;
-        &lt;a href="forgot-password.html"&gt;Forgot Password?&lt;/a&gt;
-        &lt;a href="register.html"&gt;New student? Register →&lt;/a&gt;
-      &lt;/div&gt;
-    &lt;/div&gt;
+      <div class="foot">
+        <a href="forgot-password.html" id="forgot-link">Forgot Password?</a>
+        <a href="register.html" id="reg-link">New student? Register →</a>
+      </div>
+    </div>
 
-    &lt;div class="server-tip"&gt;
-      Connection issues? &lt;a id="openServerSettings"&gt;⚙️ Server Settings&lt;/a&gt;
-    &lt;/div&gt;
-  &lt;/div&gt;
+    <div class="server-tip">
+      Connection issues? <a id="openServerSettings">⚙️ Server Settings</a>
+    </div>
+  </div>
 
-  &lt;!-- Server Settings Modal --&gt;
-  &lt;div class="server-modal" id="serverModal"&gt;
-    &lt;div class="server-box"&gt;
-      &lt;h3&gt;⚙️ Server Settings&lt;/h3&gt;
-      &lt;p&gt;Enter the IP address or URL of the SmartExam backend server running on your network. Leave blank to use the production/default server.&lt;/p&gt;
-      &lt;div class="server-row"&gt;
-        &lt;input type="text" id="serverUrlInput" class="inp" placeholder="http://192.168.x.x:5000"&gt;
-        &lt;button class="btn-sm btn-save" id="saveServerUrl"&gt;Save&lt;/button&gt;
-      &lt;/div&gt;
-      &lt;button class="btn-sm btn-sec" id="clearServerUrl"&gt;Reset to Default&lt;/button&gt;
-      &lt;button class="btn-sm btn-sec" id="closeServerModal"&gt;Close&lt;/button&gt;
-    &lt;/div&gt;
-  &lt;/div&gt;
+  <!-- Server Settings Modal -->
+  <div class="server-modal" id="serverModal">
+    <div class="server-box">
+      <h3>⚙️ Server Settings</h3>
+      <p>Enter the IP address or URL of the SmartExam backend server running on your network. Leave blank to use the production/default server.</p>
+      <div class="server-row">
+        <input type="text" id="serverUrlInput" class="inp" placeholder="http://192.168.x.x:5000">
+        <button class="btn-sm btn-save" id="saveServerUrl">Save</button>
+      </div>
+      <button class="btn-sm btn-sec" id="clearServerUrl">Reset to Default</button>
+      <button class="btn-sm btn-sec" id="closeServerModal">Close</button>
+    </div>
+  </div>
 
-  &lt;script src="js/api.js"&gt;&lt;/script&gt;
-  &lt;script&gt;
+  <script src="js/api.js"></script>
+  <script>
+    // ── Helper to extract clean key from raw input or full URLs ───────
+    function extractCleanKey(raw) {
+      if (!raw) return '';
+      raw = raw.trim();
+      try {
+        if (raw.startsWith('http://') || raw.startsWith('https://') || raw.startsWith('smartexam://')) {
+          const fakeUrl = raw.startsWith('smartexam://')
+            ? raw.replace('smartexam://open-exam', 'http://dummy.local').replace('smartexam://', 'http://dummy.local/')
+            : raw;
+          const u = new URL(fakeUrl);
+          const k = u.searchParams.get('key') || u.searchParams.get('code') || u.searchParams.get('exam_id') || u.searchParams.get('id');
+          if (k) return k.trim();
+        }
+      } catch(e) {}
+
+      if (raw.includes('key=')) {
+        return raw.split('key=')[1].split('&')[0].split('?')[0].trim();
+      }
+      if (raw.includes('code=')) {
+        return raw.split('code=')[1].split('&')[0].split('?')[0].trim();
+      }
+      return raw;
+    }
+
+    // ── Update submit button based on exam key presence ──────────────
+    function updateSubmitBtn() {
+      const key = document.getElementById('exam-key').value.trim();
+      const btn = document.getElementById('login-btn');
+      const title = document.getElementById('card-title');
+      if (key) {
+        btn.className = 'btn-primary green';
+        btn.textContent = 'Sign In & Enter Exam →';
+        title.textContent = 'Sign In to Enter Exam';
+      } else {
+        btn.className = 'btn-primary';
+        btn.textContent = 'Sign In to Dashboard →';
+        title.textContent = 'Sign In';
+      }
+    }
+
+    // ── Already logged-in session card ───────────────────────────────
+    function checkExistingSession() {
+      const token = window.Api && window.Api.getToken ? window.Api.getToken() : (
+        localStorage.getItem('student_token') || localStorage.getItem('token') || localStorage.getItem('studentToken')
+      );
+      if (!token) return;
+
+      const card = document.getElementById('session-card');
+      const nameEl = document.getElementById('session-name');
+      const rollEl = document.getElementById('session-roll');
+
+      try {
+        const user = JSON.parse(localStorage.getItem('student_user') || '{}');
+        if (user.name) nameEl.textContent = 'Welcome back, ' + user.name;
+        if (user.rollNumber || user.roll_number) {
+          rollEl.textContent = 'Roll No: ' + (user.rollNumber || user.roll_number);
+        }
+      } catch(e) {}
+
+      card.classList.add('visible');
+    }
+
+    document.getElementById('btn-signout').addEventListener('click', () => {
+      if (window.Api && window.Api.clearToken) window.Api.clearToken();
+      else {
+        ['student_token','token','studentToken','student_user','active_exam_id','active_exam_code','active_exam_title','active_exam_duration'].forEach(k => localStorage.removeItem(k));
+      }
+      document.getElementById('session-card').classList.remove('visible');
+    });
+
+    // ── Live exam info preview ───────────────────────────────────────
+    let currentPreviewKey = '';
+    async function previewExamInfo(rawKey) {
+      const cleanKey = extractCleanKey(rawKey);
+      if (!cleanKey || cleanKey === currentPreviewKey) return;
+      currentPreviewKey = cleanKey;
+
+      const banner = document.getElementById('exam-banner');
+      const titleEl = document.getElementById('banner-exam-title');
+      const metaEl = document.getElementById('banner-exam-meta');
+
+      try {
+        const res = await fetch(`${window.Api.getApiBase()}/exams/public-info/${encodeURIComponent(cleanKey)}`);
+        const data = await res.json();
+        if (res.ok && data && data.exists) {
+          titleEl.textContent = data.title || 'Examination';
+          const dur = data.duration_minutes ? `${data.duration_minutes} mins` : '';
+          const status = data.is_active !== 0 ? '🟢 Active & Accepting Students' : '🔒 Inactive / Closed';
+          metaEl.textContent = `Code: ${data.code || cleanKey} ${dur ? '· ⏱ ' + dur : ''} · ${status}`;
+          banner.style.display = 'block';
+
+          if (data.is_active === 0) {
+            showAlert('⚠️ This examination has been deactivated by the teacher.', 'warn');
+          } else {
+            hideAlert();
+          }
+        } else {
+          banner.style.display = 'none';
+        }
+      } catch(err) {
+        banner.style.display = 'none';
+      }
+    }
+
     // ── Deep link / URL key auto-fill ────────────────────────────────
-    window.addEventListener('DOMContentLoaded', () =&gt; {
-      const key = new URLSearchParams(window.location.search).get('key');
-      if (key) document.getElementById('exam-key').value = key;
+    window.addEventListener('DOMContentLoaded', () => {
+      checkExistingSession();
+
+      const params = new URLSearchParams(window.location.search);
+      const key = params.get('key') || params.get('code') || params.get('exam_id') || params.get('examKey') || params.get('examCode') || '';
+
+      const keyInput = document.getElementById('exam-key');
+      if (key) {
+        keyInput.value = key;
+        previewExamInfo(key);
+        // Update register link so key persists
+        const regLink = document.getElementById('reg-link');
+        if (regLink) regLink.href = `register.html?key=${encodeURIComponent(key)}`;
+      }
+
+      updateSubmitBtn();
 
       // Electron deep-link
       try {
-        const { ipcRenderer } = require('electron');
-        ipcRenderer.on('auto-fill-key', (_, k) =&gt; {
-          if (k) document.getElementById('exam-key').value = k;
-        });
+        if (typeof require !== 'undefined') {
+          const { ipcRenderer } = require('electron');
+          ipcRenderer.on('auto-fill-key', (_, k) => {
+            if (k) {
+              keyInput.value = k;
+              previewExamInfo(k);
+              updateSubmitBtn();
+            }
+          });
+        }
       } catch(e) {}
     });
 
+    // Listen to changes on exam-key input
+    document.getElementById('exam-key').addEventListener('input', (e) => {
+      const val = e.target.value.trim();
+      updateSubmitBtn();
+      if (val.length >= 4) {
+        previewExamInfo(val);
+      } else if (!val) {
+        document.getElementById('exam-banner').style.display = 'none';
+        currentPreviewKey = '';
+        hideAlert();
+      }
+    });
+
     // ── Show/hide password ───────────────────────────────────────────
-    document.getElementById('toggle-pass').addEventListener('click', () =&gt; {
+    document.getElementById('toggle-pass').addEventListener('click', () => {
       const inp = document.getElementById('pass');
       inp.type = inp.type === 'password' ? 'text' : 'password';
     });
@@ -166,31 +332,22 @@
     function hideAlert() { document.getElementById('alert-box').style.display = 'none'; }
 
     // ── Login Form ──────────────────────────────────────────────────
-    document.getElementById('login-form').addEventListener('submit', async (e) =&gt; {
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       hideAlert();
 
       const btn      = document.getElementById('login-btn');
       const roll     = document.getElementById('roll').value.trim();
       const password = document.getElementById('pass').value;
-      let   examKey  = document.getElementById('exam-key').value.trim();
-
-      // Extract raw key if full URL pasted
-      if (examKey.includes('key=')) {
-        examKey = examKey.split('key=')[1].split('&amp;')[0];
-      }
+      const examKey  = extractCleanKey(document.getElementById('exam-key').value);
 
       if (!roll || !password) {
         showAlert('Roll number and password are required.');
         return;
       }
-      if (!examKey) {
-        showAlert('Exam Access Key is required to enter the examination.');
-        return;
-      }
 
       btn.disabled = true;
-      btn.innerHTML = '&lt;span class="spinner"&gt;&lt;/span&gt;Signing in…';
+      btn.innerHTML = '<span class="spinner"></span>Signing in…';
 
       try {
         // Step 1: Login
@@ -216,6 +373,17 @@
           localStorage.setItem('student_user', JSON.stringify(loginData.student));
         }
 
+        // If no exam key — go straight to dashboard
+        if (!examKey) {
+          // Clear any stale exam data
+          localStorage.removeItem('active_exam_id');
+          localStorage.removeItem('active_exam_code');
+          localStorage.removeItem('active_exam_title');
+          localStorage.removeItem('active_exam_duration');
+          window.location.href = 'dashboard.html';
+          return;
+        }
+
         // Step 2: Verify Exam Eligibility (active + not already attempted)
         const eligRes = await fetch(`${window.Api.getApiBase()}/exams/verify-eligibility`, {
           method:  'POST',
@@ -231,14 +399,21 @@
           throw new Error(eligData.error || 'Cannot access this exam.');
         }
 
-        // All good — set exam key and proceed
-        localStorage.setItem('active_exam_id', examKey);
+        // Store active exam identifiers
+        const activeId   = eligData.exam?.id   || examKey;
+        const activeCode = eligData.exam?.code  || examKey;
+        localStorage.setItem('active_exam_id',       activeId);
+        localStorage.setItem('active_exam_code',     activeCode);
+        if (eligData.exam?.title)            localStorage.setItem('active_exam_title',    eligData.exam.title);
+        if (eligData.exam?.duration_minutes) localStorage.setItem('active_exam_duration', eligData.exam.duration_minutes);
+
+        // Proceed to rules
         window.location.href = 'rules.html';
 
       } catch (err) {
         showAlert(err.message || 'Connection error. Please try again.');
         btn.disabled = false;
-        btn.innerHTML = 'Sign In &amp; Verify →';
+        updateSubmitBtn();
       }
     });
 
@@ -246,19 +421,19 @@
     const modal = document.getElementById('serverModal');
     const inp   = document.getElementById('serverUrlInput');
     inp.value   = localStorage.getItem('server_url') || '';
-    document.getElementById('openServerSettings').addEventListener('click', () =&gt; modal.classList.add('open'));
-    document.getElementById('closeServerModal').addEventListener('click',  () =&gt; modal.classList.remove('open'));
-    document.getElementById('saveServerUrl').addEventListener('click', () =&gt; {
+    document.getElementById('openServerSettings').addEventListener('click', () => modal.classList.add('open'));
+    document.getElementById('closeServerModal').addEventListener('click',  () => modal.classList.remove('open'));
+    document.getElementById('saveServerUrl').addEventListener('click', () => {
       const v = inp.value.trim();
       if (v) localStorage.setItem('server_url', v); else localStorage.removeItem('server_url');
       modal.classList.remove('open');
       location.reload();
     });
-    document.getElementById('clearServerUrl').addEventListener('click', () =&gt; {
+    document.getElementById('clearServerUrl').addEventListener('click', () => {
       localStorage.removeItem('server_url');
       inp.value = '';
       alert('Server URL reset to default.');
     });
-  &lt;/script&gt;
-&lt;/body&gt;
-&lt;/html&gt;
+  </script>
+</body>
+</html>

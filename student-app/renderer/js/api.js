@@ -11,22 +11,23 @@ function getServerBaseUrl() {
   const saved = (typeof localStorage !== 'undefined') && localStorage.getItem('server_url');
   if (saved && saved.startsWith('http')) return saved.replace(/\/$/, '');
 
-  // 2. Running in a real browser context served from the backend
+  // 2. Running in a real browser context served from the backend (localhost, LAN IP, or custom domain)
   const proto = (typeof window !== 'undefined') && window.location && window.location.protocol;
   const origin = (typeof window !== 'undefined') && window.location && window.location.origin;
-  if (proto && proto !== 'file:' && origin && origin !== 'null' && !origin.includes('localhost')) {
+  const isCapacitorNative = (typeof window !== 'undefined') &&
+    Boolean(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+
+  if (proto && proto !== 'file:' && origin && origin !== 'null' && !isCapacitorNative) {
     return origin;
   }
 
   // 3. Electron desktop app (file:// protocol, loads pages locally)
-  //    Electron sets window.ELECTRON_DISABLE_SECURITY_WARNINGS so we can detect it
-  if (typeof require !== 'undefined') {
-    // Running in Electron — always hit localhost:5000
+  if (typeof require !== 'undefined' || (proto === 'file:')) {
     return 'http://localhost:5000';
   }
 
-  // 4. Capacitor Android / iOS — must use the LAN IP or production URL, never localhost
-  return PRODUCTION_SERVER_URL;
+  // 4. Capacitor Android / iOS fallback
+  return PRODUCTION_SERVER_URL || 'http://localhost:5000';
 }
 
 const API_BASE_URL = getServerBaseUrl() + '/api';

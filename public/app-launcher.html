@@ -41,38 +41,42 @@
     /* Spinner */
     @keyframes spin{to{transform:rotate(360deg);}}
     .spinner{display:inline-block;width:18px;height:18px;border:2px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;margin-right:8px;vertical-align:middle;}
-  &lt;/style&gt;
-&lt;/head&gt;
-&lt;body&gt;
+  </style>
+</head>
+<body>
 
-  &lt;div class="card"&gt;
-    &lt;div class="icon-wrap" id="cardIcon"&gt;🔍&lt;/div&gt;
-    &lt;h1 id="cardTitle"&gt;Checking Exam Status…&lt;/h1&gt;
-    &lt;p class="subtitle" id="cardSubtitle"&gt;Verifying your examination access link. Please wait…&lt;/p&gt;
+  <div class="card">
+    <div class="icon-wrap" id="cardIcon">🔍</div>
+    <h1 id="cardTitle">Checking Exam Status…</h1>
+    <p class="subtitle" id="cardSubtitle">Verifying your examination access link. Please wait…</p>
 
-    &lt;div id="statusBadge" class="status-badge checking"&gt;Verifying link…&lt;/div&gt;
+    <div id="statusBadge" class="status-badge checking">Verifying link…</div>
 
-    &lt;div class="exam-info" id="examInfoBox"&gt;
-      &lt;div class="exam-title" id="examTitle"&gt;&lt;/div&gt;
-      &lt;span class="exam-code" id="examCodeDisplay"&gt;&lt;/span&gt;
-      &lt;div class="exam-meta" id="examMeta"&gt;&lt;/div&gt;
-    &lt;/div&gt;
+    <div class="exam-info" id="examInfoBox">
+      <div class="exam-title" id="examTitle"></div>
+      <span class="exam-code" id="examCodeDisplay"></span>
+      <div class="exam-meta" id="examMeta"></div>
+    </div>
 
-    &lt;div id="statusAlert"&gt;&lt;/div&gt;
+    <div id="statusAlert"></div>
 
-    &lt;button id="launchBtn" class="btn btn-primary" disabled&gt;
-      &lt;span class="spinner" id="launchSpinner"&gt;&lt;/span&gt; Checking…
-    &lt;/button&gt;
+    <a id="webExamBtn" href="#" class="btn btn-primary" style="background:linear-gradient(135deg,#10b981,#059669);display:none;margin-bottom:10px;">
+      🌐 Continue to Exam in Web Browser →
+    </a>
 
-    &lt;div class="sep"&gt;or&lt;/div&gt;
+    <button id="launchBtn" class="btn btn-primary" disabled>
+      <span class="spinner" id="launchSpinner"></span> Checking…
+    </button>
 
-    &lt;a id="downloadAppBtn" href="#" class="btn btn-secondary"&gt;📥 Download App&lt;/a&gt;
-  &lt;/div&gt;
+    <div class="sep">or</div>
 
-  &lt;script&gt;
+    <a id="downloadAppBtn" href="#" class="btn btn-secondary">📥 Download App</a>
+  </div>
+
+  <script>
     const urlParams  = new URLSearchParams(window.location.search);
-    const examKey    = urlParams.get('key') || '';
-    const deepLink   = 'smartexam://open-exam?key=' + examKey;
+    const examKey    = urlParams.get('key') || urlParams.get('code') || urlParams.get('exam_id') || urlParams.get('id') || '';
+    const deepLink   = 'smartexam://open-exam?key=' + encodeURIComponent(examKey);
 
     // -- Platform-based download link --
     (function () {
@@ -84,7 +88,7 @@
       } else if (/iphone|ipad|ipod/i.test(ua)) {
         btn.href = '#';
         btn.textContent = '📱 iOS App Coming Soon';
-        btn.onclick = (e) =&gt; { e.preventDefault(); alert('iOS version coming soon!'); };
+        btn.onclick = (e) => { e.preventDefault(); alert('iOS version coming soon!'); };
       } else {
         btn.href = '/download/student-app';
         btn.textContent = '💻 Download Windows App (.exe)';
@@ -95,8 +99,8 @@
       const btn = document.getElementById('launchBtn');
       const sp  = document.getElementById('launchSpinner');
       btn.disabled = !enabled;
-      sp.style.display = enabled ? 'none' : 'inline-block';
-      btn.innerHTML = (enabled ? '' : '&lt;span class="spinner"&gt;&lt;/span&gt;') + label;
+      if (sp) sp.style.display = enabled ? 'none' : 'inline-block';
+      btn.innerHTML = (enabled ? '' : '<span class="spinner"></span>') + label;
     }
 
     function showBadge(type, text) {
@@ -131,7 +135,7 @@
           document.getElementById('cardTitle').textContent = 'Exam Not Found';
           document.getElementById('cardSubtitle').textContent = 'This exam link is invalid or has been deleted. Please contact your teacher.';
           showBadge('inactive', '❌ Invalid Exam Link');
-          showAlert('⚠️ The exam code &lt;strong&gt;' + examKey + '&lt;/strong&gt; was not found in the system. Please verify the link with your teacher.', 'notfound');
+          showAlert('⚠️ The exam code <strong>' + examKey + '</strong> was not found in the system. Please verify the link with your teacher.', 'notfound');
           setLaunchButton(false, '❌ Exam Not Found');
           return;
         }
@@ -149,7 +153,7 @@
           document.getElementById('cardSubtitle').textContent = 'This exam has been deactivated by the instructor and is no longer accepting candidates.';
           showBadge('inactive', '🔒 Exam Deactivated');
           showAlert(
-            '&lt;strong&gt;❌ This examination link has been deactivated.&lt;/strong&gt;&lt;br&gt;' +
+            '<strong>❌ This examination link has been deactivated.</strong><br>' +
             'Please contact your teacher or instructor. No new candidates can enter.',
             'deactivated'
           );
@@ -158,14 +162,15 @@
           // ✅ Exam is active
           document.getElementById('cardIcon').textContent = '🚀';
           document.getElementById('cardTitle').textContent = 'Examination Ready';
-          document.getElementById('cardSubtitle').textContent = 'Your exam is active. Open the SmartExam App to begin.';
-          showBadge('active', '✅ Exam Active &amp; Open');
-          setLaunchButton(true, '📲 Open Smart Exam App');
+          document.getElementById('cardSubtitle').textContent = 'Your exam is active. Take it directly in your web browser or open the SmartExam Desktop App.';
+          showBadge('active', '✅ Exam Active & Open');
+          
+          // Enable Web Exam Button
+          const webBtn = document.getElementById('webExamBtn');
+          webBtn.href = `/student-app/renderer/index.html?key=${encodeURIComponent(data.code || examKey)}`;
+          webBtn.style.display = 'block';
 
-          // Auto-launch after short delay
-          setTimeout(() =&gt; {
-            window.location.href = deepLink;
-          }, 800);
+          setLaunchButton(true, '💻 Launch Desktop App');
         }
 
       } catch (err) {
@@ -173,17 +178,22 @@
         document.getElementById('cardTitle').textContent = 'Connection Error';
         document.getElementById('cardSubtitle').textContent = 'Could not reach the exam server. Please check your internet and try again.';
         showBadge('inactive', '⚠️ Server Unreachable');
-        setLaunchButton(true, '📲 Try Opening App Anyway');
+        
+        const webBtn = document.getElementById('webExamBtn');
+        webBtn.href = `/student-app/renderer/index.html?key=${encodeURIComponent(examKey)}`;
+        webBtn.style.display = 'block';
+        
+        setLaunchButton(true, '💻 Try Launching App');
       }
     }
 
     // Manual launch button
-    document.getElementById('launchBtn').addEventListener('click', () =&gt; {
+    document.getElementById('launchBtn').addEventListener('click', () => {
       window.location.href = deepLink;
     });
 
     // Run check on load
     checkExamStatus();
-  &lt;/script&gt;
-&lt;/body&gt;
-&lt;/html&gt;
+  </script>
+</body>
+</html>

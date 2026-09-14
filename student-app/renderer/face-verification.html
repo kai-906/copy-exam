@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Identity Verification</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="js/api.js"></script>
   <style>
     body { background: #0f172a; }
 
@@ -184,7 +185,7 @@
 
     // Guard: must be logged in with an active exam
     if (!token || !examId) {
-      window.location.href = 'verification.html';
+      window.location.replace('index.html');
     }
 
     // Show student info
@@ -235,9 +236,11 @@
           <svg class="w-8 h-8 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
           </svg>
-          <span class="opacity-50 text-center px-4">Camera access denied.<br>Please allow camera permission to continue.</span>`;
-        setStatus('Camera unavailable — please grant camera access and reload.', 'text-amber-400');
+          <span class="opacity-70 text-center px-4">Camera unavailable or access denied.<br>You may continue to the exam in Web Mode.</span>`;
+        setStatus('Camera unavailable. You may proceed in Web/Demo mode.', 'text-amber-400');
         captureBtn.disabled = true;
+        proceedBtn.classList.remove('hidden');
+        proceedBtn.innerHTML = '➡️ &nbsp;Continue to Examination';
       }
     }
 
@@ -269,9 +272,11 @@
       // Try server-side face match (graceful fallback to pass)
       let matchResult = true;
       try {
-        const API_BASE = (window.location.protocol === 'file:' || !window.location.origin || window.location.origin === 'null')
-          ? 'http://localhost:5000/api'
-          : `${window.location.origin}/api`;
+        const API_BASE = (window.Api && window.Api.getApiBase)
+          ? window.Api.getApiBase()
+          : ((window.location.protocol === 'file:' || !window.location.origin || window.location.origin === 'null')
+              ? 'http://localhost:5000/api'
+              : `${window.location.origin}/api`);
 
         const res = await fetch(`${API_BASE}/proctor/verify-face`, {
           method: 'POST',

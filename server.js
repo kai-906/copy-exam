@@ -173,6 +173,18 @@ app.get ('/api/student/subject-progress',    verifyToken, requireRole('STUDENT')
 app.get('/api/reports/exam/:examId',        verifyToken, requireRole('TEACHER'), reportController.getExamAnalytics   || missingHandler('getExamAnalytics'));
 app.get('/api/reports/exam/:examId/export', verifyToken, requireRole('TEACHER'), reportController.exportResultsFormat || missingHandler('exportResultsFormat'));
 
+/* ── Student portal convenience redirects ─────────────────────── */
+app.get(['/student', '/student/'], (req, res) =>
+  res.redirect('/student-app/renderer/index.html'));
+app.get(['/student-app', '/student-app/'], (req, res) =>
+  res.redirect('/student-app/renderer/index.html'));
+app.get(['/student/login', '/student/login/'], (req, res) =>
+  res.redirect('/student-app/renderer/index.html'));
+app.get(['/student/dashboard', '/student/dashboard/'], (req, res) =>
+  res.redirect('/student-app/renderer/dashboard.html'));
+app.get(['/student/register', '/student/register/'], (req, res) =>
+  res.redirect('/student-app/renderer/register.html'));
+
 /* ── Deep link + downloads ────────────────────────────────────── */
 app.get('/launch-exam', (req, res) =>
   res.sendFile(path.join(__dirname, 'public', 'app-launcher.html')));
