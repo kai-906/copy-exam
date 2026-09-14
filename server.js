@@ -31,8 +31,13 @@ if (websocketHandler && typeof websocketHandler.init === 'function') {
 }
 
 app.use(compression());
-app.use(cors());
-app.use(express.json({ limit: '10mb' }));
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+}));
+app.use(express.json({ limit: '25mb' }));
+app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 
 /* ── Static files ─────────────────────────────────────────────── */
 app.use(express.static(path.join(__dirname, 'public')));
@@ -48,6 +53,7 @@ app.post('/api/auth/forgot-password',  authController.forgotPassword);
 app.post('/api/auth/verify-otp',       authController.verifyOTP);
 app.post('/api/auth/reset-password',   authController.resetPassword);
 app.post('/api/student/register',      authController.registerStudent);
+app.post('/api/student/login',         authController.loginStudent);
 
 /* ── Teacher profile ──────────────────────────────────────────── */
 app.get ('/api/teacher/profile', verifyToken, requireRole('TEACHER'), subjectController.getTeacherProfile);

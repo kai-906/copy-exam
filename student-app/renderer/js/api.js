@@ -2,7 +2,7 @@
 // Priority:
 //  1. localStorage 'server_url'  — user-configurable via ⚙️ Server Settings modal
 //  2. window.location.origin     — works when page is served from a real web server
-//  3. Fallback production URL    — change this before deploying!
+//  3. Fallback production URL    — cloud server for Windows & Android apps
 // ─────────────────────────────────────────────────────────────────────────────
 const PRODUCTION_SERVER_URL = 'https://copy-exam-production.up.railway.app';
 
@@ -11,23 +11,34 @@ function getServerBaseUrl() {
   const saved = (typeof localStorage !== 'undefined') && localStorage.getItem('server_url');
   if (saved && saved.startsWith('http')) return saved.replace(/\/$/, '');
 
-  // 2. Running in a real browser context served from the backend (localhost, LAN IP, or custom domain)
   const proto = (typeof window !== 'undefined') && window.location && window.location.protocol;
   const origin = (typeof window !== 'undefined') && window.location && window.location.origin;
   const isCapacitorNative = (typeof window !== 'undefined') &&
     Boolean(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+  const isElectron = (typeof window !== 'undefined') && (
+    (typeof require !== 'undefined') ||
+    (window.navigator && window.navigator.userAgent && window.navigator.userAgent.includes('Electron')) ||
+    (proto === 'file:')
+  );
 
-  if (proto && proto !== 'file:' && origin && origin !== 'null' && !isCapacitorNative) {
+  // 2. Mobile App (Capacitor Android / iOS) — internal origin is http://localhost or capacitor://
+  if (isCapacitorNative || (origin && (origin.startsWith('capacitor://') || origin === 'http://localhost' || origin === 'https://localhost'))) {
+    return PRODUCTION_SERVER_URL;
+  }
+
+  // 3. Electron desktop app running locally from file://
+  if (isElectron) {
+    // In production Electron app, connect to Railway cloud server
+    return PRODUCTION_SERVER_URL;
+  }
+
+  // 4. Running in standard web browser served from backend (e.g. http://localhost:5000 or custom web domain)
+  if (proto && proto !== 'file:' && origin && origin !== 'null') {
     return origin;
   }
 
-  // 3. Electron desktop app (file:// protocol, loads pages locally)
-  if (typeof require !== 'undefined' || (proto === 'file:')) {
-    return 'http://localhost:5000';
-  }
-
-  // 4. Capacitor Android / iOS fallback
-  return PRODUCTION_SERVER_URL || 'http://localhost:5000';
+  // 5. Default fallback
+  return PRODUCTION_SERVER_URL;
 }
 
 const API_BASE_URL = getServerBaseUrl() + '/api';
@@ -50,11 +61,33 @@ window.Api = {
     localStorage.removeItem('studentToken');
     localStorage.removeItem('student_user');
     localStorage.removeItem('active_exam_id');
+    localStorage.removeItem('active_exam_code');
+    localStorage.removeItem('active_exam_title');
+    localStorage.removeItem('active_exam_duration');
     localStorage.removeItem('verified_snapshot');
   },
 
-  // Derive API base from the same logic so inline pages stay consistent
+  isAppEnvironment: () => {
+    const proto = (typeof window !== 'undefined') && window.location && window.location.protocol;
+    const origin = (typeof window !== 'undefined') && window.location && window.location.origin;
+    const ua = (typeof window !== 'undefined') && window.navigator && window.navigator.userAgent;
+    const isElectron = Boolean(
+      (typeof require !== 'undefined') ||
+      (ua && ua.includes('Electron')) ||
+      (proto === 'file:')
+    );
+    const isCapacitor = Boolean(
+      (typeof window !== 'undefined' && window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) ||
+      (proto === 'capacitor:') ||
+      (origin && origin.startsWith('capacitor://')) ||
+      (ua && (ua.includes('Capacitor') || ua.includes('SmartExamApp')))
+    );
+    return isElectron || isCapacitor;
+  },
+
+  // Derive API base dynamically so inline pages always stay synchronized
   getApiBase: () => getServerBaseUrl() + '/api',
+  getServerBaseUrl: () => getServerBaseUrl(),
 
   request: async (endpoint, options = {}) => {
     const headers = { ...(options.headers || {}) };
@@ -65,9 +98,16 @@ window.Api = {
     }
 
     const base = window.Api.getApiBase();
-    const res = await fetch(`${base}${endpoint}`, { ...options, headers });
+    let res;
+    try {
+      res = await fetch(`${base}${endpoint}`, { ...options, headers });
+    } catch (netErr) {
+      throw new Error(
+        `Cannot connect to server (${base}). Please check internet or ⚙️ Server Settings.`
+      );
+    }
 
-    // Detect HTML error pages (server misconfiguration / wrong URL)
+    // Detect HTML error pages (server down / wrong URL)
     const contentType = res.headers.get('content-type') || '';
     if (!contentType.includes('application/json')) {
       throw new Error(
@@ -76,14 +116,17 @@ window.Api = {
       );
     }
 
-    if (!res.ok) {
-      let errMessage = `HTTP ${res.status}`;
-      try {
-        const err = await res.json();
-        errMessage = err.error || err.message || errMessage;
-      } catch (e) {}
-      throw new Error(errMessage);
+    let data = {};
+    try {
+      data = await res.json();
+    } catch (jsonErr) {
+      throw new Error('Failed to parse server response.');
     }
-    return res.json();
+
+    if (!res.ok) {
+      throw new Error(data.error || data.message || `Server error (${res.status})`);
+    }
+
+    return data;
   }
-};
+};

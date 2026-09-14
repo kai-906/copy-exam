@@ -1,71 +1,118 @@
-const video = document.getElementById('regWebcam');
-const photoPreview = document.getElementById('regPhotoPreview');
+const video          = document.getElementById('regWebcam');
+const photoPreview   = document.getElementById('regPhotoPreview');
 const photoDataInput = document.getElementById('regPhotoData');
-const snapBtn = document.getElementById('btnSnapPhoto');
-let cameraStream = null;
+const snapBtn        = document.getElementById('btnSnapPhoto');
+const form           = document.getElementById('registrationForm');
+let cameraStream     = null;
+let isPhotoCaptured  = false;
 
-// Initialize Camera
-navigator.mediaDevices.getUserMedia({ video: true, audio: false })
-  .then((stream) => {
+// ─── Initialize Camera ──────────────────────────────────────────────
+async function initCamera() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    if (snapBtn) {
+      snapBtn.disabled = true;
+      snapBtn.textContent = '📷 Camera Not Supported';
+    }
+    showAlert('Camera not supported on this browser/device. Please use a camera-enabled device.');
+    return;
+  }
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
+      audio: false
+    });
     cameraStream = stream;
-    video.srcObject = stream;
-  })
-  .catch((err) => {
+    if (video) video.srcObject = stream;
+  } catch (err) {
     console.error('Camera Access Failed:', err);
-    if (snapBtn) snapBtn.textContent = '📷 Camera Unavailable';
-  });
+    if (snapBtn) {
+      snapBtn.textContent = '📷 Camera Access Denied';
+      snapBtn.disabled = true;
+    }
+    showAlert('⚠️ Camera permission is required to capture your verification photo. Please allow camera access.');
+  }
+}
 
-// Snap Live Photo
+initCamera();
+
+// ─── Snap / Retake Live Photo ───────────────────────────────────────
 if (snapBtn) {
   snapBtn.addEventListener('click', () => {
-    if (!cameraStream) return;
-    const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth || 320;
-    canvas.height = video.videoHeight || 240;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    if (!isPhotoCaptured) {
+      // Capture Photo
+      if (!cameraStream || !video) {
+        showAlert('Camera feed not ready. Please wait or check camera permissions.');
+        return;
+      }
 
-    const base64Image = canvas.toDataURL('image/jpeg', 0.82);
-    photoDataInput.value = base64Image;
-    photoPreview.src = base64Image;
+      const canvas = document.createElement('canvas');
+      const w = video.videoWidth || 640;
+      const h = video.videoHeight || 480;
+      canvas.width = Math.min(w, 640);
+      canvas.height = Math.round((canvas.width / w) * h);
 
-    video.classList.add('hidden');
-    photoPreview.classList.remove('hidden');
-    snapBtn.innerText = '🔄 Retake Photo';
-    snapBtn.addEventListener('click', () => {
-      video.classList.remove('hidden');
-      photoPreview.classList.add('hidden');
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      const base64Image = canvas.toDataURL('image/jpeg', 0.85);
+      photoDataInput.value = base64Image;
+      photoPreview.src = base64Image;
+
+      video.classList.add('hidden');
+      photoPreview.classList.remove('hidden');
+
+      snapBtn.textContent = '🔄 Retake Photo';
+      snapBtn.classList.remove('btn-purple');
+      snapBtn.classList.add('btn-sec');
+      isPhotoCaptured = true;
+      hideAlert();
+    } else {
+      // Retake Photo
       photoDataInput.value = '';
-    }, { once: true });
+      photoPreview.src = '';
+      photoPreview.classList.add('hidden');
+      video.classList.remove('hidden');
+
+      snapBtn.textContent = '📸 Capture Photo';
+      snapBtn.classList.remove('btn-sec');
+      snapBtn.classList.add('btn-purple');
+      isPhotoCaptured = false;
+    }
   });
 }
 
-// Alert helper
+// ─── Alert helper ───────────────────────────────────────────────────
 function showAlert(msg, isError = true) {
   const el = document.getElementById('reg-alert');
   if (!el) { alert(msg); return; }
   el.textContent = msg;
-  el.className = isError
-    ? 'reg-alert error'
-    : 'reg-alert success';
+  el.className = isError ? 'reg-alert error' : 'reg-alert success';
   el.style.display = 'block';
+  el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
-// Form Submit Handler
-const form = document.getElementById('registrationForm');
+function hideAlert() {
+  const el = document.getElementById('reg-alert');
+  if (el) el.style.display = 'none';
+}
+
+// ─── Form Submit Handler ────────────────────────────────────────────
 if (form) {
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
+    hideAlert();
 
-    if (!photoDataInput.value) {
-      showAlert('📸 Please capture your live verification photo before submitting!');
+    // Mandatory live photo validation
+    if (!photoDataInput.value || !isPhotoCaptured) {
+      showAlert('📸 Please capture your live profile verification photo before submitting!');
       return;
     }
 
-    const submitBtn = form.querySelector('button[type="submit"]');
+    const submitBtn = document.getElementById('submitRegBtn') || form.querySelector('button[type="submit"]');
     if (submitBtn) {
       submitBtn.disabled = true;
-      submitBtn.textContent = 'Registering…';
+      submitBtn.textContent = 'Registering Account…';
     }
 
     const rollVal = document.getElementById('regRollNo').value.trim();
@@ -80,46 +127,67 @@ if (form) {
       photo:        photoDataInput.value
     };
 
-    // Use unified Api helper (correctly resolves LAN IP on Android)
     const apiBase = (window.Api && window.Api.getApiBase)
       ? window.Api.getApiBase()
-      : (() => {
-          const saved = localStorage.getItem('server_url');
-          if (saved && saved.startsWith('http')) return saved.replace(/\/$/, '') + '/api';
-          if (typeof window !== 'undefined' && window.location && window.location.origin && window.location.protocol !== 'file:' && window.location.origin !== 'null') {
-            return `${window.location.origin}/api`;
-          }
-          return 'http://localhost:5000/api';
-        })();
+      : 'https://copy-exam-production.up.railway.app/api';
 
     try {
-      const res = await fetch(`${apiBase}/auth/student/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      // Detect HTML responses (wrong server URL)
-      const ct = res.headers.get('content-type') || '';
-      if (!ct.includes('application/json')) {
+      let res;
+      try {
+        res = await fetch(`${apiBase}/auth/student/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+      } catch (netErr) {
         throw new Error(
-          `Cannot reach the exam server. Check your Server Settings (⚙️). Current API: ${apiBase}`
+          `Unable to reach exam server (${apiBase}). Check your internet connection or ⚙️ Server Settings.`
         );
       }
 
-      const data = await res.json();
-      if (res.ok) {
-        showAlert('✅ Registration Successful! Redirecting to login…', false);
-        // Stop camera before leaving
-        if (cameraStream) cameraStream.getTracks().forEach(t => t.stop());
-        setTimeout(() => { window.location.href = 'index.html'; }, 1500);
+      // Check content-type
+      const ct = res.headers.get('content-type') || '';
+      let data = {};
+      if (ct.includes('application/json')) {
+        data = await res.json();
       } else {
-        showAlert('Registration Error: ' + (data.error || data.message || 'Unknown error'));
-        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Complete Registration →'; }
+        const text = await res.text();
+        throw new Error(`Server returned unexpected response (${res.status}). Server URL: ${apiBase}`);
+      }
+
+      if (res.ok) {
+        showAlert('✅ Registration successful! Redirecting to login…', false);
+
+        // Stop camera tracks before navigating
+        if (cameraStream) {
+          try {
+            cameraStream.getTracks().forEach(t => t.stop());
+          } catch(e) {}
+        }
+
+        // Forward exam key if candidate was in an exam entry flow
+        const urlParams = new URLSearchParams(window.location.search);
+        const examKey = urlParams.get('key') || urlParams.get('code') || '';
+        const targetUrl = examKey ? `index.html?key=${encodeURIComponent(examKey)}` : 'index.html';
+
+        setTimeout(() => {
+          window.location.href = targetUrl;
+        }, 1200);
+      } else {
+        const err = data.error || data.message || 'Registration failed. Please check your details.';
+        showAlert(`Registration Error: ${err}`);
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Complete Registration →';
+        }
       }
     } catch (err) {
-      showAlert('Network Error: ' + err.message);
-      if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Complete Registration →'; }
+      console.error('Registration Exception:', err);
+      showAlert(`Error: ${err.message || 'Network request failed.'}`);
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Complete Registration →';
+      }
     }
   });
-}
+}

@@ -87,43 +87,48 @@
       <!-- Student Card -->
       <div class="bg-slate-800/60 border border-slate-700/80 rounded-2xl p-7 shadow-xl hover:border-emerald-500/50 transition duration-300 flex flex-col justify-between group">
         <div class="space-y-3">
-          <div class="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-2xl group-hover:scale-110 transition duration-300 float">📝</div>
+          <div class="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-2xl group-hover:scale-110 transition duration-300 float">📱</div>
           <h2 class="text-xl font-bold text-white">Student Exam Portal</h2>
           <p class="text-xs text-slate-400 leading-relaxed">
-            Sign in with your Roll Number, enter your Exam Access Key, verify identity, and take your proctored Computer-Based Test — directly in the browser or via the SmartExam Desktop App.
+            Register your account via web, then <strong class="text-emerald-400">download the SmartExam App</strong> to take your proctored exam. Exams run only inside the secure app environment.
           </p>
           <ul class="text-xs text-slate-300 space-y-1.5 pt-2">
-            <li class="flex items-center gap-2"><span class="text-emerald-400">✓</span> Browser &amp; Desktop App Support</li>
-            <li class="flex items-center gap-2"><span class="text-emerald-400">✓</span> Real-Time Answer Saving &amp; Palette</li>
-            <li class="flex items-center gap-2"><span class="text-emerald-400">✓</span> AI Proctoring &amp; Instant Scoring</li>
+            <li class="flex items-center gap-2"><span class="text-emerald-400">✓</span> Register &amp; View Results in Browser</li>
+            <li class="flex items-center gap-2"><span class="text-emerald-400">✓</span> Exam &amp; Test — <strong class="text-amber-400">App Only (Secure Proctored)</strong></li>
+            <li class="flex items-center gap-2"><span class="text-emerald-400">✓</span> Windows .exe &amp; Android .apk Available</li>
           </ul>
+          <!-- App-only notice badge -->
+          <div class="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/25 mt-1">
+            <span class="text-amber-400 text-sm">⚠️</span>
+            <span class="text-xs text-amber-300 font-semibold">Exams can only be taken in the SmartExam App, not in browser.</span>
+          </div>
         </div>
         <div class="pt-6 border-t border-slate-700/50 mt-6 flex gap-3">
-          <a href="/student-app/renderer/index.html" id="student-login-btn"
+          <a href="/student-app/renderer/register.html" id="student-register-btn"
             class="flex-1 text-center bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2.5 rounded-xl text-xs transition shadow-lg shadow-emerald-600/20">
-            Student Login / Enter Exam →
+            Register / Dashboard →
           </a>
           <a id="app-download-btn" href="#"
-            class="px-3.5 py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-200 font-semibold rounded-xl text-xs transition" title="Download Exam App">
-            📥 App
+            class="flex-1 text-center bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2.5 rounded-xl text-xs transition shadow-lg shadow-indigo-600/20" title="Download Exam App">
+            📥 Download App
           </a>
         </div>
         <script>
           (function() {
-            var btn = document.getElementById('app-download-btn');
+            var dlBtn = document.getElementById('app-download-btn');
             var ua = navigator.userAgent;
             if (/android/i.test(ua)) {
-              btn.href = '/downloads/app-release.apk';
-              btn.textContent = '📥 .apk';
-              btn.title = 'Download Android App';
+              dlBtn.href = '/downloads/app-release.apk';
+              dlBtn.innerHTML = '📥 Android .apk';
+              dlBtn.title = 'Download Android App';
             } else if (/iphone|ipad|ipod/i.test(ua)) {
-              btn.href = '#';
-              btn.textContent = '📱 iOS';
-              btn.onclick = function(e) { e.preventDefault(); alert('iOS version coming soon!'); };
+              dlBtn.href = '#';
+              dlBtn.innerHTML = '📱 iOS Coming Soon';
+              dlBtn.onclick = function(e) { e.preventDefault(); alert('iOS version coming soon!'); };
             } else {
-              btn.href = '/download/student-app';
-              btn.textContent = '📥 .exe';
-              btn.title = 'Download Windows Exam App';
+              dlBtn.href = '/download/student-app';
+              dlBtn.innerHTML = '💻 Windows .exe';
+              dlBtn.title = 'Download Windows Exam App';
             }
           })();
         </script>
@@ -134,11 +139,11 @@
     <div class="mt-10 bg-slate-800/30 border border-slate-800 rounded-xl p-4 max-w-4xl mx-auto w-full flex flex-wrap items-center justify-between gap-4 text-xs">
       <div class="flex items-center gap-3 flex-wrap">
         <span class="font-mono font-bold text-emerald-500 uppercase text-[11px]">Student:</span>
-        <a href="/student-app/renderer/index.html" class="text-emerald-400 hover:underline">Login / Enter Exam</a>
+        <a href="/student-app/renderer/register.html" class="text-emerald-400 hover:underline">Register</a>
         <span class="text-slate-600">•</span>
-        <a href="/student-app/renderer/register.html" class="text-slate-300 hover:text-white">Register</a>
+        <a href="/student-app/renderer/index.html" class="text-slate-300 hover:text-white">Login / Dashboard</a>
         <span class="text-slate-600">•</span>
-        <a href="/student-app/renderer/dashboard.html" class="text-slate-300 hover:text-white">My Dashboard</a>
+        <a href="/download/student-app" class="text-amber-400 hover:underline font-semibold">Download App (Exam)</a>
         <span class="text-slate-600 mx-1">|</span>
         <span class="font-mono font-bold text-slate-400 uppercase text-[11px]">Teacher:</span>
         <a href="/teacher/login.html" class="text-blue-400 hover:underline">Login</a>

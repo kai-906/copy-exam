@@ -1,43 +1,50 @@
-&lt;!DOCTYPE html&gt;
-&lt;html lang="en"&gt;
-&lt;head&gt;
-  &lt;meta charset="UTF-8"&gt;
-  &lt;meta name="viewport" content="width=device-width, initial-scale=1.0"&gt;
-  &lt;title&gt;Smart Exam — Launch Examination&lt;/title&gt;
-  &lt;link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"&gt;
-  &lt;style&gt;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Exam — Launch Examination</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
     *{box-sizing:border-box;margin:0;padding:0;}
-    body{font-family:'Inter',sans-serif;background:linear-gradient(135deg,#0f172a 0%,#1a1040 100%);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;}
-    .card{background:rgba(30,41,59,.9);border:1px solid rgba(99,102,241,.25);border-radius:20px;padding:36px 32px;max-width:420px;width:100%;box-shadow:0 32px 80px rgba(0,0,0,.6);text-align:center;}
+    body{font-family:'Inter',sans-serif;background:linear-gradient(135deg,#0f172a 0%,#1a1040 100%);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px 16px;}
+    .card{background:rgba(30,41,59,.92);border:1px solid rgba(99,102,241,.28);border-radius:24px;padding:36px 32px;max-width:440px;width:100%;box-shadow:0 32px 80px rgba(0,0,0,.65);text-align:center;backdrop-filter:blur(16px);}
     .icon-wrap{font-size:2.8rem;margin-bottom:16px;display:inline-block;}
-    h1{font-size:1.4rem;font-weight:800;color:#fff;margin-bottom:8px;}
-    .subtitle{font-size:.82rem;color:#94a3b8;margin-bottom:24px;line-height:1.6;}
+    h1{font-size:1.45rem;font-weight:800;color:#fff;margin-bottom:8px;letter-spacing:-0.3px;}
+    .subtitle{font-size:.84rem;color:#94a3b8;margin-bottom:22px;line-height:1.55;}
+    
     /* Exam info box */
-    .exam-info{background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.25);border-radius:12px;padding:14px 18px;margin-bottom:22px;display:none;}
+    .exam-info{background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.3);border-radius:14px;padding:16px 20px;margin-bottom:22px;display:none;text-align:center;}
     .exam-info.visible{display:block;}
-    .exam-title{font-size:1rem;font-weight:700;color:#fff;margin-bottom:4px;}
-    .exam-meta{font-size:.75rem;color:#94a3b8;}
-    .exam-code{font-family:monospace;font-size:1.4rem;font-weight:900;color:#818cf8;letter-spacing:.12em;display:block;margin:8px 0 4px;}
+    .exam-title{font-size:1.05rem;font-weight:800;color:#fff;margin-bottom:4px;}
+    .exam-meta{font-size:.78rem;color:#94a3b8;}
+    .exam-code{font-family:monospace;font-size:1.45rem;font-weight:900;color:#818cf8;letter-spacing:.14em;display:block;margin:8px 0 4px;}
+    
     /* Status badges */
     .status-badge{display:inline-flex;align-items:center;gap:7px;padding:7px 14px;border-radius:30px;font-size:.78rem;font-weight:700;margin-bottom:18px;}
-    .status-badge.active{background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.3);color:#34d399;}
+    .status-badge.active{background:rgba(16,185,129,.14);border:1px solid rgba(16,185,129,.35);color:#34d399;}
     .status-badge.active::before{content:'';display:inline-block;width:8px;height:8px;border-radius:50%;background:#10b981;animation:pulse 1.5s infinite;}
-    .status-badge.inactive{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);color:#f87171;}
-    .status-badge.checking{background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.25);color:#fbbf24;}
+    .status-badge.inactive{background:rgba(239,68,68,.14);border:1px solid rgba(239,68,68,.35);color:#f87171;}
+    .status-badge.checking{background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.3);color:#fbbf24;}
     @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+    
     /* Alert */
-    #statusAlert{display:none;padding:12px 16px;border-radius:10px;font-size:.8rem;font-weight:600;margin-bottom:18px;line-height:1.5;}
-    #statusAlert.deactivated{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#f87171;}
-    #statusAlert.notfound{background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);color:#fbbf24;}
+    #statusAlert{display:none;padding:14px 18px;border-radius:12px;font-size:.82rem;font-weight:600;margin-bottom:18px;line-height:1.5;}
+    #statusAlert.deactivated{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.35);color:#f87171;}
+    #statusAlert.notfound{background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.35);color:#fbbf24;}
+    
     /* Buttons */
-    .btn{display:block;width:100%;padding:13px 18px;border-radius:11px;font-size:.9rem;font-weight:700;cursor:pointer;border:none;font-family:'Inter',sans-serif;transition:all .18s;text-decoration:none;text-align:center;}
-    .btn-primary{background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;margin-bottom:10px;}
-    .btn-primary:hover:not(:disabled){opacity:.9;transform:translateY(-1px);}
-    .btn-primary:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+    .btn{display:block;width:100%;padding:13px 18px;border-radius:12px;font-size:.92rem;font-weight:700;cursor:pointer;border:none;font-family:'Inter',sans-serif;transition:all .18s;text-decoration:none;text-align:center;box-sizing:border-box;}
+    .btn-web{background:linear-gradient(135deg,#10b981,#059669);color:#fff;margin-bottom:10px;box-shadow:0 6px 18px rgba(16,185,129,.3);}
+    .btn-web:hover{opacity:.92;transform:translateY(-1px);}
+    .btn-app{background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;margin-bottom:10px;box-shadow:0 6px 18px rgba(99,102,241,.3);}
+    .btn-app:hover:not(:disabled){opacity:.92;transform:translateY(-1px);}
+    .btn-app:disabled{opacity:.45;cursor:not-allowed;transform:none;}
     .btn-secondary{background:#1e293b;border:1px solid #334155;color:#94a3b8;}
     .btn-secondary:hover{background:#273447;color:#e2e8f0;}
-    .sep{margin:16px 0;display:flex;align-items:center;gap:10px;color:#475569;font-size:.72rem;}
-    .sep::before,.sep::after{content:'';flex:1;height:1px;background:#1e293b;}
+    .sep{margin:18px 0;display:flex;align-items:center;gap:12px;color:#475569;font-size:.74rem;}
+    .sep::before,.sep::after{content:'';flex:1;height:1px;background:#334155;}
+    
     /* Spinner */
     @keyframes spin{to{transform:rotate(360deg);}}
     .spinner{display:inline-block;width:18px;height:18px;border:2px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;margin-right:8px;vertical-align:middle;}
@@ -60,15 +67,12 @@
 
     <div id="statusAlert"></div>
 
-    <a id="webExamBtn" href="#" class="btn btn-primary" style="background:linear-gradient(135deg,#10b981,#059669);display:none;margin-bottom:10px;">
-      🌐 Continue to Exam in Web Browser →
-    </a>
-
-    <button id="launchBtn" class="btn btn-primary" disabled>
+    <!-- Launch Installed App Button (Primary CTA) -->
+    <button id="launchBtn" class="btn btn-app" disabled>
       <span class="spinner" id="launchSpinner"></span> Checking…
     </button>
 
-    <div class="sep">or</div>
+    <div class="sep">app nahi hai? download karo</div>
 
     <a id="downloadAppBtn" href="#" class="btn btn-secondary">📥 Download App</a>
   </div>
@@ -78,7 +82,7 @@
     const examKey    = urlParams.get('key') || urlParams.get('code') || urlParams.get('exam_id') || urlParams.get('id') || '';
     const deepLink   = 'smartexam://open-exam?key=' + encodeURIComponent(examKey);
 
-    // -- Platform-based download link --
+    // Platform-based download link
     (function () {
       const btn = document.getElementById('downloadAppBtn');
       const ua  = navigator.userAgent;
@@ -120,7 +124,7 @@
       if (!examKey) {
         document.getElementById('cardIcon').textContent = '⚠️';
         document.getElementById('cardTitle').textContent = 'No Exam Key';
-        document.getElementById('cardSubtitle').textContent = 'This link is missing an Exam Access Key. Please ask your teacher to re-share the link.';
+        document.getElementById('cardSubtitle').textContent = 'This link is missing an Exam Access Key. Please ask your instructor to re-share the link.';
         showBadge('inactive', '⚠️ No Exam Key Provided');
         setLaunchButton(false, '📲 Open Smart Exam App');
         return;
@@ -133,9 +137,9 @@
         if (!res.ok || !data.exists) {
           document.getElementById('cardIcon').textContent = '❓';
           document.getElementById('cardTitle').textContent = 'Exam Not Found';
-          document.getElementById('cardSubtitle').textContent = 'This exam link is invalid or has been deleted. Please contact your teacher.';
+          document.getElementById('cardSubtitle').textContent = 'This exam link is invalid or has expired. Please contact your instructor.';
           showBadge('inactive', '❌ Invalid Exam Link');
-          showAlert('⚠️ The exam code <strong>' + examKey + '</strong> was not found in the system. Please verify the link with your teacher.', 'notfound');
+          showAlert('⚠️ The exam code <strong>' + examKey + '</strong> was not found in the system.', 'notfound');
           setLaunchButton(false, '❌ Exam Not Found');
           return;
         }
@@ -147,43 +151,30 @@
         document.getElementById('examInfoBox').classList.add('visible');
 
         if (data.is_active === 0 || data.is_active === '0' || data.is_active === false) {
-          // ❌ Exam deactivated
+          // Exam deactivated
           document.getElementById('cardIcon').textContent = '🔒';
           document.getElementById('cardTitle').textContent = 'Examination Closed';
           document.getElementById('cardSubtitle').textContent = 'This exam has been deactivated by the instructor and is no longer accepting candidates.';
           showBadge('inactive', '🔒 Exam Deactivated');
-          showAlert(
-            '<strong>❌ This examination link has been deactivated.</strong><br>' +
-            'Please contact your teacher or instructor. No new candidates can enter.',
-            'deactivated'
-          );
+          showAlert('<strong>❌ This examination link has been closed.</strong><br>Please contact your teacher. No new candidates can enter.', 'deactivated');
           setLaunchButton(false, '🔒 Exam Is Closed');
         } else {
-          // ✅ Exam is active
+          // Exam is active — App only
           document.getElementById('cardIcon').textContent = '🚀';
-          document.getElementById('cardTitle').textContent = 'Examination Ready';
-          document.getElementById('cardSubtitle').textContent = 'Your exam is active. Take it directly in your web browser or open the SmartExam Desktop App.';
+          document.getElementById('cardTitle').textContent = 'Exam Ready — Open in App';
+          document.getElementById('cardSubtitle').textContent = 'Your exam is active. Please open the SmartExam App to sign in and take the exam. Exams can only be taken inside the secure app.';
           showBadge('active', '✅ Exam Active & Open');
-          
-          // Enable Web Exam Button
-          const webBtn = document.getElementById('webExamBtn');
-          webBtn.href = `/student-app/renderer/index.html?key=${encodeURIComponent(data.code || examKey)}`;
-          webBtn.style.display = 'block';
 
-          setLaunchButton(true, '💻 Launch Desktop App');
+          setLaunchButton(true, '📲 Open SmartExam App to Start');
         }
 
       } catch (err) {
         document.getElementById('cardIcon').textContent = '⚡';
         document.getElementById('cardTitle').textContent = 'Connection Error';
-        document.getElementById('cardSubtitle').textContent = 'Could not reach the exam server. Please check your internet and try again.';
+        document.getElementById('cardSubtitle').textContent = 'Could not reach the exam server. If you already have the app installed, open it directly and enter the exam key manually.';
         showBadge('inactive', '⚠️ Server Unreachable');
-        
-        const webBtn = document.getElementById('webExamBtn');
-        webBtn.href = `/student-app/renderer/index.html?key=${encodeURIComponent(examKey)}`;
-        webBtn.style.display = 'block';
-        
-        setLaunchButton(true, '💻 Try Launching App');
+
+        setLaunchButton(true, '📲 Try Opening App Anyway');
       }
     }
 

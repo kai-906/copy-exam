@@ -188,9 +188,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function getExamApiBase() {
-    return (window.location.protocol === 'file:' || !window.location.origin || window.location.origin === 'null')
-      ? 'http://localhost:5000/api'
-      : `${window.location.origin}/api`;
+    if (window.Api && window.Api.getApiBase) {
+      return window.Api.getApiBase();
+    }
+    return 'https://copy-exam-production.up.railway.app/api';
   }
 
   // ──────────────────────────────────────────────────────────────

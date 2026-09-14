@@ -46,6 +46,10 @@ exports.registerStudent = async (req, res) => {
     return res.status(400).json({ error: 'Name, email, password and roll number are required.' });
   }
 
+  if (!photo) {
+    return res.status(400).json({ error: 'Live verification photo is required for registration.' });
+  }
+
   // 1. Single Account Policy: Check duplicate Email or Roll Number
   const checkQuery = `
     SELECT Users.id FROM Users 

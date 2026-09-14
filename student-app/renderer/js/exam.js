@@ -16,10 +16,10 @@ window.onAppSwitchDetected = function() {
 };
 
 const getExamApiBase = () => {
-  if (typeof window !== 'undefined' && window.location && window.location.origin && window.location.protocol !== 'file:' && window.location.origin !== 'null') {
-    return `${window.location.origin}/api`;
+  if (window.Api && window.Api.getApiBase) {
+    return window.Api.getApiBase();
   }
-  return 'http://localhost:5000/api';
+  return 'https://copy-exam-production.up.railway.app/api';
 };
 
 // 2. Pre-Exam & In-Exam Face Comparison Handler
