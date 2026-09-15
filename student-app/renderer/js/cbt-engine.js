@@ -238,7 +238,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   try {
     if (typeof io !== 'undefined') {
       const socketUrl = (window.location.protocol === 'file:' || !window.location.origin || window.location.origin === 'null')
-        ? 'http://localhost:5000'
+        ? 'https://copy-exam-production.up.railway.app'
         : window.location.origin;
       socket = io(socketUrl);
       socket.emit('student:join', {
