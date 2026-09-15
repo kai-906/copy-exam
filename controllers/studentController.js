@@ -1,4 +1,5 @@
 const db = require('../db');
+const { randomUUID: uuidv4 } = require('crypto');
 
 /* ── Save / update a student answer ─────────────────────────── */
 exports.saveAnswer = (req, res) => {
@@ -135,7 +136,6 @@ exports.getMySubjectProgress = (req, res) => {
 exports.registerStudent = (req, res) => {
   const { name, email, roll_number, branch, year } = req.body;
   const bcrypt = require('bcryptjs');
-  const { v4: uuidv4 } = require('uuid');
 
   if (!name || !email || !roll_number)
     return res.status(400).json({ error: 'Name, email and roll number required.' });

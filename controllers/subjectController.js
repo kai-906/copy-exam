@@ -1,5 +1,5 @@
 const db    = require('../db');
-const { v4: uuidv4 } = require('uuid');
+const { randomUUID: uuidv4 } = require('crypto');
 
 /* ── Palette of default class colors (Google-Classroom style) ── */
 const DEFAULT_COLORS = [
