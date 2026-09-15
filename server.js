@@ -1,4 +1,6 @@
-require('dotenv').config();
+if (process.env.NODE_ENV !== 'production') {
+  try { require('dotenv').config(); } catch (e) {}
+}
 
 const express = require('express');
 const compression = require('compression');
