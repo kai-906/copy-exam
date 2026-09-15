@@ -39,7 +39,6 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
   credentials: false
 }));
-app.options('*', cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
@@ -222,9 +221,10 @@ app.get(['/download/student-app', '/downloads/student-app.exe'], (req, res) => {
 });
 
 /* ── Global API 404 & JSON Error Handlers ─────────────────────── */
-app.use('/api/*', (req, res) => {
+app.use(/^\/api\/.*/, (req, res) => {
   res.status(404).json({ error: `API endpoint '${req.originalUrl}' not found.` });
 });
+
 
 app.use((err, req, res, next) => {
   console.error('API Error Middleware caught error:', err);
