@@ -574,47 +574,47 @@ exports.uploadBank = async (req, res) => {
           return res.status(500).json({ error: 'Failed to save question bank: ' + bankErr.message });
         }
 
-        const stmt = db.prepare(`
-          INSERT INTO Questions
-            (id, bank_id, question_text, question_type, options, correct_answer, difficulty, image_url)
-          VALUES (?, ?, ?, ?, ?, ?, 'MEDIUM', ?)
-        `);
-
+        let completed = 0;
         let insertErr = null;
+
+        if (parsedQuestions.length === 0) {
+          if (filePath && fs.existsSync(filePath)) try { fs.unlinkSync(filePath); } catch (e) {}
+          return res.status(200).json({
+            message: `Successfully extracted 0 questions!`,
+            bankId, parserUsed,
+            stats: { total: 0, mcq: 0, shortAnswer: 0, withImages: 0 }
+          });
+        }
+
         parsedQuestions.forEach(q => {
           const finalAnswer = q.correct_answer || 'Option A';
-          // Store image_description as a JSON note in image_url field when no real URL
-          const imageNote = q.has_image && q.image_description
-            ? `[image: ${q.image_description}]`
-            : null;
-          stmt.run(
-            uuidv4(), bankId,
-            q.question_text, q.type || 'MCQ',
-            q.options, finalAnswer,
-            imageNote,
-            err => { if (err && !insertErr) insertErr = err; }
-          );
-        });
-
-        stmt.finalize(qErr => {
-          if (filePath && fs.existsSync(filePath)) {
-            try { fs.unlinkSync(filePath); } catch (e) {}
-          }
-          const finalErr = insertErr || qErr;
-          if (finalErr) return res.status(500).json({ error: 'Failed to save questions: ' + finalErr.message });
-
-          const imageQs = parsedQuestions.filter(q => q.has_image).length;
-          res.status(200).json({
-            message: `Successfully extracted ${parsedQuestions.length} questions!`,
-            bankId,
-            parserUsed,
-            stats: {
-              total:       parsedQuestions.length,
-              mcq:         parsedQuestions.filter(q => q.type === 'MCQ').length,
-              shortAnswer: parsedQuestions.filter(q => q.type === 'SHORT_ANSWER').length,
-              withImages:  imageQs
+          const imageNote = q.has_image && q.image_description ? `[image: ${q.image_description}]` : null;
+          
+          db.run(
+            `INSERT INTO Questions (id, bank_id, question_text, question_type, options, correct_answer, difficulty, image_url) VALUES (?, ?, ?, ?, ?, ?, 'MEDIUM', ?)`,
+            [uuidv4(), bankId, q.question_text, q.type || 'MCQ', q.options, finalAnswer, imageNote],
+            function(err) {
+              if (err && !insertErr) insertErr = err;
+              completed++;
+              
+              if (completed === parsedQuestions.length) {
+                if (filePath && fs.existsSync(filePath)) { try { fs.unlinkSync(filePath); } catch (e) {} }
+                if (insertErr) return res.status(500).json({ error: 'Failed to save questions: ' + insertErr.message });
+                
+                const imageQs = parsedQuestions.filter(q => q.has_image).length;
+                res.status(200).json({
+                  message: `Successfully extracted ${parsedQuestions.length} questions!`,
+                  bankId, parserUsed,
+                  stats: {
+                    total:       parsedQuestions.length,
+                    mcq:         parsedQuestions.filter(q => q.type === 'MCQ').length,
+                    shortAnswer: parsedQuestions.filter(q => q.type === 'SHORT_ANSWER').length,
+                    withImages:  imageQs
+                  }
+                });
+              }
             }
-          });
+          );
         });
       }
     );
@@ -742,25 +742,31 @@ exports.appendFileToBank = async (req, res) => {
       return res.status(400).json({ error: 'No questions could be extracted from this PDF.' });
     }
 
-    const stmt = db.prepare(`
-      INSERT INTO Questions
-        (id, bank_id, question_text, question_type, options, correct_answer, difficulty, image_url)
-      VALUES (?, ?, ?, ?, ?, ?, 'MEDIUM', ?)
-    `);
-
+    let completed = 0;
     let insertErr = null;
+
+    if (parsedQuestions.length === 0) {
+      if (filePath && fs.existsSync(filePath)) { try { fs.unlinkSync(filePath); } catch(e) {} }
+      return res.status(400).json({ error: 'No questions could be extracted from this PDF.' });
+    }
+
     parsedQuestions.forEach(q => {
       const finalAnswer = q.correct_answer || 'Option A';
       const imageNote   = q.has_image && q.image_description ? `[image: ${q.image_description}]` : null;
-      stmt.run(uuidv4(), req.params.bankId, q.question_text, q.type || 'MCQ', q.options, finalAnswer, imageNote,
-        err => { if (err && !insertErr) insertErr = err; });
-    });
-
-    stmt.finalize(err => {
-      if (filePath && fs.existsSync(filePath)) { try { fs.unlinkSync(filePath); } catch(e) {} }
-      const finalErr = insertErr || err;
-      if (finalErr) return res.status(500).json({ error: 'Failed to append questions: ' + finalErr.message });
-      res.json({ message: `${parsedQuestions.length} questions appended successfully` });
+      db.run(
+        `INSERT INTO Questions (id, bank_id, question_text, question_type, options, correct_answer, difficulty, image_url) VALUES (?, ?, ?, ?, ?, ?, 'MEDIUM', ?)`,
+        [uuidv4(), req.params.bankId, q.question_text, q.type || 'MCQ', q.options, finalAnswer, imageNote],
+        function(err) {
+          if (err && !insertErr) insertErr = err;
+          completed++;
+          
+          if (completed === parsedQuestions.length) {
+            if (filePath && fs.existsSync(filePath)) { try { fs.unlinkSync(filePath); } catch(e) {} }
+            if (insertErr) return res.status(500).json({ error: 'Failed to append questions: ' + insertErr.message });
+            res.json({ message: `${parsedQuestions.length} questions appended successfully` });
+          }
+        }
+      );
     });
 
   } catch (error) {
