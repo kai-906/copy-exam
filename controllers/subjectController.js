@@ -44,8 +44,8 @@ exports.createSubject = (req, res) => {
     [id, teacherId, name.trim(), description || '', color || DEFAULT_COLORS[idx], icon || DEFAULT_ICONS[idx]],
     function (err) {
       if (err) {
-        if (err.message.includes('UNIQUE'))
-          return res.status(409).json({ error: 'Subject with this name already exists.' });
+        if (err.message.includes('UNIQUE') || err.code === '23505' || err.message.toLowerCase().includes('unique constraint'))
+          return res.status(400).json({ error: 'A class with this name already exists' });
         return res.status(500).json({ error: err.message });
       }
       res.status(201).json({ message: 'Subject created', subjectId: id });
