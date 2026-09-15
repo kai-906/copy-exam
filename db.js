@@ -1,22 +1,81 @@
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
+const { Pool } = require('pg');
 
-const dbPath = process.env.DATABASE_PATH
-  ? path.resolve(process.env.DATABASE_PATH)
-  : path.resolve(__dirname, 'exam_system.db');
-const db = new sqlite3.Database(dbPath);
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/exam_system',
+  ssl: process.env.DATABASE_URL && !process.env.DATABASE_URL.includes('localhost') ? { rejectUnauthorized: false } : false
+});
+
+function convertQuery(sql) {
+  let index = 1;
+  return sql.replace(/\?/g, () => `$${index++}`);
+}
+
+const db = {
+  run: function(sql, params = [], callback) {
+    if (typeof params === 'function') {
+      callback = params;
+      params = [];
+    }
+    let runSql = convertQuery(sql);
+    const isInsert = runSql.trim().toUpperCase().startsWith('INSERT');
+    if (isInsert && !runSql.toUpperCase().includes('RETURNING')) {
+      runSql += ' RETURNING id';
+    }
+
+    pool.query(runSql, params)
+      .then(result => {
+        const context = {
+          changes: result.rowCount,
+          lastID: result.rows && result.rows.length > 0 ? result.rows[0].id : null
+        };
+        if (callback) callback.call(context, null);
+      })
+      .catch(err => {
+        if (callback) callback.call(this, err);
+      });
+    return this;
+  },
+  get: function(sql, params = [], callback) {
+    if (typeof params === 'function') {
+      callback = params;
+      params = [];
+    }
+    pool.query(convertQuery(sql), params)
+      .then(result => {
+        if (callback) callback(null, result.rows[0]);
+      })
+      .catch(err => {
+        if (callback) callback(err);
+      });
+    return this;
+  },
+  all: function(sql, params = [], callback) {
+    if (typeof params === 'function') {
+      callback = params;
+      params = [];
+    }
+    pool.query(convertQuery(sql), params)
+      .then(result => {
+        if (callback) callback(null, result.rows);
+      })
+      .catch(err => {
+        if (callback) callback(err);
+      });
+    return this;
+  },
+  serialize: function(callback) {
+    callback();
+  }
+};
 
 db.serialize(() => {
-  db.run(`PRAGMA journal_mode = WAL;`);
-  db.run(`PRAGMA synchronous = NORMAL;`);
-
   db.run(`
     CREATE TABLE IF NOT EXISTS Users (
       id TEXT PRIMARY KEY,
       email TEXT UNIQUE NOT NULL,
       password_hash TEXT NOT NULL,
       role TEXT CHECK(role IN ('TEACHER', 'STUDENT')) NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
   `);
 
@@ -38,7 +97,7 @@ db.serialize(() => {
       teacher_id TEXT NOT NULL,
       title TEXT NOT NULL,
       subject TEXT NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY(teacher_id) REFERENCES Users(id)
     )
   `);
@@ -66,14 +125,14 @@ db.serialize(() => {
       title TEXT NOT NULL,
       bank_id TEXT NOT NULL,
       duration_minutes INTEGER NOT NULL,
-      start_time DATETIME NOT NULL,
-      end_time DATETIME NOT NULL,
+      start_time TIMESTAMP NOT NULL,
+      end_time TIMESTAMP NOT NULL,
       pool_size INTEGER NOT NULL,
       required_attempts_count INTEGER NOT NULL,
-      shuffle_questions BOOLEAN DEFAULT 1,
-      shuffle_options BOOLEAN DEFAULT 1,
+      shuffle_questions INTEGER DEFAULT 1,
+      shuffle_options INTEGER DEFAULT 1,
       proctoring_level TEXT CHECK(proctoring_level IN ('OFF', 'LOW', 'STRICT')) DEFAULT 'STRICT',
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY(teacher_id) REFERENCES Users(id),
       FOREIGN KEY(bank_id) REFERENCES QuestionBanks(id)
     )
@@ -85,8 +144,8 @@ db.serialize(() => {
       exam_id TEXT NOT NULL,
       student_id TEXT NOT NULL,
       status TEXT CHECK(status IN ('IN_PROGRESS', 'SUBMITTED', 'TERMINATED')) DEFAULT 'IN_PROGRESS',
-      start_time DATETIME DEFAULT CURRENT_TIMESTAMP,
-      end_time DATETIME,
+      start_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      end_time TIMESTAMP,
       total_score REAL DEFAULT 0.0,
       FOREIGN KEY(exam_id) REFERENCES Exams(id),
       FOREIGN KEY(student_id) REFERENCES Users(id),
@@ -111,8 +170,8 @@ db.serialize(() => {
       attempt_id TEXT NOT NULL,
       question_id TEXT NOT NULL,
       student_response TEXT,
-      is_marked_for_review BOOLEAN DEFAULT 0,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      is_marked_for_review INTEGER DEFAULT 0,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       PRIMARY KEY(attempt_id, question_id),
       FOREIGN KEY(attempt_id) REFERENCES ExamAttempts(id) ON DELETE CASCADE,
       FOREIGN KEY(question_id) REFERENCES Questions(id)
@@ -121,11 +180,11 @@ db.serialize(() => {
 
   db.run(`
     CREATE TABLE IF NOT EXISTS ProctorLogs (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       student_id TEXT NOT NULL,
       violation_type TEXT NOT NULL,
       details TEXT,
-      timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+      timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY(student_id) REFERENCES Users(id)
     )
   `);
@@ -146,7 +205,7 @@ db.serialize(() => {
       description TEXT,
       color TEXT DEFAULT '#4f46e5',
       icon TEXT DEFAULT '📚',
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY(teacher_id) REFERENCES Users(id) ON DELETE CASCADE,
       UNIQUE(teacher_id, name)
     )
@@ -167,13 +226,13 @@ db.serialize(() => {
   // ── Exam announcements ────────────────────────────────────────
   db.run(`
     CREATE TABLE IF NOT EXISTS Announcements (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       exam_id TEXT NOT NULL,
       teacher_id TEXT NOT NULL,
       target_student_id TEXT,
       message TEXT NOT NULL,
       type TEXT CHECK(type IN ('BROADCAST','INDIVIDUAL')) DEFAULT 'BROADCAST',
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY(exam_id) REFERENCES Exams(id) ON DELETE CASCADE
     )
   `);
@@ -185,7 +244,7 @@ db.serialize(() => {
       name TEXT NOT NULL DEFAULT 'Teacher',
       profile_photo TEXT,
       department TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY(teacher_id) REFERENCES Users(id) ON DELETE CASCADE
     )
   `);
@@ -200,9 +259,9 @@ db.serialize(() => {
   db.run(`ALTER TABLE Questions ADD COLUMN image_url TEXT`, () => {});
   db.run(`ALTER TABLE StudentProfiles ADD COLUMN profile_photo TEXT`, () => {});
   db.run(`ALTER TABLE Users ADD COLUMN reset_token TEXT`, () => {});
-  db.run(`ALTER TABLE Users ADD COLUMN reset_token_expiry DATETIME`, () => {});
+  db.run(`ALTER TABLE Users ADD COLUMN reset_token_expiry TIMESTAMP`, () => {});
   db.run(`ALTER TABLE Users ADD COLUMN otp_code TEXT`, () => {});
-  db.run(`ALTER TABLE Users ADD COLUMN otp_expiry DATETIME`, () => {});
+  db.run(`ALTER TABLE Users ADD COLUMN otp_expiry TIMESTAMP`, () => {});
   db.run(`ALTER TABLE QuestionBanks ADD COLUMN subject_id TEXT`, () => {});
 
   db.run(`CREATE INDEX IF NOT EXISTS idx_subjects_teacher ON Subjects(teacher_id);`);
