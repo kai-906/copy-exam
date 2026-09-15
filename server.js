@@ -76,6 +76,7 @@ app.get   ('/api/subjects/:id/exams',      verifyToken, requireRole('TEACHER'), 
 
 /* ── Question Banks ───────────────────────────────────────────── */
 const handleUpload = (req, res, next) => {
+  req.setTimeout(180000); // 3 minutes timeout
   upload.single('file')(req, res, (err) => {
     if (err) return res.status(400).json({ error: err.message || 'File upload error.' });
     next();
@@ -244,3 +245,6 @@ server.listen(PORT, () => {
   console.log(`    Student  : http://localhost:${PORT}/student-app/renderer/index.html`);
   console.log(`${'═'.repeat(52)}\n`);
 });
+
+// Increase server timeout for long-running PDF parsing requests (120 seconds)
+server.setTimeout(120000);

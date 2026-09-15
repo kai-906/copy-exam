@@ -493,6 +493,7 @@ function parseXlsxOrCsv(filePath, ext) {
 // ─────────────────────────────────────────────────────────────────────
 
 exports.uploadBank = async (req, res) => {
+  req.setTimeout(180000); // 3 minutes timeout
   let filePath = req.file ? req.file.path : null;
 
   try {
@@ -622,7 +623,7 @@ exports.uploadBank = async (req, res) => {
     if (filePath && fs.existsSync(filePath)) {
       try { fs.unlinkSync(filePath); } catch (e) {}
     }
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'PDF Parsing Failed', details: error.message });
   }
 };
 
