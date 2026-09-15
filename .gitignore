@@ -8,7 +8,7 @@ uploads/
 *.db-wal
 .env
 CopyExam-win32-x64/
+student-app.exe
 public/downloads/student-app.exe
 android/.gradle/
 android/app/build/
-public/downloads/student-app.exe
