@@ -356,26 +356,61 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (optBox) {
       optBox.innerHTML = '';
       const opts = Array.isArray(q.options) ? q.options : [];
-      opts.forEach(optText => {
-        const label  = document.createElement('label');
-        label.className = 'option-card';
+      const isShortAnswer = (q.question_type === 'SHORT_ANSWER' || q.question_type === 'FILL_BLANK' || !opts || opts.length === 0);
 
-        const radio  = document.createElement('input');
-        radio.type   = 'radio';
-        radio.name   = 'examOption';
-        radio.value  = optText;
-        radio.checked = state[q.id].selectedOption === optText;
-        radio.addEventListener('change', () => { state[q.id].selectedOption = optText; });
+      if (isShortAnswer) {
+        const container = document.createElement('div');
+        container.className = 'short-answer-container';
+        container.style.cssText = 'margin-top:10px;width:100%;';
 
-        const span   = document.createElement('span');
-        span.className = 'option-text';
-        span.textContent = optText;
-        renderKatex(span);
+        const label = document.createElement('label');
+        label.style.cssText = 'display:block;font-size:0.82rem;font-weight:700;color:var(--text2, #94a3b8);margin-bottom:8px;';
+        label.textContent = '✍️ Short Answer / Subjective Response:';
 
-        label.appendChild(radio);
-        label.appendChild(span);
-        optBox.appendChild(label);
-      });
+        const textarea = document.createElement('textarea');
+        textarea.id = 'shortAnswerInput';
+        textarea.rows = 5;
+        textarea.style.cssText = 'width:100%;background:#0f172a;border:1px solid #334155;border-radius:10px;color:#fff;padding:12px;font-size:0.95rem;font-family:inherit;outline:none;resize:vertical;min-height:120px;box-shadow:inset 0 2px 4px rgba(0,0,0,0.3);';
+        textarea.placeholder = 'Type your answer or response here...';
+        textarea.value = state[q.id].selectedOption || '';
+
+        textarea.addEventListener('input', () => {
+          const val = textarea.value.trim();
+          state[q.id].selectedOption = val;
+          if (val.length > 0) {
+            if (state[q.id].status !== 'MARKED_REVIEW') state[q.id].status = 'ANSWERED';
+          } else {
+            if (state[q.id].status !== 'MARKED_REVIEW') state[q.id].status = 'NOT_ANSWERED';
+          }
+          renderPalette();
+          updateCounters();
+        });
+
+        container.appendChild(label);
+        container.appendChild(textarea);
+        optBox.appendChild(container);
+      } else {
+        opts.forEach(optText => {
+          const label  = document.createElement('label');
+          label.className = 'option-card';
+
+          const radio  = document.createElement('input');
+          radio.type   = 'radio';
+          radio.name   = 'examOption';
+          radio.value  = optText;
+          radio.checked = state[q.id].selectedOption === optText;
+          radio.addEventListener('change', () => { state[q.id].selectedOption = optText; });
+
+          const span   = document.createElement('span');
+          span.className = 'option-text';
+          span.textContent = optText;
+          renderKatex(span);
+
+          label.appendChild(radio);
+          label.appendChild(span);
+          optBox.appendChild(label);
+        });
+      }
     }
 
     renderPalette();
@@ -429,13 +464,21 @@ document.addEventListener('DOMContentLoaded', async () => {
   async function saveCurrentAnswer(isMarkedForReview = false) {
     if (!questions.length) return;
     const q = questions[currentIndex];
-    const selected = document.querySelector('input[name="examOption"]:checked');
-    const responseValue = selected ? selected.value : state[q.id].selectedOption;
+    let responseValue = state[q.id].selectedOption || null;
+
+    const textarea = document.getElementById('shortAnswerInput');
+    if (textarea) {
+      responseValue = textarea.value.trim();
+    } else {
+      const selected = document.querySelector('input[name="examOption"]:checked');
+      if (selected) responseValue = selected.value;
+    }
 
     state[q.id].selectedOption = responseValue;
     state[q.id].status = isMarkedForReview
       ? 'MARKED_REVIEW'
       : (responseValue ? 'ANSWERED' : 'NOT_ANSWERED');
+
 
     try {
       await Api.request('/attempts/save-answer', {
@@ -477,11 +520,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       const q = questions[currentIndex];
       state[q.id].selectedOption = null;
       state[q.id].status = 'NOT_ANSWERED';
+      const textarea = document.getElementById('shortAnswerInput');
+      if (textarea) textarea.value = '';
       document.querySelectorAll('input[name="examOption"]').forEach(r => r.checked = false);
       renderPalette();
       updateCounters();
     });
   }
+
 
   const submitBtn = getEl('btnSubmitExam', 'submit-exam-btn');
   if (submitBtn) {

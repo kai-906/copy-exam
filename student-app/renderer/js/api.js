@@ -102,26 +102,33 @@ window.Api = {
     try {
       res = await fetch(`${base}${endpoint}`, { ...options, headers });
     } catch (netErr) {
+      console.error('Fetch network error:', netErr);
       throw new Error(
-        `Cannot connect to server (${base}). Please check internet or ⚙️ Server Settings.`
+        `Unable to connect to server (${base}). Please verify internet connection or ⚙️ Server Settings.`
       );
     }
 
-    // Detect HTML error pages (server down / wrong URL)
     const contentType = res.headers.get('content-type') || '';
-    if (!contentType.includes('application/json')) {
-      throw new Error(
-        `Server returned non-JSON response (${res.status}). ` +
-        `Check ⚙️ Server Settings — current URL: ${base}`
-      );
+    let data = {};
+
+    if (contentType.includes('application/json')) {
+      try {
+        data = await res.json();
+      } catch (jsonErr) {
+        data = { error: 'Invalid JSON formatting in server response.' };
+      }
+    } else {
+      const text = await res.text().catch(() => '');
+      let cleanMessage = `Server error (${res.status}).`;
+      if (text.includes('<title>')) {
+        const titleMatch = text.match(/<title>(.*?)<\/title>/i);
+        if (titleMatch) cleanMessage += ` ${titleMatch[1]}`;
+      } else if (text.length > 0 && text.length < 200) {
+        cleanMessage += ` ${text.trim()}`;
+      }
+      data = { error: cleanMessage };
     }
 
-    let data = {};
-    try {
-      data = await res.json();
-    } catch (jsonErr) {
-      throw new Error('Failed to parse server response.');
-    }
 
     if (!res.ok) {
       throw new Error(data.error || data.message || `Server error (${res.status})`);

@@ -438,43 +438,35 @@ function renderProfile() {
    ENTER EXAM MODAL
 ════════════════════════════════════════ */
 function initExamModal() {
-  document.getElementById('enter-exam-btn').addEventListener('click', () => {
-    document.getElementById('exam-key-inp').value = '';
-    document.getElementById('exam-key-err').textContent = '';
-    openModal('exam-modal');
-    setTimeout(() => document.getElementById('exam-key-inp').focus(), 80);
-  });
-
-  document.getElementById('exam-key-inp').addEventListener('keydown', e => {
-    if (e.key === 'Enter') goExam();
-  });
-
-  // auto-fill from URL
-  const urlKey = new URLSearchParams(window.location.search).get('key');
-  if (urlKey) {
-    document.getElementById('exam-key-inp').value = urlKey;
-    openModal('exam-modal');
+  const enterBtn = document.getElementById('enter-exam-btn');
+  if (enterBtn) {
+    enterBtn.addEventListener('click', () => {
+      // If running inside Electron desktop app, navigate straight to rules/exam
+      if (window.Api && window.Api.isAppEnvironment()) {
+        window.location.href = 'rules.html';
+      } else {
+        openModal('exam-modal');
+      }
+    });
   }
 
-  // Electron deep-link
-  try {
-    const { ipcRenderer } = require('electron');
-    ipcRenderer.on('auto-fill-key', (_, key) => {
-      if (key) { document.getElementById('exam-key-inp').value = key; openModal('exam-modal'); }
-    });
-  } catch(e) {}
+  // Detect mobile OS for correct download link fallback
+  const dlBtn = document.getElementById('btn-download-app');
+  if (dlBtn && typeof navigator !== 'undefined') {
+    const ua = navigator.userAgent || '';
+    if (/android/i.test(ua)) {
+      dlBtn.href = '/downloads/app-release.apk';
+      dlBtn.textContent = '📥 Download Android App (.apk)';
+    }
+  }
 }
 
 function goExam() {
-  let raw = document.getElementById('exam-key-inp').value.trim();
-  const err = document.getElementById('exam-key-err');
-  if (!raw) { err.textContent = 'Please enter an access key or link.'; return; }
-  if (raw.includes('key=')) raw = raw.split('key=')[1].split('&')[0];
-  raw = raw.trim();
-  if (!raw) { err.textContent = 'Could not extract a valid key.'; return; }
-  localStorage.setItem('active_exam_id', raw);
-  closeModal('exam-modal');
-  window.location.href = 'rules.html';
+  if (window.Api && window.Api.isAppEnvironment()) {
+    window.location.href = 'rules.html';
+  } else {
+    window.location.href = 'smartexam://launch';
+  }
 }
 
 /* ════════════════════════════════════════

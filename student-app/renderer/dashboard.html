@@ -279,17 +279,25 @@ body{margin:0;background:var(--bg);color:var(--text);display:flex;height:100vh;o
   </div><!-- /content -->
 </div><!-- /main -->
 
-<!-- ══ ENTER EXAM MODAL ══ -->
+<!-- ══ ENTER EXAM MODAL / APP LAUNCHER ══ -->
 <div class="modal-bg" id="exam-modal">
-  <div class="modal">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-      <div class="modal-title" style="margin:0;">🔐 Enter Exam Access Key</div>
+  <div class="modal" style="max-width:440px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+      <div class="modal-title" style="margin:0;">🔐 Launch SmartExam App</div>
       <button onclick="closeModal('exam-modal')" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text2);">✕</button>
     </div>
-    <p style="font-size:13px;color:var(--text2);margin:0 0 14px;">Paste the 6-digit code or full exam link shared by your teacher.</p>
-    <input id="exam-key-inp" class="inp" style="width:100%;font-family:monospace;font-size:18px;font-weight:700;letter-spacing:.1em;margin-bottom:8px;" placeholder="A3F9Z2  or full link…" autocomplete="off">
-    <p id="exam-key-err" style="font-size:12px;color:var(--danger);min-height:16px;margin:0 0 14px;"></p>
-    <button class="btn btn-p btn-full" onclick="goExam()">Proceed to Rules →</button>
+    <div style="background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.25);border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:13px;color:var(--text2);line-height:1.5;">
+      🛡️ <strong>Secure Exam Environment:</strong> Proctored examinations are launched directly inside the SmartExam App to ensure strict proctoring and anti-cheat compliance.
+    </div>
+    
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <a id="btn-launch-app" href="smartexam://launch" class="btn btn-p btn-full" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;font-size:14px;text-decoration:none;">
+        🚀 Open SmartExam App (Deep Link)
+      </a>
+      <a id="btn-download-app" href="/download/student-app" class="btn btn-o btn-full" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:11px;font-size:13px;text-decoration:none;">
+        💻 Download Desktop App (.exe)
+      </a>
+    </div>
   </div>
 </div>
 
