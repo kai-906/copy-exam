@@ -13,13 +13,10 @@ exports.getSubjects = (req, res) => {
   const teacherId = req.user.id;
   db.all(
     `SELECT s.*,
-            COUNT(DISTINCT qb.id) AS bank_count,
-            COUNT(DISTINCT e.id)  AS exam_count
+            (SELECT COUNT(*) FROM QuestionBanks qb WHERE qb.subject_id = s.id) AS bank_count,
+            (SELECT COUNT(*) FROM Exams e WHERE e.subject_id = s.id) AS exam_count
      FROM Subjects s
-     LEFT JOIN QuestionBanks qb ON qb.subject_id = s.id
-     LEFT JOIN Exams         e  ON e.subject_id  = s.id
      WHERE s.teacher_id = ?
-     GROUP BY s.id
      ORDER BY s.created_at DESC`,
     [teacherId],
     (err, rows) => {
@@ -91,11 +88,10 @@ exports.deleteSubject = (req, res) => {
 /* GET /api/subjects/:id/banks  — banks belonging to a subject */
 exports.getSubjectBanks = (req, res) => {
   db.all(
-    `SELECT qb.*, COUNT(q.id) AS question_count
+    `SELECT qb.*,
+            (SELECT COUNT(*) FROM Questions q WHERE q.bank_id = qb.id) AS question_count
      FROM QuestionBanks qb
-     LEFT JOIN Questions q ON q.bank_id = qb.id
      WHERE qb.subject_id = ? AND qb.teacher_id = ?
-     GROUP BY qb.id
      ORDER BY qb.created_at DESC`,
     [req.params.id, req.user.id],
     (err, rows) => {
@@ -109,11 +105,9 @@ exports.getSubjectBanks = (req, res) => {
 exports.getSubjectExams = (req, res) => {
   db.all(
     `SELECT e.*,
-            COUNT(DISTINCT ea.id) AS attempt_count
+            (SELECT COUNT(*) FROM ExamAttempts ea WHERE ea.exam_id = e.id) AS attempt_count
      FROM Exams e
-     LEFT JOIN ExamAttempts ea ON ea.exam_id = e.id
      WHERE e.subject_id = ? AND e.teacher_id = ?
-     GROUP BY e.id
      ORDER BY e.created_at DESC`,
     [req.params.id, req.user.id],
     (err, rows) => {

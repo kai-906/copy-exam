@@ -19,14 +19,14 @@ const db = {
     let runSql = convertQuery(sql);
     const isInsert = runSql.trim().toUpperCase().startsWith('INSERT');
     if (isInsert && !runSql.toUpperCase().includes('RETURNING')) {
-      runSql += ' RETURNING id';
+      runSql += ' RETURNING *';
     }
 
     pool.query(runSql, params)
       .then(result => {
         const context = {
           changes: result.rowCount,
-          lastID: result.rows && result.rows.length > 0 ? result.rows[0].id : null
+          lastID: (result.rows && result.rows.length > 0) ? (result.rows[0].id || result.rows[0].attempt_id || result.rows[0].exam_id || null) : null
         };
         if (callback) callback.call(context, null);
       })

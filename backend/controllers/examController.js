@@ -357,14 +357,12 @@ exports.getExamsList = (req, res) => {
   const teacherId = req.user.id;
   db.all(
     `SELECT e.*,
-            COALESCE(s.name,'—')  AS subject_name,
-            COALESCE(s.color,'#4f46e5') AS subject_color,
-            COUNT(DISTINCT ea.id) AS attempt_count
+            COALESCE(s.name, '—') AS subject_name,
+            COALESCE(s.color, '#4f46e5') AS subject_color,
+            (SELECT COUNT(*) FROM ExamAttempts ea WHERE ea.exam_id = e.id) AS attempt_count
      FROM Exams e
-     LEFT JOIN Subjects     s  ON s.id = e.subject_id
-     LEFT JOIN ExamAttempts ea ON ea.exam_id = e.id
+     LEFT JOIN Subjects s ON s.id = e.subject_id
      WHERE e.teacher_id = ?
-     GROUP BY e.id
      ORDER BY e.created_at DESC`,
     [teacherId],
     (err, rows) => {
@@ -380,12 +378,10 @@ exports.getExamsList = (req, res) => {
 exports.getExamBanks = (req, res) => {
   db.all(
     `SELECT eb.*, qb.title AS bank_title, qb.subject_id,
-            COUNT(q.id) AS total_questions
+            (SELECT COUNT(*) FROM Questions q WHERE q.bank_id = eb.bank_id) AS total_questions
      FROM ExamBanks eb
      JOIN QuestionBanks qb ON qb.id = eb.bank_id
-     LEFT JOIN Questions  q  ON q.bank_id = eb.bank_id
-     WHERE eb.exam_id = ?
-     GROUP BY eb.bank_id`,
+     WHERE eb.exam_id = ?`,
     [req.params.examId],
     (err, rows) => {
       if (err) return res.status(500).json({ error: err.message });

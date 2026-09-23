@@ -630,16 +630,14 @@ exports.uploadBank = async (req, res) => {
 exports.getTeacherBanks = (req, res) => {
   const teacherId = req.user ? req.user.id : null;
   const query = teacherId
-    ? `SELECT qb.*, COUNT(q.id) AS question_count
+    ? `SELECT qb.*,
+              (SELECT COUNT(*) FROM Questions q WHERE q.bank_id = qb.id) AS question_count
        FROM QuestionBanks qb
-       LEFT JOIN Questions q ON q.bank_id = qb.id
        WHERE qb.teacher_id = ?
-       GROUP BY qb.id
        ORDER BY qb.created_at DESC`
-    : `SELECT qb.*, COUNT(q.id) AS question_count
+    : `SELECT qb.*,
+              (SELECT COUNT(*) FROM Questions q WHERE q.bank_id = qb.id) AS question_count
        FROM QuestionBanks qb
-       LEFT JOIN Questions q ON q.bank_id = qb.id
-       GROUP BY qb.id
        ORDER BY qb.created_at DESC`;
   db.all(query, teacherId ? [teacherId] : [], (err, rows) => {
     if (err) return res.status(500).json({ error: 'Failed to fetch question banks' });

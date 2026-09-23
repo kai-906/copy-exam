@@ -920,30 +920,40 @@ async function loadExams() {
   } catch(e) { allExams=[]; }
 }
 function renderExams() {
-  const fs=document.getElementById('ex-filter-subj')?.value;
-  let list = fs ? allExams.filter(e=>e.subject_id===fs) : allExams;
-  const el=document.getElementById('exams-list');
-  if (!list.length) { el.innerHTML=`<div class="emp"><div class="emp-ic">📋</div><p>No exams yet.</p></div>`; return; }
-  el.innerHTML=`<table class="gt"><thead><tr><th>Exam</th><th>Class</th><th>Code</th><th>Duration</th><th>Attempts</th><th>Status</th><th>Actions</th></tr></thead><tbody>`+
-    list.map(e => {
-      const sc=e.subject_color||'#1a73e8';
-      const stag=e.subject_name&&e.subject_name!=='—'?`<span class="pill pb" style="background:${sc}18;color:${sc};">${esc(e.subject_name)}</span>`:'<span class="pill pn">—</span>';
-      const on=e.is_active!==0;
-      return `<tr><td><strong>${esc(e.title)}</strong></td><td>${stag}</td>
-        <td><code style="font-size:13px;font-weight:800;color:var(--primary);">${e.code||'—'}</code></td>
-        <td>${e.duration_minutes}m</td><td>${e.attempt_count||0}</td>
-        <td><label class="tog-wrap" title="${on?'Active (click to deactivate)':'Inactive (click to activate)'}">
-          <span class="tog"><input type="checkbox" ${on?'checked':''} onchange="togExam('${e.id}',this)"><span class="tog-sl"></span></span>
-          <span class="pill ${on?'pg':'pr'}" id="epill-${e.id}">${on?'Active':'Inactive'}</span>
-        </label></td>
-        <td style="display:flex;gap:5px;flex-wrap:wrap;">
-          <button class="btn btn-o btn-sm" onclick="copyExamLink('${esc(e.code||e.id)}')">🔗 Copy Link</button>
-          <button class="btn btn-o btn-sm" onclick="viewRes('${e.id}','${esc(e.title)}')">📊 Results</button>
-          <button class="btn btn-o btn-sm" onclick="openLiveFor('${e.id}','${esc(e.title)}')">📡 Monitor</button>
-        </td></tr>`;
-    }).join('')+`</tbody></table>`;
-}
-function copyExamLink(code) {
+    const fs=document.getElementById('ex-filter-subj')?.value;
+    let list = fs ? allExams.filter(e=>e.subject_id===fs) : allExams;
+    const el=document.getElementById('exams-list');
+    if (!list.length) { el.innerHTML=`<div class="emp"><div class="emp-ic">📋</div><p>No exams created yet for this class.</p></div>`; return; }
+    el.innerHTML=`<table class="gt"><thead><tr><th>Exam Title</th><th>Class</th><th>Exam Code</th><th>Duration</th><th>Attempts</th><th>Status (Active/Inactive)</th><th>Actions</th></tr></thead><tbody>`+
+      list.map(e => {
+        const sc=e.subject_color||'#1a73e8';
+        const stag=e.subject_name&&e.subject_name!=='—'?`<span class="pill pb" style="background:${sc}18;color:${sc};">${esc(e.subject_name)}</span>`:'<span class="pill pn">General</span>';
+        const on=e.is_active!==0;
+        return `<tr>
+          <td><strong>${esc(e.title)}</strong></td>
+          <td>${stag}</td>
+          <td><code style="font-size:14px;font-weight:800;color:#4f46e5;letter-spacing:1px;background:#eef2ff;padding:4px 8px;border-radius:4px;border:1px solid #c7d2fe;">${e.code||'—'}</code></td>
+          <td>${e.duration_minutes} mins</td>
+          <td>${e.attempt_count||0} attempts</td>
+          <td>
+            <label class="tog-wrap" style="display:inline-flex;align-items:center;gap:8px;cursor:pointer;" title="${on?'Active (click to deactivate)':'Inactive (click to activate)'}">
+              <span class="tog"><input type="checkbox" ${on?'checked':''} onchange="togExam('${e.id}',this)"><span class="tog-sl"></span></span>
+              <span class="pill ${on?'pg':'pr'}" id="epill-${e.id}">${on?'Active':'Inactive'}</span>
+            </label>
+          </td>
+          <td style="display:flex;gap:5px;flex-wrap:wrap;">
+            <button class="btn btn-o btn-sm" onclick="copyExamLink('${esc(e.code||e.id)}')">🔗 Copy Link</button>
+            <button class="btn btn-o btn-sm" onclick="copyExamCode('${esc(e.code||e.id)}')">🔑 Copy Code</button>
+            <button class="btn btn-o btn-sm" onclick="viewRes('${e.id}','${esc(e.title)}')">📊 Results</button>
+            <button class="btn btn-o btn-sm" onclick="openLiveFor('${e.id}','${esc(e.title)}')">🔴 Monitor</button>
+          </td>
+        </tr>`;
+      }).join('')+`</tbody></table>`;
+  }
+  function copyExamCode(code) {
+    navigator.clipboard.writeText(code).then(() => alert(`✅ Exam Code copied to clipboard!\nExam Code: ${code}`));
+  }
+  function copyExamLink(code) {
   const link = `${location.protocol}//${location.host}/launch-exam?key=${code}`;
   navigator.clipboard.writeText(link).then(() => alert(`✅ Exam link copied to clipboard!\n${link}`));
 }
