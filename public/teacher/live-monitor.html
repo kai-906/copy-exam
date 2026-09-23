@@ -321,7 +321,7 @@ function connectExam() {
 
   setStatus('Connecting…', false);
 
-  const url = location.protocol === 'file:' ? 'https://copy-exam-production.up.railway.app' : location.origin;
+  const url = location.protocol === 'file:' ? 'http://localhost:5000' : location.origin;
   socket = io(url);
 
   socket.on('connect', () => {

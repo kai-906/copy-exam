@@ -62,19 +62,27 @@ exports.createExam = (req, res) => {
       if (err) return res.status(500).json({ error: err.message });
 
       /* Insert ExamBanks junction rows */
-      const stmt = db.prepare(
-        `INSERT OR IGNORE INTO ExamBanks (exam_id, bank_id, selected_question_ids)
-         VALUES (?, ?, ?)`
-      );
+      let ebCompleted = 0;
+      let ebError = null;
       bankList.forEach(b => {
-        stmt.run(examId, b.bank_id, JSON.stringify(b.selected_question_ids || []));
-      });
-      stmt.finalize(() => {
-        res.status(201).json({
-          message: 'Exam created successfully',
-          examId, examCode,
-          accessLink: `${process.env.SERVER_URL || ''}/launch-exam?key=${examCode}`
-        });
+        db.run(
+          `INSERT INTO ExamBanks (exam_id, bank_id, selected_question_ids)
+           VALUES (?, ?, ?)
+           ON CONFLICT (exam_id, bank_id) DO NOTHING`,
+          [examId, b.bank_id, JSON.stringify(b.selected_question_ids || [])],
+          function(err) {
+            if (err && !ebError) ebError = err;
+            ebCompleted++;
+            if (ebCompleted === bankList.length) {
+              if (ebError) return res.status(500).json({ success: false, message: 'Failed to link question banks: ' + ebError.message });
+              res.status(201).json({
+                message: 'Exam created successfully',
+                examId, examCode,
+                accessLink: `${process.env.SERVER_URL || ''}/launch-exam?key=${examCode}`
+              });
+            }
+          }
+        );
       });
     }
   );
@@ -258,31 +266,37 @@ exports.startExamAttempt = (req, res) => {
                   Boolean(exam.shuffle_options)
                 );
 
-                const stmt = db.prepare(
-                  `INSERT INTO AssignedQuestions
-                     (attempt_id, question_id, sequence_order, shuffled_options)
-                   VALUES (?,?,?,?)`
-                );
-                paper.forEach(item =>
-                  stmt.run(attemptId, item.id, item.sequence_order, item.shuffled_options)
-                );
-                stmt.finalize(err => {
-                  if (err) return res.status(500).json({ error: err.message });
-                  res.json({
-                    attemptId,
-                    duration_minutes: exam.duration_minutes,
-                    title: exam.title,
-                    questions: paper.map(q => ({
-                      id: q.id,
-                      question_text: q.question_text,
-                      question_type: q.question_type,
-                      sequence_order: q.sequence_order,
-                      image_url: q.image_url || null,
-                      options: typeof q.shuffled_options === 'string'
-                        ? JSON.parse(q.shuffled_options)
-                        : (q.options || [])
-                    }))
-                  });
+                let aqCompleted = 0;
+                let aqError = null;
+                paper.forEach(item => {
+                  db.run(
+                    `INSERT INTO AssignedQuestions
+                       (attempt_id, question_id, sequence_order, shuffled_options)
+                     VALUES (?,?,?,?)`,
+                    [attemptId, item.id, item.sequence_order, item.shuffled_options],
+                    function(err) {
+                      if (err && !aqError) aqError = err;
+                      aqCompleted++;
+                      if (aqCompleted === paper.length) {
+                        if (aqError) return res.status(500).json({ success: false, message: aqError.message });
+                        res.json({
+                          attemptId,
+                          duration_minutes: exam.duration_minutes,
+                          title: exam.title,
+                          questions: paper.map(q => ({
+                            id: q.id,
+                            question_text: q.question_text,
+                            question_type: q.question_type,
+                            sequence_order: q.sequence_order,
+                            image_url: q.image_url || null,
+                            options: typeof q.shuffled_options === 'string'
+                              ? JSON.parse(q.shuffled_options)
+                              : (q.options || [])
+                          }))
+                        });
+                      }
+                    }
+                  );
                 });
               });
             });

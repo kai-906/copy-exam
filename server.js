@@ -1,6 +1,4 @@
-if (process.env.NODE_ENV !== 'production') {
-  try { require('dotenv').config(); } catch (e) {}
-}
+require('dotenv').config();
 
 const express = require('express');
 const compression = require('compression');
@@ -33,23 +31,13 @@ if (websocketHandler && typeof websocketHandler.init === 'function') {
 }
 
 app.use(compression());
-app.use(cors({
-  origin: '*',
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
-  credentials: false
-}));
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+app.use(cors());
+app.use(express.json({ limit: '10mb' }));
 
 /* ── Static files ─────────────────────────────────────────────── */
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/student-app', express.static(path.join(__dirname, 'student-app')));
 app.use('/downloads',   express.static(path.join(__dirname, 'public', 'downloads')));
-
-/* ── Health check ─────────────────────────────────────────────── */
-app.get('/api/health', (req, res) => res.json({ status: 'ok', version: '2.0', ts: Date.now() }));
-app.get('/health',     (req, res) => res.json({ status: 'ok', version: '2.0', ts: Date.now() }));
 
 /* ── Auth ─────────────────────────────────────────────────────── */
 app.post('/api/auth/teacher/register', authController.registerTeacher);
@@ -60,7 +48,6 @@ app.post('/api/auth/forgot-password',  authController.forgotPassword);
 app.post('/api/auth/verify-otp',       authController.verifyOTP);
 app.post('/api/auth/reset-password',   authController.resetPassword);
 app.post('/api/student/register',      authController.registerStudent);
-app.post('/api/student/login',         authController.loginStudent);
 
 /* ── Teacher profile ──────────────────────────────────────────── */
 app.get ('/api/teacher/profile', verifyToken, requireRole('TEACHER'), subjectController.getTeacherProfile);
@@ -76,7 +63,6 @@ app.get   ('/api/subjects/:id/exams',      verifyToken, requireRole('TEACHER'), 
 
 /* ── Question Banks ───────────────────────────────────────────── */
 const handleUpload = (req, res, next) => {
-  req.setTimeout(180000); // 3 minutes timeout
   upload.single('file')(req, res, (err) => {
     if (err) return res.status(400).json({ error: err.message || 'File upload error.' });
     next();
@@ -187,18 +173,6 @@ app.get ('/api/student/subject-progress',    verifyToken, requireRole('STUDENT')
 app.get('/api/reports/exam/:examId',        verifyToken, requireRole('TEACHER'), reportController.getExamAnalytics   || missingHandler('getExamAnalytics'));
 app.get('/api/reports/exam/:examId/export', verifyToken, requireRole('TEACHER'), reportController.exportResultsFormat || missingHandler('exportResultsFormat'));
 
-/* ── Student portal convenience redirects ─────────────────────── */
-app.get(['/student', '/student/'], (req, res) =>
-  res.redirect('/student-app/renderer/index.html'));
-app.get(['/student-app', '/student-app/'], (req, res) =>
-  res.redirect('/student-app/renderer/index.html'));
-app.get(['/student/login', '/student/login/'], (req, res) =>
-  res.redirect('/student-app/renderer/index.html'));
-app.get(['/student/dashboard', '/student/dashboard/'], (req, res) =>
-  res.redirect('/student-app/renderer/dashboard.html'));
-app.get(['/student/register', '/student/register/'], (req, res) =>
-  res.redirect('/student-app/renderer/register.html'));
-
 /* ── Deep link + downloads ────────────────────────────────────── */
 app.get('/launch-exam', (req, res) =>
   res.sendFile(path.join(__dirname, 'public', 'app-launcher.html')));
@@ -221,21 +195,6 @@ app.get(['/download/student-app', '/downloads/student-app.exe'], (req, res) => {
   return res.redirect(WINDOWS_EXE_URL);
 });
 
-/* ── Global API 404 & JSON Error Handlers ─────────────────────── */
-app.use(/^\/api\/.*/, (req, res) => {
-  res.status(404).json({ error: `API endpoint '${req.originalUrl}' not found.` });
-});
-
-
-app.use((err, req, res, next) => {
-  console.error('API Error Middleware caught error:', err);
-  const status = err.status || err.statusCode || 500;
-  res.status(status).json({
-    error: err.message || 'An unexpected server error occurred.',
-    code: err.code || 'SERVER_ERROR'
-  });
-});
-
 /* ── Start ────────────────────────────────────────────────────── */
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
@@ -245,6 +204,3 @@ server.listen(PORT, () => {
   console.log(`    Student  : http://localhost:${PORT}/student-app/renderer/index.html`);
   console.log(`${'═'.repeat(52)}\n`);
 });
-
-// Increase server timeout for long-running PDF parsing requests (120 seconds)
-server.setTimeout(120000);

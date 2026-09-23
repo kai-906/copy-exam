@@ -95,7 +95,7 @@
     });
 
     const API_BASE = (window.location.protocol === 'file:' || !window.location.origin || window.location.origin === 'null')
-      ? 'https://copy-exam-production.up.railway.app/api'
+      ? 'http://localhost:5000/api'
       : `${window.location.origin}/api`;
 
     const getApiUrl = (path) => `${API_BASE}${path}`;

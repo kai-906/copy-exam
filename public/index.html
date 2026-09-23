@@ -1,165 +1,141 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="SmartExam — AI-Proctored CBT Platform. Conduct secure, automated Computer-Based Tests with real-time proctoring, PDF MCQ extraction and instant grading.">
-  <title>SmartExam — AI Proctored CBT Platform</title>
-  <link rel="manifest" href="/manifest.json">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <style>
+&lt;!DOCTYPE html&gt;
+&lt;html lang="en"&gt;
+&lt;head&gt;
+  &lt;meta charset="UTF-8"&gt;
+  &lt;meta name="viewport" content="width=device-width, initial-scale=1.0"&gt;
+  &lt;meta name="description" content="SmartExam — AI-Proctored CBT Platform. Conduct secure, automated Computer-Based Tests with real-time proctoring, PDF MCQ extraction and instant grading."&gt;
+  &lt;title&gt;SmartExam — AI Proctored CBT Platform&lt;/title&gt;
+  &lt;script src="https://cdn.tailwindcss.com"&gt;&lt;/script&gt;
+  &lt;link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"&gt;
+  &lt;style&gt;
     body { font-family: 'Inter', system-ui, sans-serif; }
     @keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:.4} }
     .pulse-dot { animation: pulse-dot 1.5s infinite; }
     @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
     .float { animation: float 3s ease-in-out infinite; }
-  </style>
-</head>
-<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col">
+  &lt;/style&gt;
+&lt;/head&gt;
+&lt;body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col"&gt;
 
-  <!-- Navbar -->
-  <header class="border-b border-slate-800/80 bg-slate-900/80 backdrop-blur sticky top-0 z-50">
-    <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-      <div class="flex items-center space-x-3">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center font-black text-xl text-white shadow-lg shadow-blue-500/20">📝</div>
-        <div>
-          <span class="text-lg font-bold text-white tracking-tight">Smart Exam <span class="text-blue-400">System</span></span>
-          <span class="block text-[10px] uppercase font-bold tracking-widest text-slate-400">AI Proctored CBT Platform</span>
-        </div>
-      </div>
-      <div class="flex items-center space-x-4 text-xs font-semibold">
-        <span class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
-          <span class="w-2 h-2 rounded-full bg-emerald-400 pulse-dot"></span> System Online
-        </span>
-        <a href="/student-app/renderer/index.html" class="text-emerald-400 hover:text-emerald-300 transition">Student Portal</a>
-        <a href="/teacher/login.html" class="text-slate-300 hover:text-white transition">Teacher Login</a>
-        <a href="/teacher/login.html" id="nav-teacher-btn" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg transition shadow-md shadow-blue-600/30">
+  &lt;!-- Navbar --&gt;
+  &lt;header class="border-b border-slate-800/80 bg-slate-900/80 backdrop-blur sticky top-0 z-50"&gt;
+    &lt;div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between"&gt;
+      &lt;div class="flex items-center space-x-3"&gt;
+        &lt;div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center font-black text-xl text-white shadow-lg shadow-blue-500/20"&gt;📝&lt;/div&gt;
+        &lt;div&gt;
+          &lt;span class="text-lg font-bold text-white tracking-tight"&gt;Smart Exam &lt;span class="text-blue-400"&gt;System&lt;/span&gt;&lt;/span&gt;
+          &lt;span class="block text-[10px] uppercase font-bold tracking-widest text-slate-400"&gt;AI Proctored CBT Platform&lt;/span&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+      &lt;div class="flex items-center space-x-4 text-xs font-semibold"&gt;
+        &lt;span class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400"&gt;
+          &lt;span class="w-2 h-2 rounded-full bg-emerald-400 pulse-dot"&gt;&lt;/span&gt; System Online
+        &lt;/span&gt;
+        &lt;a href="/teacher/login.html" class="text-slate-300 hover:text-white transition"&gt;Teacher Login&lt;/a&gt;
+        &lt;a href="/teacher/login.html" id="nav-teacher-btn" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg transition shadow-md shadow-blue-600/30"&gt;
           Teacher Dashboard →
-        </a>
-      </div>
-    </div>
-  </header>
+        &lt;/a&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/header&gt;
 
-  <!-- Hero -->
-  <main class="max-w-6xl mx-auto px-6 py-14 flex-grow flex flex-col justify-center">
-    <div class="text-center space-y-4 max-w-3xl mx-auto mb-14">
-      <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-semibold">
+  &lt;!-- Hero --&gt;
+  &lt;main class="max-w-6xl mx-auto px-6 py-14 flex-grow flex flex-col justify-center"&gt;
+    &lt;div class="text-center space-y-4 max-w-3xl mx-auto mb-14"&gt;
+      &lt;div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-semibold"&gt;
         🛡️ Secure AI-Proctored Examination Suite
-      </div>
-      <h1 class="text-4xl md:text-5xl font-extrabold text-white tracking-tight leading-tight">
-        Secure, Smart &amp; Seamless<br>
-        <span class="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400">Online Examination</span>
-      </h1>
-      <p class="text-slate-400 text-sm md:text-base max-w-2xl mx-auto leading-relaxed">
+      &lt;/div&gt;
+      &lt;h1 class="text-4xl md:text-5xl font-extrabold text-white tracking-tight leading-tight"&gt;
+        Secure, Smart &amp;amp; Seamless&lt;br&gt;
+        &lt;span class="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400"&gt;Online Examination&lt;/span&gt;
+      &lt;/h1&gt;
+      &lt;p class="text-slate-400 text-sm md:text-base max-w-2xl mx-auto leading-relaxed"&gt;
         Fully automated Computer-Based Testing suite with PDF MCQ extraction, randomized question pools,
         real-time camera proctoring, and instant grading analytics.
-      </p>
-    </div>
+      &lt;/p&gt;
+    &lt;/div&gt;
 
-    <!-- Two Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto w-full">
+    &lt;!-- Two Cards --&gt;
+    &lt;div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto w-full"&gt;
 
-      <!-- Teacher Card -->
-      <div class="bg-slate-800/60 border border-slate-700/80 rounded-2xl p-7 shadow-xl hover:border-blue-500/50 transition duration-300 flex flex-col justify-between group">
-        <div class="space-y-3">
-          <div class="w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-2xl group-hover:scale-110 transition duration-300 float">🎓</div>
-          <h2 class="text-xl font-bold text-white">Teacher &amp; Admin Portal</h2>
-          <p class="text-xs text-slate-400 leading-relaxed">
+      &lt;!-- Teacher Card --&gt;
+      &lt;div class="bg-slate-800/60 border border-slate-700/80 rounded-2xl p-7 shadow-xl hover:border-blue-500/50 transition duration-300 flex flex-col justify-between group"&gt;
+        &lt;div class="space-y-3"&gt;
+          &lt;div class="w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-2xl group-hover:scale-110 transition duration-300 float"&gt;🎓&lt;/div&gt;
+          &lt;h2 class="text-xl font-bold text-white"&gt;Teacher &amp;amp; Admin Portal&lt;/h2&gt;
+          &lt;p class="text-xs text-slate-400 leading-relaxed"&gt;
             Upload question bank PDFs, create randomized exams, monitor candidates live, and export results in Excel / PDF / Word.
-          </p>
-          <ul class="text-xs text-slate-300 space-y-1.5 pt-2">
-            <li class="flex items-center gap-2"><span class="text-blue-400">✓</span> Offline PDF Parsing &amp; Question Bank</li>
-            <li class="flex items-center gap-2"><span class="text-blue-400">✓</span> Live WebSocket Violation Alerts</li>
-            <li class="flex items-center gap-2"><span class="text-blue-400">✓</span> Multi-Format Results Export</li>
-          </ul>
-        </div>
-        <div class="pt-6 border-t border-slate-700/50 mt-6 flex gap-3">
-          <a href="/teacher/login.html" class="flex-1 text-center bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2.5 rounded-xl text-xs transition shadow-lg shadow-blue-600/20">
+          &lt;/p&gt;
+          &lt;ul class="text-xs text-slate-300 space-y-1.5 pt-2"&gt;
+            &lt;li class="flex items-center gap-2"&gt;&lt;span class="text-blue-400"&gt;✓&lt;/span&gt; Offline PDF Parsing &amp;amp; Question Bank&lt;/li&gt;
+            &lt;li class="flex items-center gap-2"&gt;&lt;span class="text-blue-400"&gt;✓&lt;/span&gt; Live WebSocket Violation Alerts&lt;/li&gt;
+            &lt;li class="flex items-center gap-2"&gt;&lt;span class="text-blue-400"&gt;✓&lt;/span&gt; Multi-Format Results Export&lt;/li&gt;
+          &lt;/ul&gt;
+        &lt;/div&gt;
+        &lt;div class="pt-6 border-t border-slate-700/50 mt-6 flex gap-3"&gt;
+          &lt;a href="/teacher/login.html" class="flex-1 text-center bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2.5 rounded-xl text-xs transition shadow-lg shadow-blue-600/20"&gt;
             Teacher Login / Dashboard →
-          </a>
-          <a href="/teacher/live-monitor.html" class="px-3.5 py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-200 font-semibold rounded-xl text-xs transition">
+          &lt;/a&gt;
+          &lt;a href="/teacher/live-monitor.html" class="px-3.5 py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-200 font-semibold rounded-xl text-xs transition"&gt;
             📡 Live Monitor
-          </a>
-        </div>
-      </div>
+          &lt;/a&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
 
-      <!-- Student Card -->
-      <div class="bg-slate-800/60 border border-slate-700/80 rounded-2xl p-7 shadow-xl hover:border-emerald-500/50 transition duration-300 flex flex-col justify-between group">
-        <div class="space-y-3">
-          <div class="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-2xl group-hover:scale-110 transition duration-300 float">📱</div>
-          <h2 class="text-xl font-bold text-white">Student Exam Portal</h2>
-          <p class="text-xs text-slate-400 leading-relaxed">
-            Register your account via web, then <strong class="text-emerald-400">download the SmartExam App</strong> to take your proctored exam. Exams run only inside the secure app environment.
-          </p>
-          <ul class="text-xs text-slate-300 space-y-1.5 pt-2">
-            <li class="flex items-center gap-2"><span class="text-emerald-400">✓</span> Register &amp; View Results in Browser</li>
-            <li class="flex items-center gap-2"><span class="text-emerald-400">✓</span> Exam &amp; Test — <strong class="text-amber-400">App Only (Secure Proctored)</strong></li>
-            <li class="flex items-center gap-2"><span class="text-emerald-400">✓</span> Windows .exe &amp; Android .apk Available</li>
-          </ul>
-          <!-- App-only notice badge -->
-          <div class="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/25 mt-1">
-            <span class="text-amber-400 text-sm">⚠️</span>
-            <span class="text-xs text-amber-300 font-semibold">Exams can only be taken in the SmartExam App, not in browser.</span>
-          </div>
-        </div>
-        <div class="pt-6 border-t border-slate-700/50 mt-6 flex gap-3">
-          <a href="/student-app/renderer/register.html" id="student-register-btn"
-            class="flex-1 text-center bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2.5 rounded-xl text-xs transition shadow-lg shadow-emerald-600/20">
-            Register / Dashboard →
-          </a>
-          <a id="app-download-btn" href="#"
-            class="flex-1 text-center bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2.5 rounded-xl text-xs transition shadow-lg shadow-indigo-600/20" title="Download Exam App">
-            📥 Download App
-          </a>
-        </div>
-        <script>
-          (function() {
-            var dlBtn = document.getElementById('app-download-btn');
-            var ua = navigator.userAgent;
-            if (/android/i.test(ua)) {
-              dlBtn.href = '/downloads/app-release.apk';
-              dlBtn.innerHTML = '📥 Android .apk';
-              dlBtn.title = 'Download Android App';
-            } else if (/iphone|ipad|ipod/i.test(ua)) {
-              dlBtn.href = '#';
-              dlBtn.innerHTML = '📱 iOS Coming Soon';
-              dlBtn.onclick = function(e) { e.preventDefault(); alert('iOS version coming soon!'); };
-            } else {
-              dlBtn.href = '/download/student-app';
-              dlBtn.innerHTML = '💻 Windows .exe';
-              dlBtn.title = 'Download Windows Exam App';
-            }
-          })();
-        </script>
-      </div>
-    </div>
+      &lt;!-- Student Card (App Download Only) --&gt;
+      &lt;div class="bg-slate-800/60 border border-slate-700/80 rounded-2xl p-7 shadow-xl hover:border-emerald-500/50 transition duration-300 flex flex-col justify-between group"&gt;
+        &lt;div class="space-y-3"&gt;
+          &lt;div class="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-2xl group-hover:scale-110 transition duration-300 float"&gt;📱&lt;/div&gt;
+          &lt;h2 class="text-xl font-bold text-white"&gt;Student Exam Client&lt;/h2&gt;
+          &lt;p class="text-xs text-slate-400 leading-relaxed"&gt;
+            All examinations are conducted exclusively inside the official &lt;strong class="text-white"&gt;SmartExam App&lt;/strong&gt; for full AI proctoring, browser lockdown and secure CBT.
+          &lt;/p&gt;
+          &lt;div class="bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2.5 mt-2"&gt;
+            &lt;p class="text-amber-300 text-xs font-semibold"&gt;
+              ⚠️ Web browser access for students is not supported. Download the app to take your exam.
+            &lt;/p&gt;
+          &lt;/div&gt;
+          &lt;ul class="text-xs text-slate-300 space-y-1.5 pt-2"&gt;
+            &lt;li class="flex items-center gap-2"&gt;&lt;span class="text-emerald-400"&gt;✓&lt;/span&gt; AI-Proctored with Camera Lockdown&lt;/li&gt;
+            &lt;li class="flex items-center gap-2"&gt;&lt;span class="text-emerald-400"&gt;✓&lt;/span&gt; Real-Time Answer Saving &amp;amp; Palette&lt;/li&gt;
+            &lt;li class="flex items-center gap-2"&gt;&lt;span class="text-emerald-400"&gt;✓&lt;/span&gt; Instant Scoring after Submission&lt;/li&gt;
+          &lt;/ul&gt;
+        &lt;/div&gt;
 
-    <!-- Quick Link Bar -->
-    <div class="mt-10 bg-slate-800/30 border border-slate-800 rounded-xl p-4 max-w-4xl mx-auto w-full flex flex-wrap items-center justify-between gap-4 text-xs">
-      <div class="flex items-center gap-3 flex-wrap">
-        <span class="font-mono font-bold text-emerald-500 uppercase text-[11px]">Student:</span>
-        <a href="/student-app/renderer/register.html" class="text-emerald-400 hover:underline">Register</a>
-        <span class="text-slate-600">•</span>
-        <a href="/student-app/renderer/index.html" class="text-slate-300 hover:text-white">Login / Dashboard</a>
-        <span class="text-slate-600">•</span>
-        <a href="/download/student-app" class="text-amber-400 hover:underline font-semibold">Download App (Exam)</a>
-        <span class="text-slate-600 mx-1">|</span>
-        <span class="font-mono font-bold text-slate-400 uppercase text-[11px]">Teacher:</span>
-        <a href="/teacher/login.html" class="text-blue-400 hover:underline">Login</a>
-        <span class="text-slate-600">•</span>
-        <a href="/teacher/live-monitor.html" class="text-slate-300 hover:text-white">Live Monitor</a>
-      </div>
-      <div class="text-slate-400 text-[11px]">
-        Server Port: <span class="font-mono text-slate-200 font-bold">5000</span> | SQLite WAL Engine
-      </div>
-    </div>
-  </main>
+        &lt;div class="pt-6 border-t border-slate-700/50 mt-6 space-y-2"&gt;
+          &lt;p class="text-xs text-slate-400 font-semibold mb-3 uppercase tracking-widest"&gt;Download SmartExam App&lt;/p&gt;
+          &lt;a href="/downloads/app-release.apk" id="android-download"
+            class="flex items-center gap-3 w-full bg-emerald-700/80 hover:bg-emerald-600 text-white font-semibold py-2.5 px-4 rounded-xl text-xs transition shadow-lg shadow-emerald-900/30"&gt;
+            &lt;span class="text-lg"&gt;🤖&lt;/span&gt;
+            &lt;div&gt;&lt;div class="text-[10px] opacity-70"&gt;Get it for&lt;/div&gt;Android App (.apk)&lt;/div&gt;
+          &lt;/a&gt;
+          &lt;a href="/download/student-app" id="windows-download"
+            class="flex items-center gap-3 w-full bg-blue-700/80 hover:bg-blue-600 text-white font-semibold py-2.5 px-4 rounded-xl text-xs transition shadow-lg shadow-blue-900/30"&gt;
+            &lt;span class="text-lg"&gt;💻&lt;/span&gt;
+            &lt;div&gt;&lt;div class="text-[10px] opacity-70"&gt;Get it for&lt;/div&gt;Windows App (.exe)&lt;/div&gt;
+          &lt;/a&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
 
-  <!-- Footer -->
-  <footer class="border-t border-slate-800 py-6 text-center text-xs text-slate-500">
-    <p>© 2026 Smart Exam System. Secure AI-Proctored CBT Assessments.</p>
-  </footer>
+    &lt;!-- Quick Link Bar --&gt;
+    &lt;div class="mt-10 bg-slate-800/30 border border-slate-800 rounded-xl p-4 max-w-4xl mx-auto w-full flex flex-wrap items-center justify-between gap-4 text-xs"&gt;
+      &lt;div class="flex items-center gap-3"&gt;
+        &lt;span class="font-mono font-bold text-slate-400 uppercase text-[11px]"&gt;Teacher Portals:&lt;/span&gt;
+        &lt;a href="/teacher/login.html" class="text-blue-400 hover:underline"&gt;Teacher Login&lt;/a&gt;
+        &lt;span class="text-slate-600"&gt;•&lt;/span&gt;
+        &lt;a href="/teacher/live-monitor.html" class="text-slate-300 hover:text-white"&gt;Live Monitor&lt;/a&gt;
+      &lt;/div&gt;
+      &lt;div class="text-slate-400 text-[11px]"&gt;
+        Server Port: &lt;span class="font-mono text-slate-200 font-bold"&gt;5000&lt;/span&gt; | SQLite WAL Engine
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/main&gt;
 
-</body>
-</html>
+  &lt;!-- Footer --&gt;
+  &lt;footer class="border-t border-slate-800 py-6 text-center text-xs text-slate-500"&gt;
+    &lt;p&gt;© 2026 Smart Exam System. Secure AI-Proctored CBT Assessments.&lt;/p&gt;
+  &lt;/footer&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;

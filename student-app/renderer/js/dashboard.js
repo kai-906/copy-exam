@@ -482,7 +482,7 @@ function tryInitSocket() {
   if (!token) return;
 
   try {
-    const url = window.location.protocol === 'file:' ? 'https://copy-exam-production.up.railway.app' : window.location.origin;
+    const url = window.location.protocol === 'file:' ? 'http://localhost:5000' : window.location.origin;
     socket = io(url);
 
     socket.on('connect', () => {

@@ -5,7 +5,7 @@
 ════════════════════════════════════════════════════════ */
 
 // ← Change this to your deployed URL after deploying
-const PRODUCTION_SERVER = 'https://copy-exam-production.up.railway.app';
+const PRODUCTION_SERVER = 'http://localhost:5000';
 
 const _base = (
   typeof window !== 'undefined' &&

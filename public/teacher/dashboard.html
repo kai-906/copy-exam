@@ -1120,7 +1120,7 @@ function connectLive() {
   document.getElementById('vlog').innerHTML='<span style="opacity:.4;">Connecting…</span>';
   document.getElementById('live-dot').style.background='#f29900';
   document.getElementById('live-txt').textContent='Connecting…';
-  const url=location.protocol==='file:'?'https://copy-exam-production.up.railway.app':location.origin;
+  const url=location.protocol==='file:'?'http://localhost:5000':location.origin;
   liveSocket=window.io?io(url):null;
   if (!liveSocket) { document.getElementById('live-txt').textContent='Socket.io not loaded'; return; }
   liveSocket.emit('teacher:monitor',{examId});
