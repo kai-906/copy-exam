@@ -65,13 +65,34 @@ const db = {
   },
   serialize: function(callback) {
     callback();
+  },
+  /**
+   * Safety shim: db.prepare() is a SQLite-only API.
+   * This shim prevents "db.prepare is not a function" crashes
+   * by returning an object with run() and finalize() that delegate
+   * to the standard db.run() adapter.
+   */
+  prepare: function(sql) {
+    console.warn('[DB] DEPRECATION: db.prepare() called — use db.run() instead. SQL:', sql.substring(0, 80));
+    const self = this;
+    return {
+      run: function(...args) {
+        self.run(sql, args);
+      },
+      finalize: function(callback) {
+        if (callback) callback(null);
+      }
+    };
   }
 };
 
 // ── Database Initialization ───────────────────────────────────────────
 (async function initDb() {
+  let client;
   try {
-    await pool.query(`
+    client = await pool.connect();
+    await client.query('BEGIN');
+    await client.query(`
       CREATE TABLE IF NOT EXISTS Users (
         id TEXT PRIMARY KEY,
         email TEXT UNIQUE NOT NULL,
@@ -81,7 +102,7 @@ const db = {
       )
     `);
 
-    await pool.query(`
+    await client.query(`
       CREATE TABLE IF NOT EXISTS StudentProfiles (
         student_id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
@@ -93,7 +114,7 @@ const db = {
       )
     `);
 
-    await pool.query(`
+    await client.query(`
       CREATE TABLE IF NOT EXISTS QuestionBanks (
         id TEXT PRIMARY KEY,
         teacher_id TEXT NOT NULL,
@@ -104,7 +125,7 @@ const db = {
       )
     `);
 
-    await pool.query(`
+    await client.query(`
       CREATE TABLE IF NOT EXISTS Questions (
         id TEXT PRIMARY KEY,
         bank_id TEXT NOT NULL,
@@ -120,7 +141,7 @@ const db = {
       )
     `);
 
-    await pool.query(`
+    await client.query(`
       CREATE TABLE IF NOT EXISTS Exams (
         id TEXT PRIMARY KEY,
         teacher_id TEXT NOT NULL,
@@ -140,7 +161,7 @@ const db = {
       )
     `);
 
-    await pool.query(`
+    await client.query(`
       CREATE TABLE IF NOT EXISTS ExamAttempts (
         id TEXT PRIMARY KEY,
         exam_id TEXT NOT NULL,
@@ -155,7 +176,7 @@ const db = {
       )
     `);
 
-    await pool.query(`
+    await client.query(`
       CREATE TABLE IF NOT EXISTS AssignedQuestions (
         attempt_id TEXT NOT NULL,
         question_id TEXT NOT NULL,
@@ -167,7 +188,7 @@ const db = {
       )
     `);
 
-    await pool.query(`
+    await client.query(`
       CREATE TABLE IF NOT EXISTS StudentAnswers (
         attempt_id TEXT NOT NULL,
         question_id TEXT NOT NULL,
@@ -180,7 +201,7 @@ const db = {
       )
     `);
 
-    await pool.query(`
+    await client.query(`
       CREATE TABLE IF NOT EXISTS ProctorLogs (
         id SERIAL PRIMARY KEY,
         student_id TEXT NOT NULL,
@@ -191,15 +212,15 @@ const db = {
       )
     `);
 
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_users_email ON Users(email);`);
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_student_roll ON StudentProfiles(roll_number);`);
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_questions_bank ON Questions(bank_id);`);
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_assigned_attempt ON AssignedQuestions(attempt_id);`);
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_answers_attempt ON StudentAnswers(attempt_id);`);
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_proctor_student ON ProctorLogs(student_id);`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_users_email ON Users(email);`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_student_roll ON StudentProfiles(roll_number);`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_questions_bank ON Questions(bank_id);`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_assigned_attempt ON AssignedQuestions(attempt_id);`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_answers_attempt ON StudentAnswers(attempt_id);`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_proctor_student ON ProctorLogs(student_id);`);
 
     // ── Subjects table ────────────────────────────────────────────
-    await pool.query(`
+    await client.query(`
       CREATE TABLE IF NOT EXISTS Subjects (
         id TEXT PRIMARY KEY,
         teacher_id TEXT NOT NULL,
@@ -214,7 +235,7 @@ const db = {
     `);
 
     // ── Exam ↔ multiple question banks ────────────────────────────
-    await pool.query(`
+    await client.query(`
       CREATE TABLE IF NOT EXISTS ExamBanks (
         exam_id TEXT NOT NULL,
         bank_id TEXT NOT NULL,
@@ -226,7 +247,7 @@ const db = {
     `);
 
     // ── Exam announcements ────────────────────────────────────────
-    await pool.query(`
+    await client.query(`
       CREATE TABLE IF NOT EXISTS Announcements (
         id SERIAL PRIMARY KEY,
         exam_id TEXT NOT NULL,
@@ -240,7 +261,7 @@ const db = {
     `);
 
     // ── Teacher profiles ──────────────────────────────────────────
-    await pool.query(`
+    await client.query(`
       CREATE TABLE IF NOT EXISTS TeacherProfiles (
         teacher_id TEXT PRIMARY KEY,
         name TEXT NOT NULL DEFAULT 'Teacher',
@@ -252,27 +273,33 @@ const db = {
     `);
 
     // ── Safe non-destructive column migrations ────────────────────
-    await pool.query(`ALTER TABLE Exams ADD COLUMN IF NOT EXISTS selected_question_ids TEXT`);
-    await pool.query(`ALTER TABLE Exams ADD COLUMN IF NOT EXISTS code TEXT`);
-    await pool.query(`ALTER TABLE Exams ADD COLUMN IF NOT EXISTS total_marks REAL DEFAULT 100`);
-    await pool.query(`ALTER TABLE Exams ADD COLUMN IF NOT EXISTS pass_marks REAL DEFAULT 40`);
-    await pool.query(`ALTER TABLE Exams ADD COLUMN IF NOT EXISTS is_active INTEGER DEFAULT 1`);
-    await pool.query(`ALTER TABLE Exams ADD COLUMN IF NOT EXISTS subject_id TEXT`);
-    await pool.query(`ALTER TABLE Questions ADD COLUMN IF NOT EXISTS image_url TEXT`);
-    await pool.query(`ALTER TABLE StudentProfiles ADD COLUMN IF NOT EXISTS profile_photo TEXT`);
-    await pool.query(`ALTER TABLE Users ADD COLUMN IF NOT EXISTS reset_token TEXT`);
-    await pool.query(`ALTER TABLE Users ADD COLUMN IF NOT EXISTS reset_token_expiry TIMESTAMP`);
-    await pool.query(`ALTER TABLE Users ADD COLUMN IF NOT EXISTS otp_code TEXT`);
-    await pool.query(`ALTER TABLE Users ADD COLUMN IF NOT EXISTS otp_expiry TIMESTAMP`);
-    await pool.query(`ALTER TABLE QuestionBanks ADD COLUMN IF NOT EXISTS subject_id TEXT`);
+    await client.query(`ALTER TABLE Exams ADD COLUMN IF NOT EXISTS selected_question_ids TEXT`);
+    await client.query(`ALTER TABLE Exams ADD COLUMN IF NOT EXISTS code TEXT`);
+    await client.query(`ALTER TABLE Exams ADD COLUMN IF NOT EXISTS total_marks REAL DEFAULT 100`);
+    await client.query(`ALTER TABLE Exams ADD COLUMN IF NOT EXISTS pass_marks REAL DEFAULT 40`);
+    await client.query(`ALTER TABLE Exams ADD COLUMN IF NOT EXISTS is_active INTEGER DEFAULT 1`);
+    await client.query(`ALTER TABLE Exams ADD COLUMN IF NOT EXISTS subject_id TEXT`);
+    await client.query(`ALTER TABLE Questions ADD COLUMN IF NOT EXISTS image_url TEXT`);
+    await client.query(`ALTER TABLE StudentProfiles ADD COLUMN IF NOT EXISTS profile_photo TEXT`);
+    await client.query(`ALTER TABLE Users ADD COLUMN IF NOT EXISTS reset_token TEXT`);
+    await client.query(`ALTER TABLE Users ADD COLUMN IF NOT EXISTS reset_token_expiry TIMESTAMP`);
+    await client.query(`ALTER TABLE Users ADD COLUMN IF NOT EXISTS otp_code TEXT`);
+    await client.query(`ALTER TABLE Users ADD COLUMN IF NOT EXISTS otp_expiry TIMESTAMP`);
+    await client.query(`ALTER TABLE QuestionBanks ADD COLUMN IF NOT EXISTS subject_id TEXT`);
 
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_subjects_teacher ON Subjects(teacher_id);`);
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_exambanks_exam ON ExamBanks(exam_id);`);
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_announcements_exam ON Announcements(exam_id);`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_subjects_teacher ON Subjects(teacher_id);`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_exambanks_exam ON ExamBanks(exam_id);`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_announcements_exam ON Announcements(exam_id);`);
 
+    await client.query('COMMIT');
     console.log('Database initialization completed successfully.');
   } catch (err) {
+    if (client) {
+      try { await client.query('ROLLBACK'); } catch (rbErr) { /* ignore */ }
+    }
     console.error('Database initialization failed:', err);
+  } finally {
+    if (client) client.release();
   }
 })();
 
