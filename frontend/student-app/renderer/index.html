@@ -1,13 +1,13 @@
-&lt;!DOCTYPE html&gt;
-&lt;html lang="en"&gt;
-&lt;head&gt;
-  &lt;link rel="manifest" href="/manifest.json"&gt;
-  &lt;meta name="theme-color" content="#0f172a"&gt;
-  &lt;meta charset="UTF-8"&gt;
-  &lt;meta name="viewport" content="width=device-width, initial-scale=1.0"&gt;
-  &lt;title&gt;Student Login — SmartExam&lt;/title&gt;
-  &lt;link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"&gt;
-  &lt;style&gt;
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0f172a">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Login ΓÇö SmartExam</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
     *{box-sizing:border-box;margin:0;padding:0;}
     body{font-family:'Inter',sans-serif;background:linear-gradient(135deg,#0f172a 0%,#1e1b4b 100%);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;}
     .wrap{width:100%;max-width:360px;}
@@ -98,8 +98,8 @@
         <div class="form-group">
           <label class="lbl" for="pass">Password</label>
           <div class="inp-wrap">
-            <input type="password" id="pass" class="inp" required autocomplete="current-password" placeholder="••••••••">
-            <button type="button" id="toggle-pass" class="toggle-pass" tabindex="-1">👁</button>
+            <input type="password" id="pass" class="inp" required autocomplete="current-password" placeholder="ΓÇóΓÇóΓÇóΓÇóΓÇóΓÇóΓÇóΓÇó">
+            <button type="button" id="toggle-pass" class="toggle-pass" tabindex="-1">≡ƒæü</button>
           </div>
         </div>
 
@@ -112,25 +112,25 @@
             placeholder="Enter your exam code" style="font-family:monospace;font-size:.92rem;">
         </div>
 
-        <button type="submit" id="login-btn" class="btn-primary">Sign In &amp; Verify →</button>
+        <button type="submit" id="login-btn" class="btn-primary">Sign In & Verify ΓåÆ</button>
 
       </form>
 
       <div class="foot">
         <a href="forgot-password.html" id="forgot-link">Forgot Password?</a>
-        <a href="register.html" id="reg-link">New student? Register →</a>
+        <a href="register.html" id="reg-link">New student? Register ΓåÆ</a>
       </div>
     </div>
 
     <div class="server-tip">
-      Connection issues? <a id="openServerSettings">⚙️ Server Settings</a>
+      Connection issues? <a id="openServerSettings">ΓÜÖ∩╕Å Server Settings</a>
     </div>
   </div>
 
   <!-- Server Settings Modal -->
   <div class="server-modal" id="serverModal">
     <div class="server-box">
-      <h3>⚙️ Server Settings</h3>
+      <h3>ΓÜÖ∩╕Å Server Settings</h3>
       <p>Enter the IP address or URL of the SmartExam backend server running on your network. Leave blank to use the production/default server.</p>
       <div class="server-row">
         <input type="text" id="serverUrlInput" class="inp" placeholder="http://192.168.x.x:5000">
@@ -143,7 +143,7 @@
 
   <script src="js/api.js"></script>
   <script>
-    // ── Helper to extract clean key from raw input or full URLs ───────
+    // ΓöÇΓöÇ Helper to extract clean key from raw input or full URLs ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
     function extractCleanKey(raw) {
       if (!raw) return '';
       raw = raw.trim();
@@ -167,7 +167,7 @@
       return raw;
     }
 
-    // ── Live exam info preview ───────────────────────────────────────
+    // ΓöÇΓöÇ Live exam info preview ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
     let currentPreviewKey = '';
     async function previewExamInfo(rawKey) {
       const cleanKey = extractCleanKey(rawKey);
@@ -184,12 +184,12 @@
         if (res.ok && data && data.exists) {
           titleEl.textContent = data.title || 'Examination';
           const dur = data.duration_minutes ? `${data.duration_minutes} mins` : '';
-          const status = data.is_active !== 0 ? '🟢 Active & Accepting Students' : '🔒 Inactive / Closed';
-          metaEl.textContent = `Code: ${data.code || cleanKey} ${dur ? '· ⏱ ' + dur : ''} · ${status}`;
+          const status = data.is_active !== 0 ? '≡ƒƒó Active & Accepting Students' : '≡ƒöÆ Inactive / Closed';
+          metaEl.textContent = `Code: ${data.code || cleanKey} ${dur ? '┬╖ ΓÅ▒ ' + dur : ''} ┬╖ ${status}`;
           banner.style.display = 'block';
 
           if (data.is_active === 0) {
-            showAlert('⚠️ This examination has been deactivated by the teacher.', 'warn');
+            showAlert('ΓÜá∩╕Å This examination has been deactivated by the teacher.', 'warn');
           } else {
             hideAlert();
           }
@@ -202,7 +202,7 @@
       }
     }
 
-    // ── Deep link / URL key auto-fill ────────────────────────────────
+    // ΓöÇΓöÇ Deep link / URL key auto-fill ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
     window.addEventListener('DOMContentLoaded', () => {
       const params = new URLSearchParams(window.location.search);
       const key = params.get('key') || params.get('code') || params.get('exam_id') || params.get('examKey') || params.get('examCode') || '';
@@ -237,13 +237,13 @@
       }
     });
 
-    // ── Show/hide password ───────────────────────────────────────────
+    // ΓöÇΓöÇ Show/hide password ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
     document.getElementById('toggle-pass').addEventListener('click', () => {
       const inp = document.getElementById('pass');
       inp.type = inp.type === 'password' ? 'text' : 'password';
     });
 
-    // ── Show alert ──────────────────────────────────────────────────
+    // ΓöÇΓöÇ Show alert ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
     function showAlert(msg, type = 'error') {
       const box = document.getElementById('alert-box');
       box.textContent = msg;
@@ -252,7 +252,7 @@
     }
     function hideAlert() { document.getElementById('alert-box').style.display = 'none'; }
 
-    // ── Login Form ──────────────────────────────────────────────────
+    // ΓöÇΓöÇ Login Form ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
     document.getElementById('login-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       hideAlert();
@@ -272,7 +272,7 @@
       }
 
       btn.disabled = true;
-      btn.innerHTML = '<span class="spinner"></span>Signing in…';
+      btn.innerHTML = '<span class="spinner"></span>Signing inΓÇª';
 
       try {
         // Step 1: Login
@@ -284,7 +284,7 @@
 
         const ct = loginRes.headers.get('content-type') || '';
         if (!ct.includes('application/json')) {
-          throw new Error('Cannot reach the exam server. Check ⚙️ Server Settings.');
+          throw new Error('Cannot reach the exam server. Check ΓÜÖ∩╕Å Server Settings.');
         }
 
         const loginData = await loginRes.json();
@@ -331,11 +331,11 @@
       } catch (err) {
         showAlert(err.message || 'Connection error. Please try again.');
         btn.disabled = false;
-        btn.innerHTML = 'Sign In &amp; Verify →';
+        btn.innerHTML = 'Sign In & Verify ΓåÆ';
       }
     });
 
-    // ── Server Settings Modal ────────────────────────────────────────
+    // ΓöÇΓöÇ Server Settings Modal ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
     const modal = document.getElementById('serverModal');
     const inp   = document.getElementById('serverUrlInput');
     inp.value   = localStorage.getItem('server_url') || '';
@@ -352,6 +352,6 @@
       inp.value = '';
       alert('Server URL reset to default.');
     });
-  &lt;/script&gt;
-&lt;/body&gt;
-&lt;/html&gt;
+  </script>
+</body>
+</html>

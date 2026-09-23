@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "description": "Smart Exam System Student Application",
   "author": "Your Name",
-  "main": "student-app/main.js",
+  "main": "frontend/student-app/main.js",
   "scripts": {
-    "start": "node server.js",
+    "start": "node backend/server.js",
     "build:win": "electron-builder --win nsis"
   },
   "build": {
@@ -15,7 +15,7 @@
       "output": "dist"
     },
     "files": [
-      "student-app/**/*"
+      "frontend/student-app/**/*"
     ],
     "protocols": [
       {

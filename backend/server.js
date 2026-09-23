@@ -35,9 +35,9 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
 /* ── Static files ─────────────────────────────────────────────── */
-app.use(express.static(path.join(__dirname, 'public')));
-app.use('/student-app', express.static(path.join(__dirname, 'student-app')));
-app.use('/downloads',   express.static(path.join(__dirname, 'public', 'downloads')));
+app.use(express.static(path.join(__dirname, '../frontend/public')));
+app.use('/student-app', express.static(path.join(__dirname, '../frontend/student-app')));
+app.use('/downloads',   express.static(path.join(__dirname, '../frontend/public', 'downloads')));
 
 /* ── Auth ─────────────────────────────────────────────────────── */
 app.post('/api/auth/teacher/register', authController.registerTeacher);
@@ -175,12 +175,12 @@ app.get('/api/reports/exam/:examId/export', verifyToken, requireRole('TEACHER'),
 
 /* ── Deep link + downloads ────────────────────────────────────── */
 app.get('/launch-exam', (req, res) =>
-  res.sendFile(path.join(__dirname, 'public', 'app-launcher.html')));
+  res.sendFile(path.join(__dirname, '../frontend/public', 'app-launcher.html')));
 
 const WINDOWS_EXE_URL = 'https://github.com/kai-906/copy-exam/releases/download/v1.0.0/student-app.exe';
 
 app.get('/downloads/app-release.apk', (req, res) => {
-  const p = path.join(__dirname, 'public', 'downloads', 'app-release.apk');
+  const p = path.join(__dirname, '../frontend/public', 'downloads', 'app-release.apk');
   if (fs.existsSync(p) && fs.statSync(p).size > 100000) {
     return res.download(p, 'SmartExam-Student.apk');
   }
@@ -188,7 +188,7 @@ app.get('/downloads/app-release.apk', (req, res) => {
 });
 
 app.get(['/download/student-app', '/downloads/student-app.exe'], (req, res) => {
-  const p = path.join(__dirname, 'public', 'downloads', 'student-app.exe');
+  const p = path.join(__dirname, '../frontend/public', 'downloads', 'student-app.exe');
   if (fs.existsSync(p) && fs.statSync(p).size > 1000000) {
     return res.download(p, 'Smart-Exam-Student-App.exe');
   }
